@@ -198,7 +198,7 @@ updatePlayer controller player =
 
             OnWall ( framesOnWall, wallOnRight ) ->
                 let
-                    ( newVelocity, newState ) =
+                    ( newVelocity, newState, framesSinceLastChain ) =
                         if framesOnWall < toFloat framesOnWallMaxDuration then
                             if controller.dPad == Right && not wallOnRight then
                                 if controller.jump == Pressed then
@@ -215,7 +215,7 @@ updatePlayer controller player =
                                         newState =
                                             Jumping
                                     in
-                                        ( newVelocity, newState )
+                                        ( newVelocity, newState, 0 )
                                 else
                                     let
                                         newVelocity =
@@ -227,7 +227,7 @@ updatePlayer controller player =
                                         newState =
                                             OnWall ( framesOnWall + 1, wallOnRight )
                                     in
-                                        ( newVelocity, newState )
+                                        ( newVelocity, newState, player.framesSinceLastChain + 1 )
                             else if controller.dPad == Left && wallOnRight then
                                 if controller.jump == Pressed then
                                     let
@@ -243,7 +243,7 @@ updatePlayer controller player =
                                         newState =
                                             Jumping
                                     in
-                                        ( newVelocity, newState )
+                                        ( newVelocity, newState, 0 )
                                 else
                                     let
                                         newVelocity =
@@ -255,7 +255,7 @@ updatePlayer controller player =
                                         newState =
                                             OnWall ( framesOnWall + 1, wallOnRight )
                                     in
-                                        ( newVelocity, newState )
+                                        ( newVelocity, newState, player.framesSinceLastChain + 1 )
                             else
                                 let
                                     newVelocity =
@@ -267,7 +267,7 @@ updatePlayer controller player =
                                     newState =
                                         OnWall ( framesOnWall + 1, wallOnRight )
                                 in
-                                    ( newVelocity, newState )
+                                    ( newVelocity, newState, player.framesSinceLastChain + 1 )
                         else
                             let
                                 newVelocity =
@@ -281,7 +281,7 @@ updatePlayer controller player =
                                 newState =
                                     OnWall ( framesOnWall + 1, wallOnRight )
                             in
-                                ( newVelocity, newState )
+                                ( newVelocity, newState, player.framesSinceLastChain + 1 )
 
                     newLocation =
                         newVelocity
@@ -292,7 +292,7 @@ updatePlayer controller player =
                         | location = newLocation
                         , velocity = newVelocity
                         , playerState = newState
-                        , framesSinceLastChain = player.framesSinceLastChain + 1
+                        , framesSinceLastChain = framesSinceLastChain
                     }
 
             HitStun framesHitStuned ->
