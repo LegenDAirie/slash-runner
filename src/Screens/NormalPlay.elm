@@ -103,12 +103,13 @@ updateNormalPlay controllerState state =
             getSideCollidingWithEnemies updatedPlayer.location updatedPlayer.size state.enemies Nothing
 
         ( newerState, framesSinceLastChain ) =
-            stateAfterEnemyCollision sidecollidingWithEnemy state.player.framesSinceLastChain newState
+            stateAfterEnemyCollision sidecollidingWithEnemy updatedPlayer.framesSinceLastChain newState
 
         setPlayer =
             { updatedPlayer
                 | location = newPlayerLocation
                 , playerState = newerState
+                , framesSinceLastChain = framesSinceLastChain
             }
     in
         { state
