@@ -6,7 +6,7 @@ import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
 import Controller exposing (ControllerState)
 import Coordinates exposing (gameSize, convertTouchCoorToGameCoor)
-import Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer, stateAfterPlatformCollision, stateAfterEnemyCollision)
+import Player exposing (Player, PlayerState(..), applyPhysics, renderPlayer, stateAfterPlatformCollision, stateAfterEnemyCollision, incrementPlayerCounters, stateAfterControllerInputs)
 import Enemy exposing (Enemy, renderEnemy, updateEnemies)
 import Wall exposing (Wall, renderWall)
 import CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
@@ -90,30 +90,35 @@ updateNormalPlay controllerState state =
         newEnemies =
             updateEnemies state.enemies
 
-        updatedPlayer =
-            updatePlayer controllerState state.player
-
-        ( newPlayerLocation, collisionSide ) =
-            setByPlatform updatedPlayer.location updatedPlayer.size state.walls Nothing
-
-        newState =
-            stateAfterPlatformCollision collisionSide updatedPlayer.playerState
+        ( setPlayerLocation, sideCollidingWithPlatform ) =
+            setByPlatform state.player.location state.player.size state.walls Nothing
 
         sidecollidingWithEnemy =
-            getSideCollidingWithEnemies updatedPlayer.location updatedPlayer.size state.enemies Nothing
+            getSideCollidingWithEnemies state.player.location state.player.size state.enemies Nothing
 
-        ( newerState, framesSinceLastChain ) =
-            stateAfterEnemyCollision sidecollidingWithEnemy updatedPlayer.framesSinceLastChain newState
+        ( newPlayerState, newFramesSinceLastChain ) =
+            ( state.player.playerState, state.player.framesSinceLastChain )
+                |> incrementPlayerCounters
+                |> stateAfterControllerInputs controllerState
+                |> stateAfterPlatformCollision sideCollidingWithPlatform
+                |> stateAfterEnemyCollision sidecollidingWithEnemy
 
-        setPlayer =
-            { updatedPlayer
-                | location = newPlayerLocation
-                , playerState = newerState
-                , framesSinceLastChain = framesSinceLastChain
+        ( newLocation, newVelocity ) =
+            applyPhysics controllerState.dPad newPlayerState newFramesSinceLastChain setPlayerLocation state.player.velocity
+
+        thePlayer =
+            state.player
+
+        newPlayer =
+            { thePlayer
+                | location = newLocation
+                , velocity = newVelocity
+                , playerState = newPlayerState
+                , framesSinceLastChain = newFramesSinceLastChain
             }
     in
         { state
-            | player = setPlayer
+            | player = newPlayer
             , enemies = newEnemies
             , camera = Camera.follow 0.5 0.17 (V2.sub state.player.location ( -100, -100 )) state.camera
         }

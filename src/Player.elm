@@ -1,4 +1,4 @@
-module Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer, stateAfterPlatformCollision, stateAfterEnemyCollision)
+module Player exposing (Player, PlayerState(..), applyPhysics, renderPlayer, stateAfterPlatformCollision, stateAfterEnemyCollision, incrementPlayerCounters, stateAfterControllerInputs)
 
 import Vector2 as V2 exposing (getX, getY)
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
@@ -22,16 +22,21 @@ type alias Player =
 
 type PlayerState
     = Running
-    | Jumping
+    | Jumping Vector
     | Falling
     | Dashing Float
     | OnWall ( Float, Bool )
     | HitStun Float
 
 
+defaultJumpForce : Vector
+defaultJumpForce =
+    ( 0, 50 )
+
+
 chainSpeedModifier : Float
 chainSpeedModifier =
-    1.5
+    3
 
 
 maxChainDuration : Int
@@ -54,38 +59,49 @@ hitStunMaxDuration =
     60
 
 
-updatePlayer : ControllerState -> Player -> Player
-updatePlayer controller player =
+applyPhysics : DPad -> PlayerState -> Int -> Vector -> Vector -> ( Vector, Vector )
+applyPhysics dPad playerState framesSinceLastChain location velocity =
     let
         gravitationalForce =
             gravity
 
         controllerDirectionalForce =
-            if controller.dPad == Left then
+            if dPad == Left then
                 controllerLeftForce
-            else if controller.dPad == Right then
+            else if dPad == Right then
                 controllerRightForce
             else
                 ( 0, 0 )
 
         modifiedControllerDirectionalForce =
-            if player.framesSinceLastChain < maxChainDuration then
+            if framesSinceLastChain < maxChainDuration then
                 controllerDirectionalForce
                     |> (\( x, y ) -> ( x * chainSpeedModifier, y ))
             else
                 controllerDirectionalForce
-
-        jumpForce =
-            if controller.jump == Pressed then
-                ( 0, 50 )
-            else
-                ( 0, 0 )
     in
-        case player.playerState of
+        case playerState of
             Running ->
                 let
                     newVelocity =
-                        player.velocity
+                        velocity
+                            |> V2.add gravitationalForce
+                            |> V2.add modifiedControllerDirectionalForce
+                            |> (\( x, y ) -> ( x * resistance, y ))
+                            |> capHorizontalVelocity speedCap
+                            |> capVerticalVelocity speedCap
+
+                    newLocation =
+                        newVelocity
+                            |> V2.add location
+                            |> resetPlayerToOrigin
+                in
+                    ( newLocation, newVelocity )
+
+            Jumping jumpForce ->
+                let
+                    newVelocity =
+                        velocity
                             |> V2.add gravitationalForce
                             |> V2.add modifiedControllerDirectionalForce
                             |> V2.add jumpForce
@@ -95,54 +111,15 @@ updatePlayer controller player =
 
                     newLocation =
                         newVelocity
-                            |> V2.add player.location
-                            |> resetPlayerToOrigin
-
-                    newState =
-                        if controller.dash == Pressed then
-                            Dashing 0
-                        else
-                            Running
-
-                    newerState =
-                        if controller.jump == Pressed then
-                            -- jumping cancels dashing
-                            Jumping
-                        else
-                            newState
-                in
-                    { player
-                        | location = newLocation
-                        , velocity = newVelocity
-                        , playerState = newerState
-                        , framesSinceLastChain = player.framesSinceLastChain + 1
-                    }
-
-            Jumping ->
-                let
-                    newVelocity =
-                        player.velocity
-                            |> V2.add gravitationalForce
-                            |> V2.add modifiedControllerDirectionalForce
-                            |> (\( x, y ) -> ( x * resistance, y ))
-                            |> capHorizontalVelocity speedCap
-                            |> capVerticalVelocity speedCap
-
-                    newLocation =
-                        newVelocity
-                            |> V2.add player.location
+                            |> V2.add location
                             |> resetPlayerToOrigin
                 in
-                    { player
-                        | location = newLocation
-                        , velocity = newVelocity
-                        , framesSinceLastChain = player.framesSinceLastChain + 1
-                    }
+                    ( newLocation, newVelocity )
 
             Falling ->
                 let
                     newVelocity =
-                        player.velocity
+                        velocity
                             |> V2.add gravitationalForce
                             |> V2.add modifiedControllerDirectionalForce
                             |> (\( x, y ) -> ( x * resistance, y ))
@@ -151,26 +128,20 @@ updatePlayer controller player =
 
                     newLocation =
                         newVelocity
-                            |> V2.add player.location
+                            |> V2.add location
                             |> resetPlayerToOrigin
                 in
-                    { player
-                        | location = newLocation
-                        , velocity = newVelocity
-                        , framesSinceLastChain = player.framesSinceLastChain + 1
-                    }
+                    ( newLocation, newVelocity )
 
             Dashing framesDashing ->
                 let
                     newVelocity =
                         if framesDashing < toFloat framesDashingMaxDuration then
-                            player.velocity
-                                |> V2.add jumpForce
+                            velocity
                                 |> capHorizontalVelocity speedCap
                                 |> capVerticalVelocity speedCap
                         else
-                            player.velocity
-                                |> V2.add jumpForce
+                            velocity
                                 |> (\( x, y ) -> ( x * 0, y ))
                                 |> capHorizontalVelocity speedCap
                                 |> capVerticalVelocity speedCap
@@ -179,240 +150,139 @@ updatePlayer controller player =
                         -- double velocity while dashing
                         newVelocity
                             |> (\( x, y ) -> ( x * 2, y ))
-                            |> V2.add player.location
+                            |> V2.add location
                             |> resetPlayerToOrigin
-
-                    newState =
-                        if controller.jump == Pressed then
-                            -- jumping cancels dashing
-                            Jumping
-                        else
-                            Dashing (framesDashing + 1)
                 in
-                    { player
-                        | location = newLocation
-                        , velocity = newVelocity
-                        , playerState = newState
-                        , framesSinceLastChain = player.framesSinceLastChain + 1
-                    }
+                    ( newLocation, newVelocity )
 
             OnWall ( framesOnWall, wallOnRight ) ->
                 let
-                    ( newVelocity, newState, framesSinceLastChain ) =
+                    newVelocity =
                         if framesOnWall < toFloat framesOnWallMaxDuration then
-                            if controller.dPad == Right && not wallOnRight then
-                                if controller.jump == Pressed then
-                                    let
-                                        newVelocity =
-                                            ( 0, 0 )
-                                                |> V2.add gravitationalForce
-                                                |> V2.add modifiedControllerDirectionalForce
-                                                |> V2.add jumpForce
-                                                |> (\( x, y ) -> ( x * resistance, y ))
-                                                |> capHorizontalVelocity speedCap
-                                                |> capVerticalVelocity speedCap
-
-                                        newState =
-                                            Jumping
-                                    in
-                                        ( newVelocity, newState, 0 )
-                                else
-                                    let
-                                        newVelocity =
-                                            ( 0, 0 )
-                                                |> (\( x, y ) -> ( x * resistance, y ))
-                                                |> capHorizontalVelocity speedCap
-                                                |> capVerticalVelocity speedCap
-
-                                        newState =
-                                            OnWall ( framesOnWall + 1, wallOnRight )
-                                    in
-                                        ( newVelocity, newState, player.framesSinceLastChain + 1 )
-                            else if controller.dPad == Left && wallOnRight then
-                                if controller.jump == Pressed then
-                                    let
-                                        newVelocity =
-                                            ( 0, 0 )
-                                                |> V2.add gravitationalForce
-                                                |> V2.add modifiedControllerDirectionalForce
-                                                |> V2.add jumpForce
-                                                |> (\( x, y ) -> ( x * resistance, y ))
-                                                |> capHorizontalVelocity speedCap
-                                                |> capVerticalVelocity speedCap
-
-                                        newState =
-                                            Jumping
-                                    in
-                                        ( newVelocity, newState, 0 )
-                                else
-                                    let
-                                        newVelocity =
-                                            ( 0, 0 )
-                                                |> (\( x, y ) -> ( x * resistance, y ))
-                                                |> capHorizontalVelocity speedCap
-                                                |> capVerticalVelocity speedCap
-
-                                        newState =
-                                            OnWall ( framesOnWall + 1, wallOnRight )
-                                    in
-                                        ( newVelocity, newState, player.framesSinceLastChain + 1 )
-                            else
-                                let
-                                    newVelocity =
-                                        ( 0, 0 )
-                                            |> (\( x, y ) -> ( x * resistance, y ))
-                                            |> capHorizontalVelocity speedCap
-                                            |> capVerticalVelocity speedCap
-
-                                    newState =
-                                        OnWall ( framesOnWall + 1, wallOnRight )
-                                in
-                                    ( newVelocity, newState, player.framesSinceLastChain + 1 )
+                            ( 0, 0 )
+                                |> (\( x, y ) -> ( x * resistance, y ))
+                                |> capHorizontalVelocity speedCap
+                                |> capVerticalVelocity speedCap
                         else
-                            let
-                                newVelocity =
-                                    ( 0, 0 )
-                                        |> V2.add gravitationalForce
-                                        |> V2.add modifiedControllerDirectionalForce
-                                        |> (\( x, y ) -> ( x * resistance, y ))
-                                        |> capHorizontalVelocity speedCap
-                                        |> capVerticalVelocity speedCap
-
-                                newState =
-                                    OnWall ( framesOnWall + 1, wallOnRight )
-                            in
-                                ( newVelocity, newState, player.framesSinceLastChain + 1 )
+                            ( 0, 0 )
+                                |> V2.add gravitationalForce
+                                |> V2.add modifiedControllerDirectionalForce
+                                |> (\( x, y ) -> ( x * resistance, y ))
+                                |> capHorizontalVelocity speedCap
+                                |> capVerticalVelocity speedCap
 
                     newLocation =
                         newVelocity
-                            |> V2.add player.location
+                            |> V2.add location
                             |> resetPlayerToOrigin
                 in
-                    { player
-                        | location = newLocation
-                        , velocity = newVelocity
-                        , playerState = newState
-                        , framesSinceLastChain = framesSinceLastChain
-                    }
+                    ( newLocation, newVelocity )
 
             HitStun framesHitStuned ->
                 let
                     newVelocity =
-                        player.velocity
+                        velocity
                             |> (\( x, y ) -> ( x * resistance, y ))
                             |> capHorizontalVelocity speedCap
                             |> capVerticalVelocity speedCap
 
                     newLocation =
                         newVelocity
-                            |> V2.add player.location
+                            |> V2.add location
                             |> resetPlayerToOrigin
-
-                    state =
-                        if framesHitStuned > toFloat hitStunMaxDuration then
-                            Running
-                        else
-                            HitStun (framesHitStuned + 1)
                 in
-                    { player
-                        | location = newLocation
-                        , velocity = newVelocity
-                        , playerState = state
-                        , framesSinceLastChain = player.framesSinceLastChain + 1
-                    }
+                    ( newLocation, newVelocity )
 
 
-stateAfterPlatformCollision : Maybe Collision2D.Side -> PlayerState -> PlayerState
-stateAfterPlatformCollision collision playerState =
-    case collision of
-        Nothing ->
-            case playerState of
-                Jumping ->
-                    Jumping
+incrementPlayerCounters : ( PlayerState, Int ) -> ( PlayerState, Int )
+incrementPlayerCounters ( playerState, framesSinceLastChain ) =
+    case playerState of
+        Running ->
+            ( Running, framesSinceLastChain + 1 )
 
-                Falling ->
-                    Falling
+        Jumping jumpForce ->
+            ( Jumping jumpForce, framesSinceLastChain + 1 )
 
-                Dashing framesDashing ->
-                    Dashing framesDashing
+        Falling ->
+            ( Falling, framesSinceLastChain + 1 )
 
-                HitStun framesHitStuned ->
-                    HitStun framesHitStuned
+        Dashing framesDashing ->
+            ( Dashing (framesDashing + 1), framesSinceLastChain + 1 )
 
-                Running ->
-                    Jumping
+        OnWall ( framesOnWall, wallOnRight ) ->
+            ( OnWall ( framesOnWall + 1, wallOnRight ), framesSinceLastChain + 1 )
 
-                OnWall framesOnWall ->
-                    Jumping
-
-        Just side ->
-            case side of
-                Collision2D.Top ->
-                    playerState
-
-                Collision2D.Right ->
-                    case playerState of
-                        Running ->
-                            Running
-
-                        Jumping ->
-                            OnWall ( 0, True )
-
-                        Falling ->
-                            OnWall ( 0, True )
-
-                        Dashing framesDashing ->
-                            HitStun 0
-
-                        OnWall framesOnWall ->
-                            OnWall framesOnWall
-
-                        HitStun framesHitStuned ->
-                            HitStun framesHitStuned
-
-                Collision2D.Left ->
-                    case playerState of
-                        Running ->
-                            Running
-
-                        Jumping ->
-                            OnWall ( 0, False )
-
-                        Falling ->
-                            OnWall ( 0, False )
-
-                        Dashing framesDashing ->
-                            HitStun 0
-
-                        OnWall framesOnWall ->
-                            OnWall framesOnWall
-
-                        HitStun framesHitStuned ->
-                            HitStun framesHitStuned
-
-                Collision2D.Bottom ->
-                    case playerState of
-                        Running ->
-                            Running
-
-                        Jumping ->
-                            Running
-
-                        Falling ->
-                            Running
-
-                        Dashing framesDashing ->
-                            Dashing framesDashing
-
-                        OnWall framesOnWall ->
-                            Running
-
-                        HitStun framesHitStuned ->
-                            HitStun framesHitStuned
+        HitStun framesHitStuned ->
+            if framesHitStuned < toFloat hitStunMaxDuration then
+                ( HitStun (framesHitStuned + 1), framesSinceLastChain + 1 )
+            else
+                ( Falling, framesSinceLastChain + 1 )
 
 
-stateAfterEnemyCollision : Maybe Collision2D.Side -> Int -> PlayerState -> ( PlayerState, Int )
-stateAfterEnemyCollision collision framesSinceLastChain playerState =
+stateAfterControllerInputs : ControllerState -> ( PlayerState, Int ) -> ( PlayerState, Int )
+stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain ) =
+    case playerState of
+        HitStun framesHitStuned ->
+            ( HitStun framesHitStuned, framesSinceLastChain )
+
+        Falling ->
+            ( Falling, framesSinceLastChain )
+
+        Jumping jumpForce ->
+            ( Jumping jumpForce, framesSinceLastChain )
+
+        Running ->
+            let
+                newState =
+                    if controllerState.dash == Pressed then
+                        Dashing 0
+                    else
+                        Running
+
+                newerState =
+                    if controllerState.jump == Pressed then
+                        -- jumping cancels dashing
+                        Jumping defaultJumpForce
+                    else
+                        newState
+            in
+                ( newerState, framesSinceLastChain )
+
+        Dashing framesDashing ->
+            let
+                newerState =
+                    if controllerState.jump == Pressed then
+                        -- jumping cancels dashing
+                        Jumping defaultJumpForce
+                    else
+                        Dashing framesDashing
+            in
+                ( newerState, framesSinceLastChain )
+
+        OnWall ( framesOnWall, wallOnRight ) ->
+            let
+                ( newState, newFramesSinceLastChain ) =
+                    if framesOnWall < toFloat framesOnWallMaxDuration then
+                        if controllerState.dPad == Right && not wallOnRight then
+                            if controllerState.jump == Pressed then
+                                ( Jumping defaultJumpForce, 0 )
+                            else
+                                ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
+                        else if controllerState.dPad == Left && wallOnRight then
+                            if controllerState.jump == Pressed then
+                                ( Jumping defaultJumpForce, 0 )
+                            else
+                                ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
+                        else
+                            ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
+                    else
+                        ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
+            in
+                ( newState, newFramesSinceLastChain )
+
+
+stateAfterEnemyCollision : Maybe Collision2D.Side -> ( PlayerState, Int ) -> ( PlayerState, Int )
+stateAfterEnemyCollision collision ( playerState, framesSinceLastChain ) =
     case collision of
         Nothing ->
             ( playerState, framesSinceLastChain )
@@ -424,7 +294,7 @@ stateAfterEnemyCollision collision framesSinceLastChain playerState =
                         Running ->
                             ( HitStun 0, framesSinceLastChain )
 
-                        Jumping ->
+                        Jumping jumpForce ->
                             ( HitStun 0, framesSinceLastChain )
 
                         Falling ->
@@ -444,7 +314,7 @@ stateAfterEnemyCollision collision framesSinceLastChain playerState =
                         Running ->
                             ( HitStun 0, framesSinceLastChain )
 
-                        Jumping ->
+                        Jumping jumpForce ->
                             ( HitStun 0, framesSinceLastChain )
 
                         Falling ->
@@ -464,7 +334,7 @@ stateAfterEnemyCollision collision framesSinceLastChain playerState =
                         Running ->
                             ( HitStun 0, framesSinceLastChain )
 
-                        Jumping ->
+                        Jumping jumpForce ->
                             ( HitStun 0, framesSinceLastChain )
 
                         Falling ->
@@ -482,19 +352,108 @@ stateAfterEnemyCollision collision framesSinceLastChain playerState =
                 Collision2D.Bottom ->
                     case playerState of
                         Running ->
-                            ( Jumping, 0 )
+                            ( Jumping defaultJumpForce, 0 )
 
-                        Jumping ->
-                            ( Jumping, 0 )
+                        Jumping jumpForce ->
+                            ( Jumping defaultJumpForce, 0 )
 
                         Falling ->
-                            ( Jumping, 0 )
+                            ( Jumping defaultJumpForce, 0 )
 
                         Dashing framesDashing ->
                             ( Dashing 0, 0 )
 
                         OnWall framesOnWall ->
                             ( OnWall framesOnWall, framesSinceLastChain )
+
+                        HitStun framesHitStuned ->
+                            ( HitStun framesHitStuned, framesSinceLastChain )
+
+
+stateAfterPlatformCollision : Maybe Collision2D.Side -> ( PlayerState, Int ) -> ( PlayerState, Int )
+stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
+    case collision of
+        Nothing ->
+            case playerState of
+                Jumping jumpForce ->
+                    ( Jumping jumpForce, framesSinceLastChain )
+
+                Falling ->
+                    ( Falling, framesSinceLastChain )
+
+                Dashing framesDashing ->
+                    ( Dashing framesDashing, framesSinceLastChain )
+
+                HitStun framesHitStuned ->
+                    ( HitStun framesHitStuned, framesSinceLastChain )
+
+                Running ->
+                    ( Falling, framesSinceLastChain )
+
+                OnWall framesOnWall ->
+                    ( Falling, framesSinceLastChain )
+
+        Just side ->
+            case side of
+                Collision2D.Top ->
+                    ( playerState, framesSinceLastChain )
+
+                Collision2D.Right ->
+                    case playerState of
+                        Running ->
+                            ( Running, framesSinceLastChain )
+
+                        Jumping jumpForce ->
+                            ( OnWall ( 0, True ), framesSinceLastChain )
+
+                        Falling ->
+                            ( OnWall ( 0, True ), framesSinceLastChain )
+
+                        Dashing framesDashing ->
+                            ( HitStun 0, framesSinceLastChain )
+
+                        OnWall framesOnWall ->
+                            ( OnWall framesOnWall, framesSinceLastChain )
+
+                        HitStun framesHitStuned ->
+                            ( HitStun framesHitStuned, framesSinceLastChain )
+
+                Collision2D.Left ->
+                    case playerState of
+                        Running ->
+                            ( Running, framesSinceLastChain )
+
+                        Jumping jumpForce ->
+                            ( OnWall ( 0, False ), framesSinceLastChain )
+
+                        Falling ->
+                            ( OnWall ( 0, False ), framesSinceLastChain )
+
+                        Dashing framesDashing ->
+                            ( HitStun 0, framesSinceLastChain )
+
+                        OnWall framesOnWall ->
+                            ( OnWall framesOnWall, framesSinceLastChain )
+
+                        HitStun framesHitStuned ->
+                            ( HitStun framesHitStuned, framesSinceLastChain )
+
+                Collision2D.Bottom ->
+                    case playerState of
+                        Running ->
+                            ( Running, framesSinceLastChain )
+
+                        Jumping jumpForce ->
+                            ( Running, framesSinceLastChain )
+
+                        Falling ->
+                            ( Running, framesSinceLastChain )
+
+                        Dashing framesDashing ->
+                            ( Dashing framesDashing, framesSinceLastChain )
+
+                        OnWall framesOnWall ->
+                            ( Running, framesSinceLastChain )
 
                         HitStun framesHitStuned ->
                             ( HitStun framesHitStuned, framesSinceLastChain )
@@ -552,7 +511,7 @@ renderPlayer resources player =
                 Running ->
                     Color.blue
 
-                Jumping ->
+                Jumping jumpForce ->
                     Color.green
 
                 Falling ->
