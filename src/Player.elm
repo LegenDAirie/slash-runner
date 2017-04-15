@@ -207,10 +207,16 @@ incrementPlayerCounters ( playerState, framesSinceLastChain ) =
             ( Falling, framesSinceLastChain + 1 )
 
         Dashing framesDashing ->
-            ( Dashing (framesDashing + 1), framesSinceLastChain + 1 )
+            if framesDashing < toFloat framesDashingMaxDuration then
+                ( Dashing (framesDashing + 1), framesSinceLastChain + 1 )
+            else
+                ( Dashing (framesDashing + 1), maxChainDuration )
 
         OnWall ( framesOnWall, wallOnRight ) ->
-            ( OnWall ( framesOnWall + 1, wallOnRight ), framesSinceLastChain + 1 )
+            if framesOnWall < toFloat framesOnWallMaxDuration then
+                ( OnWall ( framesOnWall + 1, wallOnRight ), framesSinceLastChain + 1 )
+            else
+                ( OnWall ( framesOnWall + 1, wallOnRight ), maxChainDuration )
 
         HitStun framesHitStuned ->
             if framesHitStuned < toFloat hitStunMaxDuration then
@@ -223,13 +229,16 @@ stateAfterControllerInputs : ControllerState -> ( PlayerState, Int ) -> ( Player
 stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain ) =
     case playerState of
         HitStun framesHitStuned ->
-            ( HitStun framesHitStuned, framesSinceLastChain )
+            ( HitStun framesHitStuned, maxChainDuration )
 
         Falling ->
             ( Falling, framesSinceLastChain )
 
         Jumping jumpForce ->
-            ( Jumping jumpForce, framesSinceLastChain )
+            if controllerState.jump == Pressed then
+                ( Jumping jumpForce, framesSinceLastChain )
+            else
+                ( Jumping ( 0, 0 ), framesSinceLastChain )
 
         Running ->
             let
@@ -292,62 +301,62 @@ stateAfterEnemyCollision collision ( playerState, framesSinceLastChain ) =
                 Collision2D.Top ->
                     case playerState of
                         Running ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Jumping jumpForce ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Falling ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Dashing framesDashing ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
-                        OnWall framesOnWall ->
-                            ( HitStun 0, framesSinceLastChain )
+                        OnWall ( framesOnWall, wallOnRight ) ->
+                            ( HitStun 0, maxChainDuration )
 
                         HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, framesSinceLastChain )
+                            ( HitStun framesHitStuned, maxChainDuration )
 
                 Collision2D.Right ->
                     case playerState of
                         Running ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Jumping jumpForce ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Falling ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Dashing framesDashing ->
                             ( Dashing 0, 0 )
 
-                        OnWall framesOnWall ->
-                            ( HitStun 0, framesSinceLastChain )
+                        OnWall ( framesOnWall, wallOnRight ) ->
+                            ( HitStun 0, maxChainDuration )
 
                         HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, framesSinceLastChain )
+                            ( HitStun framesHitStuned, maxChainDuration )
 
                 Collision2D.Left ->
                     case playerState of
                         Running ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Jumping jumpForce ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Falling ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
                         Dashing framesDashing ->
                             ( Dashing 0, 0 )
 
-                        OnWall framesOnWall ->
-                            ( HitStun 0, framesSinceLastChain )
+                        OnWall ( framesOnWall, wallOnRight ) ->
+                            ( HitStun 0, maxChainDuration )
 
                         HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, framesSinceLastChain )
+                            ( HitStun framesHitStuned, maxChainDuration )
 
                 Collision2D.Bottom ->
                     case playerState of
@@ -363,11 +372,11 @@ stateAfterEnemyCollision collision ( playerState, framesSinceLastChain ) =
                         Dashing framesDashing ->
                             ( Dashing 0, 0 )
 
-                        OnWall framesOnWall ->
-                            ( OnWall framesOnWall, framesSinceLastChain )
+                        OnWall ( framesOnWall, wallOnRight ) ->
+                            ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
 
                         HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, framesSinceLastChain )
+                            ( HitStun framesHitStuned, maxChainDuration )
 
 
 stateAfterPlatformCollision : Maybe Collision2D.Side -> ( PlayerState, Int ) -> ( PlayerState, Int )
@@ -385,12 +394,12 @@ stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
                     ( Dashing framesDashing, framesSinceLastChain )
 
                 HitStun framesHitStuned ->
-                    ( HitStun framesHitStuned, framesSinceLastChain )
+                    ( HitStun framesHitStuned, maxChainDuration )
 
                 Running ->
                     ( Falling, framesSinceLastChain )
 
-                OnWall framesOnWall ->
+                OnWall ( framesOnWall, wallOnRight ) ->
                     ( Falling, framesSinceLastChain )
 
         Just side ->
@@ -410,13 +419,13 @@ stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
                             ( OnWall ( 0, True ), framesSinceLastChain )
 
                         Dashing framesDashing ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
-                        OnWall framesOnWall ->
-                            ( OnWall framesOnWall, framesSinceLastChain )
+                        OnWall ( framesOnWall, wallOnRight ) ->
+                            ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
 
                         HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, framesSinceLastChain )
+                            ( HitStun framesHitStuned, maxChainDuration )
 
                 Collision2D.Left ->
                     case playerState of
@@ -430,13 +439,13 @@ stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
                             ( OnWall ( 0, False ), framesSinceLastChain )
 
                         Dashing framesDashing ->
-                            ( HitStun 0, framesSinceLastChain )
+                            ( HitStun 0, maxChainDuration )
 
-                        OnWall framesOnWall ->
-                            ( OnWall framesOnWall, framesSinceLastChain )
+                        OnWall ( framesOnWall, wallOnRight ) ->
+                            ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
 
                         HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, framesSinceLastChain )
+                            ( HitStun framesHitStuned, maxChainDuration )
 
                 Collision2D.Bottom ->
                     case playerState of
@@ -452,11 +461,11 @@ stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
                         Dashing framesDashing ->
                             ( Dashing framesDashing, framesSinceLastChain )
 
-                        OnWall framesOnWall ->
+                        OnWall ( framesOnWall, wallOnRight ) ->
                             ( Running, framesSinceLastChain )
 
                         HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, framesSinceLastChain )
+                            ( HitStun framesHitStuned, maxChainDuration )
 
 
 resetPlayerToOrigin : Vector -> Vector

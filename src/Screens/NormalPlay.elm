@@ -99,8 +99,8 @@ updateNormalPlay controllerState state =
         ( newPlayerState, newFramesSinceLastChain ) =
             ( state.player.playerState, state.player.framesSinceLastChain )
                 |> incrementPlayerCounters
-                |> stateAfterControllerInputs controllerState
                 |> stateAfterPlatformCollision sideCollidingWithPlatform
+                |> stateAfterControllerInputs controllerState
                 |> stateAfterEnemyCollision sidecollidingWithEnemy
 
         ( newLocation, newVelocity ) =
