@@ -5,11 +5,10 @@ import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
 import Controller exposing (ControllerState)
-import Coordinates exposing (gameSize, convertTouchCoorToGameCoor)
-import Player exposing (Player, PlayerState(..), applyPhysics, renderPlayer, stateAfterPlatformCollision, stateAfterEnemyCollision, incrementPlayerCounters, stateAfterControllerInputs)
+import Coordinates exposing (gameSize)
+import Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer)
 import Enemy exposing (Enemy, renderEnemy, updateEnemies)
 import Wall exposing (Wall, renderWall)
-import CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
 
 
 type alias NormalPlayState =
@@ -90,32 +89,8 @@ updateNormalPlay controllerState state =
         newEnemies =
             updateEnemies state.enemies
 
-        ( newLocation, newVelocity ) =
-            applyPhysics controllerState.dPad state.player.playerState state.player.framesSinceLastChain state.player.location state.player.velocity
-
-        ( setPlayerLocation, sideCollidingWithPlatform ) =
-            setByPlatform newLocation state.player.size state.walls Nothing
-
-        sidecollidingWithEnemy =
-            getSideCollidingWithEnemies setPlayerLocation state.player.size state.enemies Nothing
-
-        ( newPlayerState, newFramesSinceLastChain ) =
-            ( state.player.playerState, state.player.framesSinceLastChain )
-                |> incrementPlayerCounters
-                |> stateAfterPlatformCollision sideCollidingWithPlatform
-                |> stateAfterControllerInputs controllerState
-                |> stateAfterEnemyCollision sidecollidingWithEnemy
-
-        thePlayer =
-            state.player
-
         newPlayer =
-            { thePlayer
-                | location = setPlayerLocation
-                , velocity = newVelocity
-                , playerState = newPlayerState
-                , framesSinceLastChain = newFramesSinceLastChain
-            }
+            updatePlayer state.enemies state.walls controllerState state.player
     in
         { state
             | player = newPlayer

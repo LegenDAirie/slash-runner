@@ -1,4 +1,4 @@
-module Player exposing (Player, PlayerState(..), applyPhysics, renderPlayer, stateAfterPlatformCollision, stateAfterEnemyCollision, incrementPlayerCounters, stateAfterControllerInputs)
+module Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer)
 
 import Vector2 as V2 exposing (getX, getY)
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
@@ -9,6 +9,9 @@ import GameTypes exposing (Vector)
 import Coordinates exposing (centerToBottomLeftLocationConverter)
 import Controller exposing (DPad(..), ControllerState, ButtonState(..))
 import Forces exposing (gravity, controllerLeftForce, controllerRightForce, speedCap, resistance)
+import Enemy exposing (Enemy)
+import Wall exposing (Wall)
+import CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
 
 
 type alias Player =
@@ -57,6 +60,33 @@ framesOnWallMaxDuration =
 hitStunMaxDuration : Int
 hitStunMaxDuration =
     60
+
+
+updatePlayer : List Enemy -> List Wall -> ControllerState -> Player -> Player
+updatePlayer enemies walls controllerState player =
+    let
+        ( newLocation, newVelocity ) =
+            applyPhysics controllerState.dPad player.playerState player.framesSinceLastChain player.location player.velocity
+
+        ( setPlayerLocation, sideCollidingWithPlatform ) =
+            setByPlatform newLocation player.size walls Nothing
+
+        sidecollidingWithEnemy =
+            getSideCollidingWithEnemies setPlayerLocation player.size enemies Nothing
+
+        ( newPlayerState, newFramesSinceLastChain ) =
+            ( player.playerState, player.framesSinceLastChain )
+                |> incrementPlayerCounters
+                |> stateAfterPlatformCollision sideCollidingWithPlatform
+                |> stateAfterControllerInputs controllerState
+                |> stateAfterEnemyCollision sidecollidingWithEnemy
+    in
+        { player
+            | location = setPlayerLocation
+            , velocity = newVelocity
+            , playerState = newPlayerState
+            , framesSinceLastChain = newFramesSinceLastChain
+        }
 
 
 applyPhysics : DPad -> PlayerState -> Int -> Vector -> Vector -> ( Vector, Vector )
