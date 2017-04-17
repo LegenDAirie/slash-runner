@@ -1,4 +1,4 @@
-module Forces exposing (gravity, controllerLeftForce, controllerRightForce, speedCap, resistance, blastForce)
+module Forces exposing (gravity, controllerLeftForce, controllerRightForce, speedCap, resistance)
 
 import GameTypes exposing (Vector)
 
@@ -6,11 +6,6 @@ import GameTypes exposing (Vector)
 speedCap : Float
 speedCap =
     10
-
-
-blastForce : Float
-blastForce =
-    20
 
 
 resistance : Float
@@ -25,9 +20,9 @@ gravity =
 
 controllerLeftForce : Vector
 controllerLeftForce =
-    ( -50, 0 )
+    ( -1, 0 )
 
 
 controllerRightForce : Vector
 controllerRightForce =
-    ( 50, 0 )
+    ( 1, 0 )

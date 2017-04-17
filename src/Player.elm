@@ -8,7 +8,7 @@ import Collision2D
 import GameTypes exposing (Vector)
 import Coordinates exposing (centerToBottomLeftLocationConverter)
 import Controller exposing (DPad(..), ControllerState, ButtonState(..))
-import Forces exposing (gravity, controllerLeftForce, controllerRightForce, speedCap, resistance, blastForce)
+import Forces exposing (gravity, controllerLeftForce, controllerRightForce, speedCap, resistance)
 
 
 type alias Player =
@@ -36,7 +36,7 @@ defaultJumpForce =
 
 chainSpeedModifier : Float
 chainSpeedModifier =
-    3
+    10
 
 
 maxChainDuration : Int
