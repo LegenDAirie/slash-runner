@@ -90,11 +90,14 @@ updateNormalPlay controllerState state =
         newEnemies =
             updateEnemies state.enemies
 
+        ( newLocation, newVelocity ) =
+            applyPhysics controllerState.dPad state.player.playerState state.player.framesSinceLastChain state.player.location state.player.velocity
+
         ( setPlayerLocation, sideCollidingWithPlatform ) =
-            setByPlatform state.player.location state.player.size state.walls Nothing
+            setByPlatform newLocation state.player.size state.walls Nothing
 
         sidecollidingWithEnemy =
-            getSideCollidingWithEnemies state.player.location state.player.size state.enemies Nothing
+            getSideCollidingWithEnemies setPlayerLocation state.player.size state.enemies Nothing
 
         ( newPlayerState, newFramesSinceLastChain ) =
             ( state.player.playerState, state.player.framesSinceLastChain )
@@ -103,15 +106,12 @@ updateNormalPlay controllerState state =
                 |> stateAfterControllerInputs controllerState
                 |> stateAfterEnemyCollision sidecollidingWithEnemy
 
-        ( newLocation, newVelocity ) =
-            applyPhysics controllerState.dPad newPlayerState newFramesSinceLastChain setPlayerLocation state.player.velocity
-
         thePlayer =
             state.player
 
         newPlayer =
             { thePlayer
-                | location = newLocation
+                | location = setPlayerLocation
                 , velocity = newVelocity
                 , playerState = newPlayerState
                 , framesSinceLastChain = newFramesSinceLastChain
