@@ -44,6 +44,13 @@ enemyThree =
     }
 
 
+wallZero : Wall
+wallZero =
+    { location = ( 500, 100 )
+    , size = ( 500, 100 )
+    }
+
+
 wallOne : Wall
 wallOne =
     { location = ( -100, -200 )
@@ -65,6 +72,34 @@ wallThree =
     }
 
 
+wallFour : Wall
+wallFour =
+    { location = ( 500, -100 )
+    , size = ( 50, 50 )
+    }
+
+
+wallFive : Wall
+wallFive =
+    { location = ( 590, -100 )
+    , size = ( 50, 50 )
+    }
+
+
+wallSix : Wall
+wallSix =
+    { location = ( 680, -100 )
+    , size = ( 50, 50 )
+    }
+
+
+wallSeven : Wall
+wallSeven =
+    { location = ( 770, -100 )
+    , size = ( 50, 50 )
+    }
+
+
 initialNormalPlayState : NormalPlayState
 initialNormalPlayState =
     let
@@ -76,8 +111,8 @@ initialNormalPlayState =
     in
         { player =
             Player startingPoint ( 0, 0 ) Running ( 40, 40 ) 0
-        , enemies = [ enemyOne, enemyTwo, enemyThree ]
-        , walls = [ wallOne, wallTwo, wallThree ]
+        , enemies = []
+        , walls = [ wallZero, wallOne, wallTwo, wallThree, wallFour, wallFive, wallSix, wallSeven ]
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
         }

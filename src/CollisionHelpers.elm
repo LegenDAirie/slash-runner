@@ -81,10 +81,10 @@ isCollidingWithPlatform entityLocation entitySize wall =
 
 
 setByPlatform : Vector -> Vector -> List Wall -> Maybe Collision2D.Side -> ( Vector, Maybe Collision2D.Side )
-setByPlatform location size walls side =
+setByPlatform location size walls lastSide =
     case walls of
         [] ->
-            ( location, side )
+            ( location, lastSide )
 
         wall :: rest ->
             case isCollidingWithPlatform location size wall of
@@ -92,7 +92,7 @@ setByPlatform location size walls side =
                     setByPlatform (setEntity location size wall side) size rest (Just side)
 
                 Nothing ->
-                    setByPlatform location size rest side
+                    setByPlatform location size rest lastSide
 
 
 setEntity : Vector -> Vector -> Wall -> Collision2D.Side -> Vector
@@ -120,11 +120,17 @@ setEntity entityLocation entitySize wall side =
             Collision2D.Top ->
                 ( x, wallY - minVerticalDistanceApart )
 
-            Collision2D.Right ->
-                ( wallX - minHorizontalDistanceApart, y )
-
             Collision2D.Bottom ->
                 ( x, wallY + minVerticalDistanceApart )
 
+            Collision2D.Right ->
+                if y > wallY + wallHeight / 2 then
+                    ( x, wallY + minVerticalDistanceApart )
+                else
+                    ( wallX - minHorizontalDistanceApart, y )
+
             Collision2D.Left ->
-                ( wallX + minHorizontalDistanceApart, y )
+                if y > wallY + wallHeight / 2 then
+                    ( x, wallY + minVerticalDistanceApart )
+                else
+                    ( wallX + minHorizontalDistanceApart, y )

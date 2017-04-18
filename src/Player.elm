@@ -252,7 +252,7 @@ incrementPlayerCounters ( playerState, framesSinceLastChain ) =
             if framesHitStuned < toFloat hitStunMaxDuration then
                 ( HitStun (framesHitStuned + 1), framesSinceLastChain + 1 )
             else
-                ( Falling, framesSinceLastChain + 1 )
+                ( Running, framesSinceLastChain + 1 )
 
 
 stateAfterControllerInputs : ControllerState -> ( PlayerState, Int ) -> ( PlayerState, Int )
