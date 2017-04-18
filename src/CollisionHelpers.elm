@@ -4,6 +4,7 @@ import GameTypes exposing (Vector)
 import Wall exposing (Wall)
 import Enemy exposing (Enemy)
 import Collision2D
+import Vector2 as V2 exposing (getX, getY)
 
 
 ------------------------------------------------------------------
@@ -89,10 +90,46 @@ setByPlatform location size walls lastSide =
         wall :: rest ->
             case isCollidingWithPlatform location size wall of
                 Just side ->
-                    setByPlatform (setEntity location size wall side) size rest (Just side)
+                    let
+                        newSide =
+                            calculateNewSide location wall side
+                    in
+                        setByPlatform (setEntity location size wall newSide) size rest (Just newSide)
 
                 Nothing ->
                     setByPlatform location size rest lastSide
+
+
+calculateNewSide : Vector -> Wall -> Collision2D.Side -> Collision2D.Side
+calculateNewSide entityLocation wall side =
+    let
+        ( x, y ) =
+            entityLocation
+
+        ( wallX, wallY ) =
+            wall.location
+
+        ( wallWidth, wallHeight ) =
+            wall.size
+    in
+        case side of
+            Collision2D.Top ->
+                Collision2D.Top
+
+            Collision2D.Bottom ->
+                Collision2D.Bottom
+
+            Collision2D.Right ->
+                if y > wallY + wallHeight / 2 then
+                    Collision2D.Bottom
+                else
+                    Collision2D.Right
+
+            Collision2D.Left ->
+                if y > wallY + wallHeight / 2 then
+                    Collision2D.Bottom
+                else
+                    Collision2D.Left
 
 
 setEntity : Vector -> Vector -> Wall -> Collision2D.Side -> Vector
@@ -124,13 +161,7 @@ setEntity entityLocation entitySize wall side =
                 ( x, wallY + minVerticalDistanceApart )
 
             Collision2D.Right ->
-                if y > wallY + wallHeight / 2 then
-                    ( x, wallY + minVerticalDistanceApart )
-                else
-                    ( wallX - minHorizontalDistanceApart, y )
+                ( wallX - minHorizontalDistanceApart, y )
 
             Collision2D.Left ->
-                if y > wallY + wallHeight / 2 then
-                    ( x, wallY + minVerticalDistanceApart )
-                else
-                    ( wallX + minHorizontalDistanceApart, y )
+                ( wallX + minHorizontalDistanceApart, y )
