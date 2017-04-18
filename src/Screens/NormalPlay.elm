@@ -104,7 +104,7 @@ initialNormalPlayState : NormalPlayState
 initialNormalPlayState =
     let
         startingPoint =
-            ( 0, 0 )
+            ( -300, 0 )
 
         ( gameWidth, gameHeight ) =
             gameSize

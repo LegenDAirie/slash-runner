@@ -143,7 +143,7 @@ applyPhysics dPad dashButton playerState framesSinceLastChain location velocity 
                 |> V2.add gravitationalForce
                 |> V2.add controllerDirectionalForce
                 |> capHorizontalVelocity velocityCap
-                |> capVerticalVelocity speedCap
+                |> capVerticalVelocity 15
 
         speedDashingConstant =
             if framesSinceLastChain < maxChainDuration then
@@ -329,16 +329,32 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
 
         OnWall ( framesOnWall, wallOnRight ) ->
             let
+                kickOffHorizontalVelocity =
+                    if controllerState.dash == Held then
+                        maxRunningVelocity
+                    else
+                        maxWalkingVelocity
+
                 ( newState, newFramesSinceLastChain ) =
                     if framesOnWall < toFloat framesOnWallMaxDuration then
                         if controllerState.dPad == Right && not wallOnRight then
                             if controllerState.jump == Pressed then
-                                ( Jumping defaultJumpForce, 0 )
+                                let
+                                    kickOffForce =
+                                        defaultJumpForce
+                                            |> V2.add ( kickOffHorizontalVelocity, 0 )
+                                in
+                                    ( Jumping kickOffForce, 0 )
                             else
                                 ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
                         else if controllerState.dPad == Left && wallOnRight then
                             if controllerState.jump == Pressed then
-                                ( Jumping defaultJumpForce, 0 )
+                                let
+                                    kickOffForce =
+                                        defaultJumpForce
+                                            |> V2.add ( -kickOffHorizontalVelocity, 0 )
+                                in
+                                    ( Jumping kickOffForce, 0 )
                             else
                                 ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
                         else
