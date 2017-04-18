@@ -52,9 +52,14 @@ defaultJumpForce =
     ( 0, 50 )
 
 
-jumpDampening : Float
-jumpDampening =
+dampening : Float
+dampening =
     0.9
+
+
+overExtendedDashDampening : Float
+overExtendedDashDampening =
+    0.5
 
 
 speedChainSpeedConstant : Float
@@ -185,25 +190,27 @@ applyPhysics dPad dashButton playerState framesSinceLastChain location velocity 
 
             Dashing framesDashing ->
                 let
-                    newVelocity =
+                    newerVelocity =
                         if framesDashing < toFloat framesDashingMaxDuration then
-                            velocity
-                                |> capHorizontalVelocity speedCap
+                            newVelocity
+                                |> (\( x, y ) -> ( (abs x) / x, y ))
+                                |> (\( x, y ) -> ( x * maxHorizontalVelocity, y ))
+                                |> V2.add gravitationalForce
                                 |> capVerticalVelocity speedCap
                         else
-                            velocity
-                                |> (\( x, y ) -> ( x * 0, y ))
-                                |> capHorizontalVelocity speedCap
+                            newVelocity
+                                |> (\( x, y ) -> ( x * overExtendedDashDampening, y ))
+                                |> capHorizontalVelocity velocityCap
                                 |> capVerticalVelocity speedCap
 
                     newLocation =
                         -- double velocity while dashing
-                        newVelocity
+                        newerVelocity
                             |> (\( x, y ) -> ( x * 2, y ))
                             |> V2.add location
                             |> resetPlayerToOrigin
                 in
-                    ( newLocation, newVelocity )
+                    ( newLocation, newerVelocity )
 
             OnWall ( framesOnWall, wallOnRight ) ->
                 let
@@ -245,8 +252,10 @@ incrementPlayerCounters ( playerState, framesSinceLastChain ) =
         Dashing framesDashing ->
             if framesDashing < toFloat framesDashingMaxDuration then
                 ( Dashing (framesDashing + 1), framesSinceLastChain + 1 )
-            else
+            else if framesDashing < toFloat framesDashingMaxDuration * 2 then
                 ( Dashing (framesDashing + 1), maxChainDuration )
+            else
+                ( Running, maxChainDuration )
 
         OnWall ( framesOnWall, wallOnRight ) ->
             if framesOnWall < toFloat framesOnWallMaxDuration then
@@ -276,7 +285,7 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
                     ( Jumping jumpForce, framesSinceLastChain )
 
                 Held ->
-                    ( Jumping ( getX jumpForce, getY jumpForce * jumpDampening ), framesSinceLastChain )
+                    ( Jumping ( getX jumpForce, getY jumpForce * dampening ), framesSinceLastChain )
 
                 Released ->
                     ( Jumping ( 0, 0 ), framesSinceLastChain )
