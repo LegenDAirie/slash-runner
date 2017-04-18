@@ -37,6 +37,11 @@ defaultJumpForce =
     ( 0, 50 )
 
 
+jumpDampening : Float
+jumpDampening =
+    0.9
+
+
 chainSpeedModifier : Float
 chainSpeedModifier =
     10
@@ -134,13 +139,13 @@ applyPhysics dPad playerState framesSinceLastChain location velocity =
                         velocity
                             |> V2.add gravitationalForce
                             |> V2.add modifiedControllerDirectionalForce
-                            |> V2.add jumpForce
                             |> (\( x, y ) -> ( x * resistance, y ))
                             |> capHorizontalVelocity speedCap
                             |> capVerticalVelocity speedCap
 
                     newLocation =
                         newVelocity
+                            |> V2.add jumpForce
                             |> V2.add location
                             |> resetPlayerToOrigin
                 in
@@ -265,10 +270,18 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
             ( Falling, framesSinceLastChain )
 
         Jumping jumpForce ->
-            if controllerState.jump == Pressed then
-                ( Jumping jumpForce, framesSinceLastChain )
-            else
-                ( Jumping ( 0, 0 ), framesSinceLastChain )
+            case controllerState.jump of
+                Pressed ->
+                    ( Jumping jumpForce, framesSinceLastChain )
+
+                Held ->
+                    ( Jumping ( getX jumpForce, getY jumpForce * jumpDampening ), framesSinceLastChain )
+
+                Released ->
+                    ( Jumping ( 0, 0 ), framesSinceLastChain )
+
+                Inactive ->
+                    ( Jumping ( 0, 0 ), framesSinceLastChain )
 
         Running ->
             let

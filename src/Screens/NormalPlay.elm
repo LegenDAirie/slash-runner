@@ -81,21 +81,21 @@ wallFour =
 
 wallFive : Wall
 wallFive =
-    { location = ( 590, -100 )
+    { location = ( 591, -100 )
     , size = ( 50, 50 )
     }
 
 
 wallSix : Wall
 wallSix =
-    { location = ( 680, -100 )
+    { location = ( 682, -100 )
     , size = ( 50, 50 )
     }
 
 
 wallSeven : Wall
 wallSeven =
-    { location = ( 770, -100 )
+    { location = ( 773, -100 )
     , size = ( 50, 50 )
     }
 
