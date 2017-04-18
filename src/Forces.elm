@@ -10,7 +10,7 @@ speedCap =
 
 resistance : Float
 resistance =
-    0.98
+    0.9
 
 
 gravity : Vector

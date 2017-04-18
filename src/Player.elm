@@ -32,6 +32,21 @@ type PlayerState
     | HitStun Float
 
 
+maxWalkingVelocity : Float
+maxWalkingVelocity =
+    6
+
+
+maxRunningVelocity : Float
+maxRunningVelocity =
+    8
+
+
+maxHorizontalVelocity : Float
+maxHorizontalVelocity =
+    15
+
+
 defaultJumpForce : Vector
 defaultJumpForce =
     ( 0, 50 )
@@ -42,9 +57,9 @@ jumpDampening =
     0.9
 
 
-chainSpeedModifier : Float
-chainSpeedModifier =
-    10
+speedChainSpeedConstant : Float
+speedChainSpeedConstant =
+    2
 
 
 maxChainDuration : Int
@@ -71,7 +86,7 @@ updatePlayer : List Enemy -> List Wall -> ControllerState -> Player -> Player
 updatePlayer enemies walls controllerState player =
     let
         ( newLocation, newVelocity ) =
-            applyPhysics controllerState.dPad player.playerState player.framesSinceLastChain player.location player.velocity
+            applyPhysics controllerState.dPad controllerState.dash player.playerState player.framesSinceLastChain player.location player.velocity
 
         ( setPlayerLocation, sideCollidingWithPlatform ) =
             setByPlatform newLocation player.size walls Nothing
@@ -94,8 +109,8 @@ updatePlayer enemies walls controllerState player =
         }
 
 
-applyPhysics : DPad -> PlayerState -> Int -> Vector -> Vector -> ( Vector, Vector )
-applyPhysics dPad playerState framesSinceLastChain location velocity =
+applyPhysics : DPad -> ButtonState -> PlayerState -> Int -> Vector -> Vector -> ( Vector, Vector )
+applyPhysics dPad dashButton playerState framesSinceLastChain location velocity =
     let
         gravitationalForce =
             gravity
@@ -108,26 +123,40 @@ applyPhysics dPad playerState framesSinceLastChain location velocity =
             else
                 ( 0, 0 )
 
-        modifiedControllerDirectionalForce =
-            if framesSinceLastChain < maxChainDuration then
-                controllerDirectionalForce
-                    |> (\( x, y ) -> ( x * chainSpeedModifier, y ))
+        velocityCap =
+            if dPad == Right || dPad == Left then
+                if dashButton == Held then
+                    maxRunningVelocity
+                else
+                    maxWalkingVelocity
             else
-                controllerDirectionalForce
+                maxWalkingVelocity
+
+        newVelocity =
+            velocity
+                |> (\( x, y ) -> ( x * resistance, y ))
+                |> V2.add gravitationalForce
+                |> V2.add controllerDirectionalForce
+                |> capHorizontalVelocity velocityCap
+                |> capVerticalVelocity speedCap
+
+        speedDashingConstant =
+            if framesSinceLastChain < maxChainDuration then
+                if dPad == Left then
+                    ( -speedChainSpeedConstant, 0 )
+                else if dPad == Right then
+                    ( speedChainSpeedConstant, 0 )
+                else
+                    ( 0, 0 )
+            else
+                ( 0, 0 )
     in
         case playerState of
             Running ->
                 let
-                    newVelocity =
-                        velocity
-                            |> V2.add gravitationalForce
-                            |> V2.add modifiedControllerDirectionalForce
-                            |> (\( x, y ) -> ( x * resistance, y ))
-                            |> capHorizontalVelocity speedCap
-                            |> capVerticalVelocity speedCap
-
                     newLocation =
                         newVelocity
+                            |> V2.add speedDashingConstant
                             |> V2.add location
                             |> resetPlayerToOrigin
                 in
@@ -135,17 +164,10 @@ applyPhysics dPad playerState framesSinceLastChain location velocity =
 
             Jumping jumpForce ->
                 let
-                    newVelocity =
-                        velocity
-                            |> V2.add gravitationalForce
-                            |> V2.add modifiedControllerDirectionalForce
-                            |> (\( x, y ) -> ( x * resistance, y ))
-                            |> capHorizontalVelocity speedCap
-                            |> capVerticalVelocity speedCap
-
                     newLocation =
                         newVelocity
                             |> V2.add jumpForce
+                            |> V2.add speedDashingConstant
                             |> V2.add location
                             |> resetPlayerToOrigin
                 in
@@ -153,16 +175,9 @@ applyPhysics dPad playerState framesSinceLastChain location velocity =
 
             Falling ->
                 let
-                    newVelocity =
-                        velocity
-                            |> V2.add gravitationalForce
-                            |> V2.add modifiedControllerDirectionalForce
-                            |> (\( x, y ) -> ( x * resistance, y ))
-                            |> capHorizontalVelocity speedCap
-                            |> capVerticalVelocity speedCap
-
                     newLocation =
                         newVelocity
+                            |> V2.add speedDashingConstant
                             |> V2.add location
                             |> resetPlayerToOrigin
                 in
@@ -192,41 +207,27 @@ applyPhysics dPad playerState framesSinceLastChain location velocity =
 
             OnWall ( framesOnWall, wallOnRight ) ->
                 let
-                    newVelocity =
+                    newerVelocity =
                         if framesOnWall < toFloat framesOnWallMaxDuration then
                             ( 0, 0 )
-                                |> (\( x, y ) -> ( x * resistance, y ))
-                                |> capHorizontalVelocity speedCap
-                                |> capVerticalVelocity speedCap
                         else
-                            ( 0, 0 )
-                                |> V2.add gravitationalForce
-                                |> V2.add modifiedControllerDirectionalForce
-                                |> (\( x, y ) -> ( x * resistance, y ))
-                                |> capHorizontalVelocity speedCap
-                                |> capVerticalVelocity speedCap
+                            newVelocity
 
                     newLocation =
-                        newVelocity
+                        newerVelocity
                             |> V2.add location
                             |> resetPlayerToOrigin
                 in
-                    ( newLocation, newVelocity )
+                    ( newLocation, newerVelocity )
 
             HitStun framesHitStuned ->
                 let
-                    newVelocity =
-                        velocity
-                            |> (\( x, y ) -> ( x * resistance, y ))
-                            |> capHorizontalVelocity speedCap
-                            |> capVerticalVelocity speedCap
-
                     newLocation =
                         newVelocity
                             |> V2.add location
                             |> resetPlayerToOrigin
                 in
-                    ( newLocation, newVelocity )
+                    ( location, velocity )
 
 
 incrementPlayerCounters : ( PlayerState, Int ) -> ( PlayerState, Int )
