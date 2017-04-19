@@ -1,15 +1,15 @@
-module Forces exposing (gravity, controllerLeftForce, controllerRightForce, speedCap, resistance)
+module Forces exposing (gravity, controllerLeftForce, controllerRightForce, maxVerticalSpeed, airResistance)
 
 import GameTypes exposing (Vector)
 
 
-speedCap : Float
-speedCap =
-    10
+maxVerticalSpeed : Float
+maxVerticalSpeed =
+    15
 
 
-resistance : Float
-resistance =
+airResistance : Float
+airResistance =
     0.9
 
 

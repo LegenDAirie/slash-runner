@@ -8,7 +8,7 @@ import Collision2D
 import GameTypes exposing (Vector)
 import Coordinates exposing (centerToBottomLeftLocationConverter)
 import Controller exposing (DPad(..), ControllerState, ButtonState(..))
-import Forces exposing (gravity, controllerLeftForce, controllerRightForce, speedCap, resistance)
+import Forces exposing (gravity, controllerLeftForce, controllerRightForce, maxVerticalSpeed, airResistance)
 import Enemy exposing (Enemy)
 import Wall exposing (Wall)
 import CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
@@ -53,8 +53,8 @@ defaultJumpForce =
     ( 0, 50 )
 
 
-dampening : Float
-dampening =
+jumpDampening : Float
+jumpDampening =
     0.9
 
 
@@ -145,11 +145,11 @@ applyPhysics dPad dashButton playerState framesSinceLastChain location velocity 
 
         newVelocity =
             velocity
-                |> (\( x, y ) -> ( x * resistance, y ))
+                |> (\( x, y ) -> ( x * airResistance, y ))
                 |> V2.add gravitationalForce
                 |> V2.add controllerDirectionalForce
                 |> capHorizontalVelocity velocityCap
-                |> capVerticalVelocity 15
+                |> capVerticalVelocity maxVerticalSpeed
 
         speedDashingConstant =
             if framesSinceLastChain < maxChainDuration then
@@ -200,7 +200,7 @@ applyPhysics dPad dashButton playerState framesSinceLastChain location velocity 
                         direction
                             |> V2.scale maxHorizontalVelocity
                             |> V2.add gravitationalForce
-                            |> capVerticalVelocity speedCap
+                            |> capVerticalVelocity maxVerticalSpeed
 
                     _ =
                         Debug.log "Velocity" newVelocity
@@ -310,7 +310,7 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
                     ( Jumping jumpForce, framesSinceLastChain )
 
                 Held ->
-                    ( Jumping ( getX jumpForce, getY jumpForce * dampening ), framesSinceLastChain )
+                    ( Jumping ( getX jumpForce, getY jumpForce * jumpDampening ), framesSinceLastChain )
 
                 Released ->
                     ( Jumping ( 0, 0 ), framesSinceLastChain )
