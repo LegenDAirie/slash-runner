@@ -27,9 +27,10 @@ type PlayerState
     = Running
     | Jumping Vector
     | Falling
-    | Dashing ( Float, Vector, Bool )
-    | OnWall ( Float, Bool )
-    | HitStun Float
+    | Dashing ( Int, Vector )
+    | DashRecovery ( Int, Bool )
+    | OnWall ( Int, Bool )
+    | HitStun Int
 
 
 maxWalkingVelocity : Float
@@ -77,9 +78,14 @@ framesDashingMaxDuration =
     15
 
 
+framesDashRecoveryMaxDuration : Int
+framesDashRecoveryMaxDuration =
+    15
+
+
 framesOnWallMaxDuration : Int
 framesOnWallMaxDuration =
-    60
+    15
 
 
 hitStunMaxDuration : Int
@@ -188,22 +194,33 @@ applyPhysics dPad dashButton playerState framesSinceLastChain location velocity 
                 in
                     ( newLocation, newVelocity )
 
-            Dashing ( framesDashing, direction, onGround ) ->
+            Dashing ( framesDashing, direction ) ->
+                let
+                    newVelocity =
+                        direction
+                            |> V2.scale maxHorizontalVelocity
+                            |> V2.add gravitationalForce
+                            |> capVerticalVelocity speedCap
+
+                    _ =
+                        Debug.log "Velocity" newVelocity
+
+                    newLocation =
+                        newVelocity
+                            |> V2.add speedDashingConstant
+                            |> V2.add location
+                            |> resetPlayerToOrigin
+                in
+                    ( newLocation, newVelocity )
+
+            DashRecovery ( framesRecovering, onGround ) ->
                 let
                     newerVelocity =
-                        if framesDashing < toFloat framesDashingMaxDuration then
-                            direction
-                                |> V2.scale maxHorizontalVelocity
-                                |> V2.add gravitationalForce
-                                |> capVerticalVelocity speedCap
-                        else if onGround then
+                        if onGround then
                             newVelocity
                                 |> (\( x, y ) -> ( x * overExtendedDashDampening, y ))
                         else
                             newVelocity
-
-                    _ =
-                        Debug.log "Velocity" newerVelocity
 
                     newLocation =
                         newerVelocity
@@ -216,7 +233,7 @@ applyPhysics dPad dashButton playerState framesSinceLastChain location velocity 
             OnWall ( framesOnWall, wallOnRight ) ->
                 let
                     newerVelocity =
-                        if framesOnWall < toFloat framesOnWallMaxDuration then
+                        if framesOnWall < framesOnWallMaxDuration then
                             ( 0, 0 )
                         else
                             newVelocity
@@ -250,22 +267,29 @@ incrementPlayerCounters ( playerState, framesSinceLastChain ) =
         Falling ->
             ( Falling, framesSinceLastChain + 1 )
 
-        Dashing ( framesDashing, direction, onGround ) ->
-            if framesDashing < toFloat framesDashingMaxDuration then
-                ( Dashing ( framesDashing + 1, direction, onGround ), framesSinceLastChain + 1 )
-            else if framesDashing < toFloat framesDashingMaxDuration * 2 then
-                ( Dashing ( framesDashing + 1, direction, onGround ), maxChainDuration )
+        Dashing ( framesDashing, direction ) ->
+            if framesDashing < framesDashingMaxDuration then
+                ( Dashing ( framesDashing + 1, direction ), framesSinceLastChain + 1 )
             else
-                ( Running, maxChainDuration )
+                ( DashRecovery ( 0, True ), framesSinceLastChain + 1 )
+
+        DashRecovery ( framesRecovering, onGround ) ->
+            if onGround then
+                if framesRecovering < framesDashRecoveryMaxDuration then
+                    ( DashRecovery ( framesRecovering + 1, True ), maxChainDuration )
+                else
+                    ( Running, framesSinceLastChain + 1 )
+            else
+                ( DashRecovery ( framesRecovering + 1, False ), framesSinceLastChain + 1 )
 
         OnWall ( framesOnWall, wallOnRight ) ->
-            if framesOnWall < toFloat framesOnWallMaxDuration then
+            if framesOnWall < framesOnWallMaxDuration then
                 ( OnWall ( framesOnWall + 1, wallOnRight ), framesSinceLastChain + 1 )
             else
                 ( OnWall ( framesOnWall + 1, wallOnRight ), maxChainDuration )
 
         HitStun framesHitStuned ->
-            if framesHitStuned < toFloat hitStunMaxDuration then
+            if framesHitStuned < hitStunMaxDuration then
                 ( HitStun (framesHitStuned + 1), framesSinceLastChain + 1 )
             else
                 ( Running, framesSinceLastChain + 1 )
@@ -299,9 +323,9 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
                 newState =
                     if controllerState.dash == Pressed then
                         if controllerState.dPad == Right then
-                            Dashing ( 0, ( 1, 0 ), True )
+                            Dashing ( 0, ( 1, 0 ) )
                         else if controllerState.dPad == Left then
-                            Dashing ( 0, ( -1, 0 ), True )
+                            Dashing ( 0, ( -1, 0 ) )
                         else
                             Running
                     else
@@ -327,6 +351,14 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
             in
                 ( newerState, framesSinceLastChain )
 
+        DashRecovery ( framesRecovering, onGround ) ->
+            if onGround then
+                ( DashRecovery ( framesRecovering, True ), maxChainDuration )
+            else if controllerState.jump == Pressed then
+                ( Jumping defaultJumpForce, framesSinceLastChain )
+            else
+                ( DashRecovery ( framesRecovering, False ), framesSinceLastChain )
+
         OnWall ( framesOnWall, wallOnRight ) ->
             let
                 kickOffHorizontalVelocity =
@@ -336,7 +368,7 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
                         maxWalkingVelocity
 
                 ( newState, newFramesSinceLastChain ) =
-                    if framesOnWall < toFloat framesOnWallMaxDuration then
+                    if framesOnWall < framesOnWallMaxDuration then
                         if controllerState.dPad == Right && not wallOnRight then
                             if controllerState.jump == Pressed then
                                 let
@@ -387,6 +419,9 @@ stateAfterEnemyCollision collision ( playerState, framesSinceLastChain ) =
                         Dashing framesDashing ->
                             ( HitStun 0, maxChainDuration )
 
+                        DashRecovery ( framesRecovering, onGround ) ->
+                            ( HitStun 0, maxChainDuration )
+
                         OnWall ( framesOnWall, wallOnRight ) ->
                             ( HitStun 0, maxChainDuration )
 
@@ -404,8 +439,11 @@ stateAfterEnemyCollision collision ( playerState, framesSinceLastChain ) =
                         Falling ->
                             ( HitStun 0, maxChainDuration )
 
-                        Dashing ( framesDashing, direction, onGround ) ->
-                            ( Dashing ( 0, direction, onGround ), 0 )
+                        Dashing ( framesDashing, direction ) ->
+                            ( Dashing ( 0, direction ), 0 )
+
+                        DashRecovery ( framesRecovering, onGround ) ->
+                            ( HitStun 0, maxChainDuration )
 
                         OnWall ( framesOnWall, wallOnRight ) ->
                             ( HitStun 0, maxChainDuration )
@@ -424,8 +462,11 @@ stateAfterEnemyCollision collision ( playerState, framesSinceLastChain ) =
                         Falling ->
                             ( HitStun 0, maxChainDuration )
 
-                        Dashing ( framesDashing, direction, onGround ) ->
-                            ( Dashing ( 0, direction, onGround ), 0 )
+                        Dashing ( framesDashing, direction ) ->
+                            ( Dashing ( 0, direction ), 0 )
+
+                        DashRecovery ( framesRecovering, onGround ) ->
+                            ( HitStun 0, maxChainDuration )
 
                         OnWall ( framesOnWall, wallOnRight ) ->
                             ( HitStun 0, maxChainDuration )
@@ -444,8 +485,11 @@ stateAfterEnemyCollision collision ( playerState, framesSinceLastChain ) =
                         Falling ->
                             ( Jumping defaultJumpForce, 0 )
 
-                        Dashing ( framesDashing, direction, onGround ) ->
-                            ( Dashing ( 0, direction, onGround ), 0 )
+                        Dashing ( framesDashing, direction ) ->
+                            ( Dashing ( 0, direction ), 0 )
+
+                        DashRecovery ( framesRecovering, onGround ) ->
+                            ( Jumping defaultJumpForce, 0 )
 
                         OnWall ( framesOnWall, wallOnRight ) ->
                             ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
@@ -465,8 +509,11 @@ stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
                 Falling ->
                     ( Falling, framesSinceLastChain )
 
-                Dashing ( framesDashing, direction, onGround ) ->
-                    ( Dashing ( framesDashing, direction, False ), framesSinceLastChain )
+                Dashing ( framesDashing, direction ) ->
+                    ( Dashing ( framesDashing, direction ), framesSinceLastChain )
+
+                DashRecovery ( framesRecovering, onGround ) ->
+                    ( DashRecovery ( framesRecovering, False ), framesSinceLastChain )
 
                 HitStun framesHitStuned ->
                     ( HitStun framesHitStuned, maxChainDuration )
@@ -496,6 +543,12 @@ stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
                         Dashing framesDashing ->
                             ( HitStun 0, maxChainDuration )
 
+                        DashRecovery ( framesRecovering, onGround ) ->
+                            if onGround then
+                                ( DashRecovery ( framesRecovering, True ), maxChainDuration )
+                            else
+                                ( OnWall ( 0, True ), framesSinceLastChain )
+
                         OnWall ( framesOnWall, wallOnRight ) ->
                             ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
 
@@ -516,6 +569,12 @@ stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
                         Dashing framesDashing ->
                             ( HitStun 0, maxChainDuration )
 
+                        DashRecovery ( framesRecovering, onGround ) ->
+                            if onGround then
+                                ( DashRecovery ( framesRecovering, True ), maxChainDuration )
+                            else
+                                ( OnWall ( 0, False ), framesSinceLastChain )
+
                         OnWall ( framesOnWall, wallOnRight ) ->
                             ( OnWall ( framesOnWall, wallOnRight ), framesSinceLastChain )
 
@@ -533,8 +592,14 @@ stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
                         Falling ->
                             ( Running, framesSinceLastChain )
 
-                        Dashing ( framesDashing, direction, onGround ) ->
-                            ( Dashing ( framesDashing, direction, True ), framesSinceLastChain )
+                        Dashing ( framesDashing, direction ) ->
+                            ( Dashing ( framesDashing, direction ), framesSinceLastChain )
+
+                        DashRecovery ( framesRecovering, onGround ) ->
+                            if onGround then
+                                ( DashRecovery ( framesRecovering, True ), maxChainDuration )
+                            else
+                                ( Running, framesSinceLastChain )
 
                         OnWall ( framesOnWall, wallOnRight ) ->
                             ( Running, framesSinceLastChain )
@@ -604,14 +669,14 @@ renderPlayer resources player =
                 HitStun framesHitStuned ->
                     Color.red
 
-                Dashing ( framesDashing, direction, onGround ) ->
-                    if framesDashing < toFloat framesDashingMaxDuration then
-                        Color.yellow
-                    else
-                        Color.darkYellow
+                Dashing ( framesDashing, direction ) ->
+                    Color.yellow
+
+                DashRecovery ( framesRecovering, onGround ) ->
+                    Color.purple
 
                 OnWall ( framesOnWall, wallOnRight ) ->
-                    if framesOnWall < toFloat framesOnWallMaxDuration then
+                    if framesOnWall < framesOnWallMaxDuration then
                         Color.orange
                     else
                         Color.darkOrange
