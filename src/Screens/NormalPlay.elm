@@ -20,6 +20,45 @@ type alias NormalPlayState =
     }
 
 
+initialNormalPlayState : NormalPlayState
+initialNormalPlayState =
+    let
+        startingPoint =
+            ( -300, 0 )
+
+        ( gameWidth, gameHeight ) =
+            gameSize
+    in
+        { player = Player startingPoint ( 0, 0 ) Running ( 40, 40 ) 0
+        , enemies = []
+        , walls = []
+        , camera = Camera.fixedWidth gameWidth startingPoint
+        , resources = Resources.init
+        }
+
+
+createLevel : LevelData -> NormalPlayState
+createLevel levelData =
+    let
+        startingPoint =
+            ( -300, 0 )
+
+        ( gameWidth, gameHeight ) =
+            gameSize
+    in
+        { player = Player startingPoint ( 0, 0 ) Running ( 40, 40 ) 0
+        , enemies = []
+        , walls = levelData.platforms
+        , camera = Camera.fixedWidth gameWidth startingPoint
+        , resources = Resources.init
+        }
+
+
+type alias LevelData =
+    { platforms : List Wall
+    }
+
+
 enemyOne : Enemy
 enemyOne =
     { location = ( 500, -150 )
@@ -42,80 +81,6 @@ enemyThree =
     , timeExisted = 0
     , size = ( 40, 40 )
     }
-
-
-wallZero : Wall
-wallZero =
-    { location = ( 500, 100 )
-    , size = ( 500, 100 )
-    }
-
-
-wallOne : Wall
-wallOne =
-    { location = ( -100, -200 )
-    , size = ( 5000, 100 )
-    }
-
-
-wallTwo : Wall
-wallTwo =
-    { location = ( -600, 200 )
-    , size = ( 100, 1000 )
-    }
-
-
-wallThree : Wall
-wallThree =
-    { location = ( -100, 200 )
-    , size = ( 100, 1000 )
-    }
-
-
-wallFour : Wall
-wallFour =
-    { location = ( 500, -100 )
-    , size = ( 50, 50 )
-    }
-
-
-wallFive : Wall
-wallFive =
-    { location = ( 591, -100 )
-    , size = ( 50, 50 )
-    }
-
-
-wallSix : Wall
-wallSix =
-    { location = ( 682, -100 )
-    , size = ( 50, 50 )
-    }
-
-
-wallSeven : Wall
-wallSeven =
-    { location = ( 773, -100 )
-    , size = ( 50, 50 )
-    }
-
-
-initialNormalPlayState : NormalPlayState
-initialNormalPlayState =
-    let
-        startingPoint =
-            ( -300, 0 )
-
-        ( gameWidth, gameHeight ) =
-            gameSize
-    in
-        { player =
-            Player startingPoint ( 0, 0 ) Running ( 40, 40 ) 0
-        , enemies = []
-        , walls = [ wallZero, wallOne, wallTwo, wallThree, wallFour, wallFive, wallSix, wallSeven ]
-        , camera = Camera.fixedWidth gameWidth startingPoint
-        , resources = Resources.init
-        }
 
 
 updateNormalPlay : ControllerState -> NormalPlayState -> NormalPlayState

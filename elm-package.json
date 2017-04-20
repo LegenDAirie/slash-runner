@@ -9,6 +9,7 @@
     ],
     "exposed-modules": [],
     "dependencies": {
+        "NoRedInk/elm-decode-pipeline": "3.0.0 <= v < 4.0.0",
         "Zinggi/elm-2d-game": "2.0.0 <= v < 3.0.0",
         "Zinggi/elm-game-resources": "2.0.0 <= v < 3.0.0",
         "Zinggi/elm-webgl-math": "1.0.5 <= v < 2.0.0",

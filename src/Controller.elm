@@ -1,4 +1,4 @@
-module Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState)
+module Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState, initialControllerState)
 
 import Keyboard.Extra
 
@@ -66,6 +66,15 @@ type DPad
     | Left
     | UpLeft
     | NoDirection
+
+
+initialControllerState : ControllerState
+initialControllerState =
+    { dPad = NoDirection
+    , jump = Inactive
+    , dash = Inactive
+    , start = Inactive
+    }
 
 
 calculateControllerState : Keyboard.Extra.State -> ControllerState -> ControllerState

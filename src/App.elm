@@ -1,4 +1,4 @@
-module App exposing (..)
+port module App exposing (..)
 
 import Html exposing (Html, div)
 import Html.Attributes exposing (style)
@@ -10,10 +10,13 @@ import AnimationFrame
 import Window
 import Task
 import GameTypes exposing (Vector)
-import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState)
+import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState, initialControllerState)
 import Coordinates exposing (convertTouchCoorToGameCoor, convertToGameUnits, gameSize)
-import Screens.NormalPlay exposing (initialNormalPlayState, updateNormalPlay, renderNormalPlay, NormalPlayState)
+import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState)
 import Keyboard.Extra
+import Json.Decode
+import Json.Decode.Pipeline
+import Wall exposing (Wall)
 
 
 type alias Model =
@@ -30,10 +33,12 @@ type GameScreen
 
 
 type Msg
-    = SetCanvasSize Window.Size
+    = NoOp
+    | SetCanvasSize Window.Size
     | Tick
     | Resources Resources.Msg
     | KeyboardMsg Keyboard.Extra.Msg
+    | ReceiveLevelData Int
 
 
 initialModel : Model
@@ -50,21 +55,16 @@ init =
     initialModel
         ! [ Task.perform SetCanvasSize Window.size
           , Cmd.map Resources <| Resources.loadTextures [ "../assets/background-square.jpg" ]
+          , fetchLevelData 1
           ]
-
-
-initialControllerState : ControllerState
-initialControllerState =
-    { dPad = NoDirection
-    , jump = Inactive
-    , dash = Inactive
-    , start = Inactive
-    }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            model ! []
+
         SetCanvasSize size ->
             { model | canvasSize = setCanvasSize size }
                 ! []
@@ -87,6 +87,17 @@ update msg model =
                     }
                         ! []
 
+        ReceiveLevelData levelData ->
+            let
+                _ =
+                    Debug.log "level data" levelData
+            in
+                model ! []
+
+        -- { model
+        --     | gameScreen = NormalPlay (createLevel levelData)
+        -- }
+        --     ! []
         Tick ->
             let
                 newModel =
@@ -146,10 +157,54 @@ setCanvasSize size =
         ( toFloat width, toFloat height )
 
 
+
+--ports
+
+
+port fetchLevelData : Int -> Cmd msg
+
+
+port receiveLevelData : (String -> msg) -> Sub msg
+
+
+levelDataDecodeHandler : String -> Msg
+levelDataDecodeHandler levelDataJson =
+    case levelDataDecoder levelDataJson of
+        Ok levelData ->
+            ReceiveLevelData levelData
+
+        Err errorMessage ->
+            let
+                _ =
+                    Debug.log "Error in levelDataDecodeHandler" errorMessage
+            in
+                NoOp
+
+
+levelDataDecoder : String -> Result String Int
+levelDataDecoder levelDataJson =
+    Json.Decode.decodeString Json.Decode.int levelDataJson
+
+
+
+-- decodePlatforms : Json.Decode.Decoder LevelData
+-- decodePlatforms =
+--     Json.Decode.Pipeline.decode LevelData
+--         |> Json.Decode.Pipeline.required "platforms" (Json.Decode.list decodePlatform)
+--
+--
+-- decodePlatform : Json.Decode.Decoder String
+-- decodePlatform =
+--     Json.Decode.Pipeline.decode Wall
+--         |> Json.Decode.Pipeline.required "x" Json.Decode.int
+--         |> Json.Decode.Pipeline.required "y" Json.Decode.int
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ AnimationFrame.diffs (\dt -> Tick)
         , Window.resizes (\size -> SetCanvasSize size)
         , Sub.map KeyboardMsg Keyboard.Extra.subscriptions
+        , receiveLevelData levelDataDecodeHandler
         ]
