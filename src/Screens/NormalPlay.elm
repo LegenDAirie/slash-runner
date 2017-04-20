@@ -5,10 +5,12 @@ import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
 import Controller exposing (ControllerState)
-import Coordinates exposing (gameSize)
+import Coordinates exposing (gameSize, gridToPixelConversion)
 import Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer)
 import Enemy exposing (Enemy, renderEnemy, updateEnemies)
-import Wall exposing (Wall, renderWall)
+import Wall exposing (Wall, renderWall, wallDecoder)
+import Json.Decode exposing (Decoder)
+import Json.Decode.Pipeline exposing (decode, required)
 
 
 type alias NormalPlayState =
@@ -45,10 +47,14 @@ createLevel levelData =
 
         ( gameWidth, gameHeight ) =
             gameSize
+
+        platforms =
+            levelData.platforms
+                |> List.map (\platform -> { platform | location = gridToPixelConversion platform.location })
     in
         { player = Player startingPoint ( 0, 0 ) Running ( 40, 40 ) 0
         , enemies = []
-        , walls = levelData.platforms
+        , walls = platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
         }
@@ -119,3 +125,14 @@ renderBackground resources =
         , tiling = ( 6, 2 )
         }
     ]
+
+
+jsonToLevelData : Json.Decode.Value -> Result String LevelData
+jsonToLevelData levelDataJson =
+    Json.Decode.decodeValue levelDataDecoder levelDataJson
+
+
+levelDataDecoder : Decoder LevelData
+levelDataDecoder =
+    decode LevelData
+        |> required "platforms" (Json.Decode.list wallDecoder)

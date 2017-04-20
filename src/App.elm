@@ -11,12 +11,10 @@ import Window
 import Task
 import GameTypes exposing (Vector)
 import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState, initialControllerState)
-import Coordinates exposing (convertTouchCoorToGameCoor, convertToGameUnits, gameSize)
-import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState)
+import Coordinates exposing (gameSize)
+import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
 import Keyboard.Extra
-import Json.Decode
-import Json.Decode.Pipeline
-import Wall exposing (Wall)
+import Json.Decode exposing (Decoder)
 
 
 type alias Model =
@@ -38,7 +36,7 @@ type Msg
     | Tick
     | Resources Resources.Msg
     | KeyboardMsg Keyboard.Extra.Msg
-    | ReceiveLevelData Int
+    | ReceiveLevelData LevelData
 
 
 initialModel : Model
@@ -92,12 +90,11 @@ update msg model =
                 _ =
                     Debug.log "level data" levelData
             in
-                model ! []
+                { model
+                    | gameScreen = NormalPlay (createLevel levelData)
+                }
+                    ! []
 
-        -- { model
-        --     | gameScreen = NormalPlay (createLevel levelData)
-        -- }
-        --     ! []
         Tick ->
             let
                 newModel =
@@ -157,19 +154,15 @@ setCanvasSize size =
         ( toFloat width, toFloat height )
 
 
-
---ports
-
-
 port fetchLevelData : Int -> Cmd msg
 
 
-port receiveLevelData : (String -> msg) -> Sub msg
+port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg
 
 
-levelDataDecodeHandler : String -> Msg
+levelDataDecodeHandler : Json.Decode.Value -> Msg
 levelDataDecodeHandler levelDataJson =
-    case levelDataDecoder levelDataJson of
+    case jsonToLevelData levelDataJson of
         Ok levelData ->
             ReceiveLevelData levelData
 
@@ -179,25 +172,6 @@ levelDataDecodeHandler levelDataJson =
                     Debug.log "Error in levelDataDecodeHandler" errorMessage
             in
                 NoOp
-
-
-levelDataDecoder : String -> Result String Int
-levelDataDecoder levelDataJson =
-    Json.Decode.decodeString Json.Decode.int levelDataJson
-
-
-
--- decodePlatforms : Json.Decode.Decoder LevelData
--- decodePlatforms =
---     Json.Decode.Pipeline.decode LevelData
---         |> Json.Decode.Pipeline.required "platforms" (Json.Decode.list decodePlatform)
---
---
--- decodePlatform : Json.Decode.Decoder String
--- decodePlatform =
---     Json.Decode.Pipeline.decode Wall
---         |> Json.Decode.Pipeline.required "x" Json.Decode.int
---         |> Json.Decode.Pipeline.required "y" Json.Decode.int
 
 
 subscriptions : Model -> Sub Msg

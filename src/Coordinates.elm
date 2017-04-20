@@ -1,4 +1,4 @@
-module Coordinates exposing (convertTouchCoorToGameCoor, convertToGameUnits, gameSize, centerToBottomLeftLocationConverter)
+module Coordinates exposing (convertTouchCoorToGameCoor, convertToGameUnits, gameSize, centerToBottomLeftLocationConverter, gridSquareSize, gridToPixelConversion)
 
 import GameTypes exposing (Vector)
 import Vector2 as V2 exposing (distance, normalize, setX, getX, getY)
@@ -8,6 +8,20 @@ import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
 gameSize : Vector
 gameSize =
     ( 1280, 720 )
+
+
+gridSquareSize : Vector
+gridSquareSize =
+    ( 64, 64 )
+
+
+gridToPixelConversion : Vector -> Vector
+gridToPixelConversion ( gridX, gridY ) =
+    let
+        ( gridSquareInPixelsX, gridSquareInPixelsY ) =
+            gridSquareSize
+    in
+        ( gridX * gridSquareInPixelsX, gridY * gridSquareInPixelsY )
 
 
 convertTouchCoorToGameCoor : Camera -> Vector -> Vector

@@ -202,9 +202,6 @@ applyPhysics dPad dashButton playerState framesSinceLastChain location velocity 
                             |> V2.add gravitationalForce
                             |> capVerticalVelocity maxVerticalSpeed
 
-                    _ =
-                        Debug.log "Velocity" newVelocity
-
                     newLocation =
                         newVelocity
                             |> V2.add speedDashingConstant

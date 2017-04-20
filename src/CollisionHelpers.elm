@@ -1,10 +1,9 @@
 module CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
 
 import GameTypes exposing (Vector)
-import Wall exposing (Wall)
+import Wall exposing (Wall, wallSize)
 import Enemy exposing (Enemy)
 import Collision2D
-import Vector2 as V2 exposing (getX, getY)
 
 
 ------------------------------------------------------------------
@@ -70,7 +69,7 @@ isCollidingWithPlatform entityLocation entitySize wall =
             wall.location
 
         ( wallWidth, wallHeight ) =
-            wall.size
+            wallSize
 
         entityHitbox =
             Collision2D.rectangle x y width height
@@ -110,7 +109,7 @@ calculateNewSide entityLocation wall side =
             wall.location
 
         ( wallWidth, wallHeight ) =
-            wall.size
+            wallSize
     in
         case side of
             Collision2D.Top ->
@@ -145,7 +144,7 @@ setEntity entityLocation entitySize wall side =
             wall.location
 
         ( wallWidth, wallHeight ) =
-            wall.size
+            wallSize
 
         minVerticalDistanceApart =
             entityHeight / 2 + wallHeight / 2
