@@ -16,6 +16,7 @@ import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLev
 import Keyboard.Extra
 import Json.Decode exposing (Decoder)
 import Mouse
+import Wall exposing (Wall)
 
 
 type alias Model =
@@ -39,6 +40,7 @@ type Msg
     | KeyboardMsg Keyboard.Extra.Msg
     | ReceiveLevelData LevelData
     | MouseMove Vector
+    | MouseClick Vector
 
 
 initialModel : Model
@@ -98,29 +100,50 @@ update msg model =
                     ! []
 
         MouseMove mousePosition ->
-            let
-                _ =
-                    Debug.log "mouse position" mousePosition
-            in
-                case model.gameScreen of
-                    Uninitialized ->
-                        model ! []
+            case model.gameScreen of
+                Uninitialized ->
+                    model ! []
 
-                    NormalPlay state ->
-                        let
-                            newPosition =
-                                mousePosition
-                                    |> convertToGameUnits model.canvasSize
+                NormalPlay state ->
+                    let
+                        newPosition =
+                            mousePosition
+                                |> convertToGameUnits model.canvasSize
 
-                            newState =
-                                { state
-                                    | mouse = convertTouchCoorToGameCoor state.camera newPosition
-                                }
-                        in
-                            { model
-                                | gameScreen = NormalPlay newState
+                        newState =
+                            { state
+                                | mouse = convertTouchCoorToGameCoor state.camera newPosition
                             }
-                                ! []
+                    in
+                        { model
+                            | gameScreen = NormalPlay newState
+                        }
+                            ! []
+
+        MouseClick mousePosition ->
+            case model.gameScreen of
+                Uninitialized ->
+                    model ! []
+
+                NormalPlay state ->
+                    let
+                        newPosition =
+                            mousePosition
+                                |> convertToGameUnits model.canvasSize
+
+                        newWalls =
+                            [ Wall (convertTouchCoorToGameCoor state.camera newPosition) ]
+                                |> List.append state.walls
+
+                        newState =
+                            { state
+                                | walls = newWalls
+                            }
+                    in
+                        { model
+                            | gameScreen = NormalPlay newState
+                        }
+                            ! []
 
         Tick ->
             let
@@ -209,4 +232,5 @@ subscriptions model =
         , Sub.map KeyboardMsg Keyboard.Extra.subscriptions
         , receiveLevelData levelDataDecodeHandler
         , Mouse.moves (\{ x, y } -> MouseMove ( toFloat x, toFloat y ))
+        , Mouse.clicks (\{ x, y } -> MouseClick ( toFloat x, toFloat y ))
         ]
