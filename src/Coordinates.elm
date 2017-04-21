@@ -1,4 +1,4 @@
-module Coordinates exposing (convertTouchCoorToGameCoor, convertToGameUnits, gameSize, centerToBottomLeftLocationConverter, gridSquareSize, gridToPixelConversion)
+module Coordinates exposing (convertTouchCoorToGameCoor, convertToGameUnits, gameSize, centerToBottomLeftLocationConverter, gridSquareSize, gridToPixelConversion, pixelToGridConversion)
 
 import GameTypes exposing (Vector)
 import Vector2 as V2 exposing (distance, normalize, setX, getX, getY)
@@ -22,6 +22,15 @@ gridToPixelConversion ( gridX, gridY ) =
             gridSquareSize
     in
         ( gridX * gridSquareInPixelsX, gridY * gridSquareInPixelsY )
+
+
+pixelToGridConversion : Vector -> Vector
+pixelToGridConversion ( pixelX, pixelY ) =
+    let
+        ( gridSquareInPixelsX, gridSquareInPixelsY ) =
+            gridSquareSize
+    in
+        ( toFloat (floor pixelX // floor gridSquareInPixelsX), toFloat (floor pixelY // floor gridSquareInPixelsY) )
 
 
 convertTouchCoorToGameCoor : Camera -> Vector -> Vector

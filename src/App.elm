@@ -11,7 +11,7 @@ import Window
 import Task
 import GameTypes exposing (Vector)
 import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState, initialControllerState)
-import Coordinates exposing (gameSize, convertTouchCoorToGameCoor, convertToGameUnits)
+import Coordinates exposing (gameSize, convertTouchCoorToGameCoor, convertToGameUnits, pixelToGridConversion, gridToPixelConversion)
 import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
 import Keyboard.Extra
 import Json.Decode exposing (Decoder)
@@ -109,10 +109,13 @@ update msg model =
                         newPosition =
                             mousePosition
                                 |> convertToGameUnits model.canvasSize
+                                |> convertTouchCoorToGameCoor state.camera
+                                |> pixelToGridConversion
+                                |> gridToPixelConversion
 
                         newState =
                             { state
-                                | mouse = convertTouchCoorToGameCoor state.camera newPosition
+                                | mouse = newPosition
                             }
                     in
                         { model
@@ -130,9 +133,12 @@ update msg model =
                         newPosition =
                             mousePosition
                                 |> convertToGameUnits model.canvasSize
+                                |> convertTouchCoorToGameCoor state.camera
+                                |> pixelToGridConversion
+                                |> gridToPixelConversion
 
                         newWalls =
-                            [ Wall (convertTouchCoorToGameCoor state.camera newPosition) ]
+                            [ Wall newPosition ]
                                 |> List.append state.walls
 
                         newState =
