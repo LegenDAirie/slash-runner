@@ -11,10 +11,11 @@ import Window
 import Task
 import GameTypes exposing (Vector)
 import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState, initialControllerState)
-import Coordinates exposing (gameSize)
+import Coordinates exposing (gameSize, convertTouchCoorToGameCoor, convertToGameUnits)
 import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
 import Keyboard.Extra
 import Json.Decode exposing (Decoder)
+import Mouse
 
 
 type alias Model =
@@ -37,6 +38,7 @@ type Msg
     | Resources Resources.Msg
     | KeyboardMsg Keyboard.Extra.Msg
     | ReceiveLevelData LevelData
+    | MouseMove Vector
 
 
 initialModel : Model
@@ -94,6 +96,31 @@ update msg model =
                     | gameScreen = NormalPlay (createLevel levelData)
                 }
                     ! []
+
+        MouseMove mousePosition ->
+            let
+                _ =
+                    Debug.log "mouse position" mousePosition
+            in
+                case model.gameScreen of
+                    Uninitialized ->
+                        model ! []
+
+                    NormalPlay state ->
+                        let
+                            newPosition =
+                                mousePosition
+                                    |> convertToGameUnits model.canvasSize
+
+                            newState =
+                                { state
+                                    | mouse = convertTouchCoorToGameCoor state.camera newPosition
+                                }
+                        in
+                            { model
+                                | gameScreen = NormalPlay newState
+                            }
+                                ! []
 
         Tick ->
             let
@@ -181,4 +208,5 @@ subscriptions model =
         , Window.resizes (\size -> SetCanvasSize size)
         , Sub.map KeyboardMsg Keyboard.Extra.subscriptions
         , receiveLevelData levelDataDecodeHandler
+        , Mouse.moves (\{ x, y } -> MouseMove ( toFloat x, toFloat y ))
         ]

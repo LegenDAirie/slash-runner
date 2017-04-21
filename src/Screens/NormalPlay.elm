@@ -5,12 +5,14 @@ import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
 import Controller exposing (ControllerState)
-import Coordinates exposing (gameSize, gridToPixelConversion)
+import GameTypes exposing (Vector)
+import Coordinates exposing (gameSize, gridToPixelConversion, centerToBottomLeftLocationConverter, gridSquareSize)
 import Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer)
 import Enemy exposing (Enemy, renderEnemy, updateEnemies)
 import Wall exposing (Wall, renderWall, wallDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
+import Color
 
 
 type alias NormalPlayState =
@@ -19,7 +21,21 @@ type alias NormalPlayState =
     , walls : List Wall
     , camera : Camera
     , resources : Resources
+    , mouse : Vector
     }
+
+
+
+-- {
+--   "platforms": [
+--     {"location": {"x": 0, "y": 0}},
+--     {"location": {"x": 1, "y": 0}},
+--     {"location": {"x": 2, "y": 0}},
+--     {"location": {"x": 3, "y": 0}},
+--     {"location": {"x": 5, "y": 0}},
+--     {"location": {"x": 7, "y": 0}}
+--   ]
+-- }
 
 
 initialNormalPlayState : NormalPlayState
@@ -36,6 +52,7 @@ initialNormalPlayState =
         , walls = []
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
+        , mouse = ( 0, 0 )
         }
 
 
@@ -49,14 +66,14 @@ createLevel levelData =
             gameSize
 
         platforms =
-            levelData.platforms
-                |> List.map (\platform -> { platform | location = gridToPixelConversion platform.location })
+            List.map (\platform -> { platform | location = gridToPixelConversion platform.location }) levelData.platforms
     in
         { player = Player startingPoint ( 0, 0 ) Running ( 40, 40 ) 0
         , enemies = []
         , walls = platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
+        , mouse = ( 0, 0 )
         }
 
 
@@ -111,7 +128,17 @@ renderNormalPlay state =
         [ (List.map renderEnemy state.enemies)
         , (List.map renderWall state.walls)
         , [ renderPlayer state.resources state.player ]
+        , [ renderMouse state.mouse ]
         ]
+
+
+renderMouse : Vector -> Renderable
+renderMouse location =
+    Render.rectangle
+        { color = Color.charcoal
+        , position = centerToBottomLeftLocationConverter location gridSquareSize
+        , size = gridSquareSize
+        }
 
 
 renderBackground : Resources -> List Renderable
