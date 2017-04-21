@@ -6,6 +6,10 @@ var root = document.getElementById('root');
 
 var app = Elm.Main.embed(root);
 
+app.ports.writeLevelData.subscribe(function(levelDataJson) {
+  console.log('level data json', levelDataJson);
+});
+
 app.ports.fetchLevelData.subscribe(function(levelNumber) {
 
   loadJSON(function(response) {

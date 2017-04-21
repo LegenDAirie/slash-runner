@@ -15,6 +15,7 @@ import Coordinates exposing (gameSize, convertTouchCoorToGameCoor, convertToGame
 import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
 import Keyboard.Extra
 import Json.Decode exposing (Decoder)
+import Json.Encode
 import Mouse
 import Wall exposing (Wall, wallSize)
 import MouseHelpers exposing (mouseToGridInPixels)
@@ -144,11 +145,17 @@ update msg model =
                             { state
                                 | walls = newWalls
                             }
+
+                        encodedLevelData =
+                            levelDataEncodeHandler newState.walls
+
+                        _ =
+                            Debug.log "encoded level data" encodedLevelData
                     in
                         { model
                             | gameScreen = NormalPlay newState
                         }
-                            ! []
+                            ! [ writeLevelData encodedLevelData ]
 
         Tick ->
             let
@@ -215,6 +222,9 @@ port fetchLevelData : Int -> Cmd msg
 port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg
 
 
+port writeLevelData : String -> Cmd msg
+
+
 levelDataDecodeHandler : Json.Decode.Value -> Msg
 levelDataDecodeHandler levelDataJson =
     case jsonToLevelData levelDataJson of
@@ -227,6 +237,40 @@ levelDataDecodeHandler levelDataJson =
                     Debug.log "Error in levelDataDecodeHandler" errorMessage
             in
                 NoOp
+
+
+levelDataEncodeHandler : List Wall -> String
+levelDataEncodeHandler walls =
+    let
+        encodedWalls =
+            List.map (\wall -> encodeWall wall) walls
+
+        platforms =
+            Json.Encode.list encodedWalls
+
+        encodedlevelData =
+            Json.Encode.object
+                [ ( "platforms", platforms ) ]
+    in
+        Json.Encode.encode 4 encodedlevelData
+
+
+encodeWall : Wall -> Json.Encode.Value
+encodeWall wall =
+    Json.Encode.object
+        [ ( "location", encodeVector wall.location ) ]
+
+
+encodeVector : Vector -> Json.Encode.Value
+encodeVector location =
+    let
+        ( x, y ) =
+            pixelToGridConversion location
+    in
+        Json.Encode.object
+            [ ( "x", Json.Encode.float x )
+            , ( "y", Json.Encode.float y )
+            ]
 
 
 subscriptions : Model -> Sub Msg
