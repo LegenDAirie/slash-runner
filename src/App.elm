@@ -16,7 +16,8 @@ import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLev
 import Keyboard.Extra
 import Json.Decode exposing (Decoder)
 import Mouse
-import Wall exposing (Wall)
+import Wall exposing (Wall, wallSize)
+import MouseHelpers exposing (mouseToGridInPixels)
 
 
 type alias Model =
@@ -106,12 +107,11 @@ update msg model =
 
                 NormalPlay state ->
                     let
+                        ( width, height ) =
+                            wallSize
+
                         newPosition =
-                            mousePosition
-                                |> convertToGameUnits model.canvasSize
-                                |> convertTouchCoorToGameCoor state.camera
-                                |> pixelToGridConversion
-                                |> gridToPixelConversion
+                            mouseToGridInPixels model.canvasSize state.camera mousePosition
 
                         newState =
                             { state
@@ -130,12 +130,11 @@ update msg model =
 
                 NormalPlay state ->
                     let
+                        ( width, height ) =
+                            wallSize
+
                         newPosition =
-                            mousePosition
-                                |> convertToGameUnits model.canvasSize
-                                |> convertTouchCoorToGameCoor state.camera
-                                |> pixelToGridConversion
-                                |> gridToPixelConversion
+                            mouseToGridInPixels model.canvasSize state.camera mousePosition
 
                         newWalls =
                             [ Wall newPosition ]
