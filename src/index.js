@@ -7,7 +7,8 @@ var root = document.getElementById('root');
 var app = Elm.Main.embed(root);
 
 app.ports.writeLevelData.subscribe(function(levelDataJson) {
-  console.log('level data json', levelDataJson);
+  // console.log('level data json', levelDataJson);
+  postJSON(levelDataJson);
 });
 
 app.ports.fetchLevelData.subscribe(function(levelNumber) {
@@ -31,4 +32,31 @@ function loadJSON(callback) {
          }
    };
    xobj.send(null);
+}
+
+
+
+function postJSON(levelDataJson) {
+  console.log('begin');
+  var http = new XMLHttpRequest();
+  var params = "text=stuff";
+  http.open("POST", "http://localhost:3000", true);
+
+  http.setRequestHeader("Content-type", "application/json");
+  // http.setRequestHeader("Access-Control-Allow-Origin",  "http://localhost:3000/");
+  // http.setRequestHeader("Connection", "close");
+
+  http.onreadystatechange = function() {
+      console.log('onreadystatechange');
+      if (http.readyState == 4 && http.status == 200) {
+          alert(http.responseText);
+      }
+      else {
+          console.log('readyState=' + http.readyState + ', status: ' + http.status);
+      }
+  }
+
+  console.log('sending...')
+  http.send(params);
+  console.log('end');
 }

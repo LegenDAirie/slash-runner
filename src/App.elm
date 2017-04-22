@@ -92,14 +92,14 @@ update msg model =
                         ! []
 
         ReceiveLevelData levelData ->
-            let
-                _ =
-                    Debug.log "level data" levelData
-            in
-                { model
-                    | gameScreen = NormalPlay (createLevel levelData)
-                }
-                    ! []
+            -- let
+            --     _ =
+            --         Debug.log "level data" levelData
+            -- in
+            { model
+                | gameScreen = NormalPlay (createLevel levelData)
+            }
+                ! []
 
         MouseMove mousePosition ->
             case model.gameScreen of
@@ -149,8 +149,8 @@ update msg model =
                         encodedLevelData =
                             levelDataEncodeHandler newState.walls
 
-                        _ =
-                            Debug.log "encoded level data" encodedLevelData
+                        -- _ =
+                        --     Debug.log "encoded level data" encodedLevelData
                     in
                         { model
                             | gameScreen = NormalPlay newState
