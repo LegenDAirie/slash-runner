@@ -10,7 +10,7 @@ import AnimationFrame
 import Window
 import Task
 import GameTypes exposing (Vector)
-import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState, initialControllerState)
+import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerStateFromKeyboardState, initialControllerState, calculateControllerStateFromGamePad)
 import Coordinates exposing (gameSize, convertTouchCoorToGameCoor, convertToGameUnits, pixelToGridConversion, gridToPixelConversion)
 import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
 import Keyboard.Extra
@@ -37,7 +37,8 @@ type GameScreen
 type Msg
     = NoOp
     | SetCanvasSize Window.Size
-    | Tick
+    | GetControllerState
+    | Tick { up : Bool, left : Bool, right : Bool, down : Bool, jump : Bool, dash : Bool }
     | Resources Resources.Msg
     | KeyboardMsg Keyboard.Extra.Msg
     | ReceiveLevelData LevelData
@@ -137,9 +138,15 @@ update msg model =
                         newPosition =
                             mouseToGridInPixels model.canvasSize state.camera mousePosition
 
+                        newWall =
+                            Wall newPosition
+
                         newWalls =
-                            [ Wall newPosition ]
-                                |> List.append state.walls
+                            if List.member newWall state.walls then
+                                List.filter (\wall -> not (wall == newWall)) state.walls
+                            else
+                                [ Wall newPosition ]
+                                    |> List.append state.walls
 
                         newState =
                             { state
@@ -157,12 +164,28 @@ update msg model =
                         }
                             ! [ writeLevelData encodedLevelData ]
 
-        Tick ->
+        GetControllerState ->
             let
+                player1 =
+                    1
+            in
+                model ! [ getControllerState player1 ]
+
+        Tick gamePad ->
+            let
+                newControllerState =
+                    model.controllerState
+                        -- |> calculateControllerStateFromGamePad gamePad
+                        |>
+                            calculateControllerStateFromKeyboardState model.keyboardState
+
                 newModel =
                     { model
-                        | controllerState = calculateControllerState model.keyboardState model.controllerState
+                        | controllerState = newControllerState
                     }
+
+                -- _ =
+                --     Debug.log "buttons" buttons
             in
                 case newModel.gameScreen of
                     Uninitialized ->
@@ -173,7 +196,7 @@ update msg model =
                             | gameScreen =
                                 NormalPlay <|
                                     updateNormalPlay
-                                        model.controllerState
+                                        newControllerState
                                         state
                         }
                             ! []
@@ -223,6 +246,12 @@ port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg
 
 
 port writeLevelData : String -> Cmd msg
+
+
+port getControllerState : Int -> Cmd msg
+
+
+port receiveControllerState : ({ up : Bool, left : Bool, right : Bool, down : Bool, jump : Bool, dash : Bool } -> msg) -> Sub msg
 
 
 levelDataDecodeHandler : Json.Decode.Value -> Msg
@@ -276,7 +305,8 @@ encodeVector location =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ AnimationFrame.diffs (\dt -> Tick)
+        [ AnimationFrame.diffs (\dt -> GetControllerState)
+        , receiveControllerState (\buttons -> Tick buttons)
         , Window.resizes (\size -> SetCanvasSize size)
         , Sub.map KeyboardMsg Keyboard.Extra.subscriptions
         , receiveLevelData levelDataDecodeHandler

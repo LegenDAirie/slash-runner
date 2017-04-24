@@ -1,4 +1,4 @@
-module Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerState, initialControllerState)
+module Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerStateFromKeyboardState, initialControllerState, calculateControllerStateFromGamePad)
 
 import Keyboard.Extra
 
@@ -77,8 +77,8 @@ initialControllerState =
     }
 
 
-calculateControllerState : Keyboard.Extra.State -> ControllerState -> ControllerState
-calculateControllerState keyboardState controllerState =
+calculateControllerStateFromKeyboardState : Keyboard.Extra.State -> ControllerState -> ControllerState
+calculateControllerStateFromKeyboardState keyboardState controllerState =
     let
         pressedKeys =
             Keyboard.Extra.pressedDown keyboardState
@@ -125,4 +125,36 @@ calculateControllerState keyboardState controllerState =
             | dPad = direction
             , jump = calculateButtonState jumpPressed controllerState.jump
             , dash = calculateButtonState dashPressed controllerState.dash
+        }
+
+
+calculateControllerStateFromGamePad : { up : Bool, left : Bool, right : Bool, down : Bool, jump : Bool, dash : Bool } -> ControllerState -> ControllerState
+calculateControllerStateFromGamePad gamePad controllerState =
+    let
+        direction =
+            if gamePad.up then
+                if gamePad.right then
+                    UpRight
+                else if gamePad.left then
+                    UpLeft
+                else
+                    Up
+            else if gamePad.down then
+                if gamePad.right then
+                    DownRight
+                else if gamePad.left then
+                    DownLeft
+                else
+                    Down
+            else if gamePad.left then
+                Left
+            else if gamePad.right then
+                Right
+            else
+                NoDirection
+    in
+        { controllerState
+            | dPad = direction
+            , jump = calculateButtonState gamePad.jump controllerState.jump
+            , dash = calculateButtonState gamePad.dash controllerState.dash
         }

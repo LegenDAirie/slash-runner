@@ -20,6 +20,29 @@ app.ports.fetchLevelData.subscribe(function(levelNumber) {
     app.ports.receiveLevelData.send(actual_JSON);
 });
 
+app.ports.getControllerState.subscribe(function(playerNumber) {
+  var gamePads = navigator.getGamepads ? navigator.getGamepads() : []
+  var gamePad = gamePads[0]
+  var releventButtons = {
+    up: gamePad ? gamePad.buttons[12].pressed : false,
+    left: gamePad ? gamePad.buttons[14].pressed : false,
+    right: gamePad ? gamePad.buttons[15].pressed : false,
+    down: gamePad ? gamePad.buttons[13].pressed : false,
+    jump: gamePad ? gamePad.buttons[0].pressed : false,
+    dash: gamePad ? gamePad.buttons[2].pressed : false
+  }
+  app.ports.receiveControllerState.send(releventButtons)
+});
+
+window.addEventListener("gamepadconnected", function(e) {
+  var gp = navigator.getGamepads()[e.gamepad.index];
+});
+
+window.addEventListener("gamepaddisconnected", function(e) {
+});
+
+
+
 // function loadJSON(callback) {
 //
 //    var xobj = new XMLHttpRequest();
