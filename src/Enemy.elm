@@ -4,6 +4,7 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Vector2 as V2 exposing (getX, getY)
 import Color
 import GameTypes exposing (..)
+import Coordinates exposing (centerToBottomLeftLocationConverter)
 
 
 type alias Enemy =
@@ -39,10 +40,8 @@ renderEnemy enemy =
         y =
             getY enemy.location
     in
-        Render.rectangleWithOptions
+        Render.rectangle
             { color = Color.red
-            , position = ( x, y, 0 )
-            , rotation = 0
+            , position = centerToBottomLeftLocationConverter enemy.location enemy.size
             , size = enemy.size
-            , pivot = ( 0.5, 0.5 )
             }

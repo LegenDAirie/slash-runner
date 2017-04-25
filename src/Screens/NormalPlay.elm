@@ -25,19 +25,6 @@ type alias NormalPlayState =
     }
 
 
-
--- {
---   "platforms": [
---     {"location": {"x": 0, "y": 0}},
---     {"location": {"x": 1, "y": 0}},
---     {"location": {"x": 2, "y": 0}},
---     {"location": {"x": 3, "y": 0}},
---     {"location": {"x": 5, "y": 0}},
---     {"location": {"x": 7, "y": 0}}
---   ]
--- }
-
-
 initialNormalPlayState : NormalPlayState
 initialNormalPlayState =
     let
@@ -47,7 +34,7 @@ initialNormalPlayState =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = Player startingPoint ( 0, 0 ) Running ( 40, 40 ) 0
+        { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
         , enemies = []
         , walls = []
         , camera = Camera.fixedWidth gameWidth startingPoint
@@ -68,7 +55,7 @@ createLevel levelData =
         platforms =
             List.map (\platform -> { platform | location = gridToPixelConversion platform.location }) levelData.platforms
     in
-        { player = Player startingPoint ( 0, 0 ) Running ( 40, 40 ) 0
+        { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
         , enemies = []
         , walls = platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
@@ -79,30 +66,6 @@ createLevel levelData =
 
 type alias LevelData =
     { platforms : List Wall
-    }
-
-
-enemyOne : Enemy
-enemyOne =
-    { location = ( 500, -150 )
-    , timeExisted = 0
-    , size = ( 40, 40 )
-    }
-
-
-enemyTwo : Enemy
-enemyTwo =
-    { location = ( 800, -150 )
-    , timeExisted = 0
-    , size = ( 40, 40 )
-    }
-
-
-enemyThree : Enemy
-enemyThree =
-    { location = ( 1100, -150 )
-    , timeExisted = 0
-    , size = ( 40, 40 )
     }
 
 

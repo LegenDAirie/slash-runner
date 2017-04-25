@@ -18,6 +18,7 @@ import Json.Decode exposing (Decoder)
 import Json.Encode
 import Mouse
 import Wall exposing (Wall, wallSize)
+import Enemy exposing (Enemy)
 import MouseHelpers exposing (mouseToGridInPixels)
 
 
@@ -141,16 +142,40 @@ update msg model =
                         newWall =
                             Wall newPosition
 
+                        pressedKeys =
+                            Keyboard.Extra.pressedDown model.keyboardState
+
                         newWalls =
-                            if List.member newWall state.walls then
+                            if List.member Keyboard.Extra.Shift pressedKeys then
+                                state.walls
+                            else if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
+                                []
+                            else if List.member newWall state.walls then
                                 List.filter (\wall -> not (wall == newWall)) state.walls
                             else
                                 [ Wall newPosition ]
                                     |> List.append state.walls
 
+                        newEnemy =
+                            Enemy newPosition 0 ( 64, 64 )
+
+                        newEnemies =
+                            if List.member Keyboard.Extra.Shift pressedKeys then
+                                if List.member newEnemy.location (List.map (\enemy -> enemy.location) state.enemies) then
+                                    List.filter (\enemy -> not (enemy.location == newEnemy.location)) state.enemies
+                                else
+                                    [ newEnemy ]
+                                        |> List.append state.enemies
+                            else
+                                state.enemies
+
+                        keyboardState =
+                            model.keyboardState
+
                         newState =
                             { state
                                 | walls = newWalls
+                                , enemies = newEnemies
                             }
 
                         encodedLevelData =
