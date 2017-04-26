@@ -8,7 +8,7 @@ import Controller exposing (ControllerState)
 import GameTypes exposing (Vector)
 import Coordinates exposing (gameSize, gridToPixelConversion, centerToBottomLeftLocationConverter, gridSquareSize)
 import Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer)
-import Enemy exposing (Enemy, renderEnemy, updateEnemies)
+import Enemy exposing (Enemy, renderEnemy, updateEnemies, enemyDecoder)
 import GamePlatform exposing (Platform, renderPlatform, platformDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
@@ -54,9 +54,12 @@ createLevel levelData =
 
         platforms =
             List.map (\platform -> { platform | location = gridToPixelConversion platform.location }) levelData.platforms
+
+        enemies =
+            List.map (\enemy -> { enemy | location = gridToPixelConversion enemy.location }) levelData.enemies
     in
         { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
-        , enemies = []
+        , enemies = enemies
         , platforms = platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
@@ -66,6 +69,7 @@ createLevel levelData =
 
 type alias LevelData =
     { platforms : List Platform
+    , enemies : List Enemy
     }
 
 
@@ -126,3 +130,4 @@ levelDataDecoder : Decoder LevelData
 levelDataDecoder =
     decode LevelData
         |> required "platforms" (Json.Decode.list platformDecoder)
+        |> required "enemies" (Json.Decode.list enemyDecoder)

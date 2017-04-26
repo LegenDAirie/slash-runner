@@ -166,6 +166,8 @@ update msg model =
                                 else
                                     [ newEnemy ]
                                         |> List.append state.enemies
+                            else if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
+                                []
                             else
                                 state.enemies
 
@@ -179,7 +181,7 @@ update msg model =
                             }
 
                         encodedLevelData =
-                            levelDataEncodeHandler newState.platforms
+                            levelDataEncodeHandler newState.platforms newState.enemies
 
                         -- _ =
                         --     Debug.log "encoded level data" encodedLevelData

@@ -3,13 +3,15 @@ module Enemy exposing (..)
 import Game.TwoD.Render as Render exposing (Renderable)
 import Vector2 as V2 exposing (getX, getY)
 import Color
-import GameTypes exposing (..)
+import GameTypes exposing (Vector, vectorDecoder)
 import Coordinates exposing (centerToBottomLeftLocationConverter)
+import Json.Decode exposing (Decoder)
+import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 
 
 type alias Enemy =
     { location : Vector
-    , timeExisted : Float
+    , timeExisted : Int
     , size : Vector
     }
 
@@ -45,3 +47,11 @@ renderEnemy enemy =
             , position = centerToBottomLeftLocationConverter enemy.location enemy.size
             , size = enemy.size
             }
+
+
+enemyDecoder : Decoder Enemy
+enemyDecoder =
+    decode Enemy
+        |> required "location" vectorDecoder
+        |> hardcoded 0
+        |> hardcoded ( 64, 64 )
