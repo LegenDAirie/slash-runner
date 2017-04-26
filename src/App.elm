@@ -17,7 +17,7 @@ import Keyboard.Extra
 import Json.Decode exposing (Decoder)
 import CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
 import Mouse
-import Wall exposing (Wall, wallSize)
+import GamePlatform exposing (Platform, platformSize)
 import Enemy exposing (Enemy)
 import MouseHelpers exposing (mouseToGridInPixels)
 
@@ -111,7 +111,7 @@ update msg model =
                 NormalPlay state ->
                     let
                         ( width, height ) =
-                            wallSize
+                            platformSize
 
                         newPosition =
                             mouseToGridInPixels model.canvasSize state.camera mousePosition
@@ -134,27 +134,27 @@ update msg model =
                 NormalPlay state ->
                     let
                         ( width, height ) =
-                            wallSize
+                            platformSize
 
                         newPosition =
                             mouseToGridInPixels model.canvasSize state.camera mousePosition
 
-                        newWall =
-                            Wall newPosition
+                        newPlatform =
+                            Platform newPosition
 
                         pressedKeys =
                             Keyboard.Extra.pressedDown model.keyboardState
 
-                        newWalls =
+                        newPlatforms =
                             if List.member Keyboard.Extra.Shift pressedKeys then
-                                state.walls
+                                state.platforms
                             else if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
                                 []
-                            else if List.member newWall state.walls then
-                                List.filter (\wall -> not (wall == newWall)) state.walls
+                            else if List.member newPlatform state.platforms then
+                                List.filter (\platform -> not (platform == newPlatform)) state.platforms
                             else
-                                [ Wall newPosition ]
-                                    |> List.append state.walls
+                                [ Platform newPosition ]
+                                    |> List.append state.platforms
 
                         newEnemy =
                             Enemy newPosition 0 ( 64, 64 )
@@ -174,12 +174,12 @@ update msg model =
 
                         newState =
                             { state
-                                | walls = newWalls
+                                | platforms = newPlatforms
                                 , enemies = newEnemies
                             }
 
                         encodedLevelData =
-                            levelDataEncodeHandler newState.walls
+                            levelDataEncodeHandler newState.platforms
 
                         -- _ =
                         --     Debug.log "encoded level data" encodedLevelData

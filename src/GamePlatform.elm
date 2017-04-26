@@ -1,4 +1,4 @@
-module Wall exposing (Wall, renderWall, wallSize, wallDecoder)
+module GamePlatform exposing (Platform, renderPlatform, platformSize, platformDecoder)
 
 import Color
 import GameTypes exposing (Vector, vectorDecoder)
@@ -8,30 +8,30 @@ import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
 
 
-type alias Wall =
+type alias Platform =
     { location : Vector
     }
 
 
-wallSize : Vector
-wallSize =
+platformSize : Vector
+platformSize =
     gridSquareSize
 
 
-renderWall : Wall -> Renderable
-renderWall wall =
+renderPlatform : Platform -> Renderable
+renderPlatform platform =
     let
         ( x, y ) =
-            wall.location
+            platform.location
     in
         Render.rectangle
             { color = Color.charcoal
-            , position = centerToBottomLeftLocationConverter wall.location wallSize
-            , size = wallSize
+            , position = centerToBottomLeftLocationConverter platform.location platformSize
+            , size = platformSize
             }
 
 
-wallDecoder : Decoder Wall
-wallDecoder =
-    decode Wall
+platformDecoder : Decoder Platform
+platformDecoder =
+    decode Platform
         |> required "location" vectorDecoder

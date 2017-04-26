@@ -1,7 +1,7 @@
 module CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
 
 import GameTypes exposing (Vector)
-import Wall exposing (Wall, wallSize)
+import GamePlatform exposing (Platform, platformSize)
 import Enemy exposing (Enemy)
 import Collision2D
 
@@ -56,8 +56,8 @@ getSideCollidingWithEnemies location size enemies side =
 ------------------------------------------------------------------
 
 
-isCollidingWithPlatform : Vector -> Vector -> Wall -> Maybe Collision2D.Side
-isCollidingWithPlatform entityLocation entitySize wall =
+isCollidingWithPlatform : Vector -> Vector -> Platform -> Maybe Collision2D.Side
+isCollidingWithPlatform entityLocation entitySize platform =
     let
         ( x, y ) =
             entityLocation
@@ -65,51 +65,51 @@ isCollidingWithPlatform entityLocation entitySize wall =
         ( width, height ) =
             entitySize
 
-        ( wallX, wallY ) =
-            wall.location
+        ( platformX, platformY ) =
+            platform.location
 
-        ( wallWidth, wallHeight ) =
-            wallSize
+        ( platformWidth, platformHeight ) =
+            platformSize
 
         entityHitbox =
             Collision2D.rectangle x y width height
 
-        wallHitbox =
-            Collision2D.rectangle wallX wallY wallWidth wallHeight
+        platformHitbox =
+            Collision2D.rectangle platformX platformY platformWidth platformHeight
     in
-        Collision2D.rectangleSide entityHitbox wallHitbox
+        Collision2D.rectangleSide entityHitbox platformHitbox
 
 
-setByPlatform : Vector -> Vector -> List Wall -> Maybe Collision2D.Side -> ( Vector, Maybe Collision2D.Side )
-setByPlatform location size walls lastSide =
-    case walls of
+setByPlatform : Vector -> Vector -> List Platform -> Maybe Collision2D.Side -> ( Vector, Maybe Collision2D.Side )
+setByPlatform location size platforms lastSide =
+    case platforms of
         [] ->
             ( location, lastSide )
 
-        wall :: rest ->
-            case isCollidingWithPlatform location size wall of
+        platform :: rest ->
+            case isCollidingWithPlatform location size platform of
                 Just side ->
                     let
                         newSide =
-                            calculateNewSide location wall side
+                            calculateNewSide location platform side
                     in
-                        setByPlatform (setEntity location size wall newSide) size rest (Just newSide)
+                        setByPlatform (setEntity location size platform newSide) size rest (Just newSide)
 
                 Nothing ->
                     setByPlatform location size rest lastSide
 
 
-calculateNewSide : Vector -> Wall -> Collision2D.Side -> Collision2D.Side
-calculateNewSide entityLocation wall side =
+calculateNewSide : Vector -> Platform -> Collision2D.Side -> Collision2D.Side
+calculateNewSide entityLocation platform side =
     let
         ( x, y ) =
             entityLocation
 
-        ( wallX, wallY ) =
-            wall.location
+        ( platformX, platformY ) =
+            platform.location
 
-        ( wallWidth, wallHeight ) =
-            wallSize
+        ( platformWidth, platformHeight ) =
+            platformSize
     in
         case side of
             Collision2D.Top ->
@@ -119,20 +119,20 @@ calculateNewSide entityLocation wall side =
                 Collision2D.Bottom
 
             Collision2D.Right ->
-                if y > wallY + wallHeight / 2 then
+                if y > platformY + platformHeight / 2 then
                     Collision2D.Bottom
                 else
                     Collision2D.Right
 
             Collision2D.Left ->
-                if y > wallY + wallHeight / 2 then
+                if y > platformY + platformHeight / 2 then
                     Collision2D.Bottom
                 else
                     Collision2D.Left
 
 
-setEntity : Vector -> Vector -> Wall -> Collision2D.Side -> Vector
-setEntity entityLocation entitySize wall side =
+setEntity : Vector -> Vector -> Platform -> Collision2D.Side -> Vector
+setEntity entityLocation entitySize platform side =
     let
         ( x, y ) =
             entityLocation
@@ -140,27 +140,27 @@ setEntity entityLocation entitySize wall side =
         ( entityWidth, entityHeight ) =
             entitySize
 
-        ( wallX, wallY ) =
-            wall.location
+        ( platformX, platformY ) =
+            platform.location
 
-        ( wallWidth, wallHeight ) =
-            wallSize
+        ( platformWidth, platformHeight ) =
+            platformSize
 
         minVerticalDistanceApart =
-            entityHeight / 2 + wallHeight / 2
+            entityHeight / 2 + platformHeight / 2
 
         minHorizontalDistanceApart =
-            entityWidth / 2 + wallWidth / 2
+            entityWidth / 2 + platformWidth / 2
     in
         case side of
             Collision2D.Top ->
-                ( x, wallY - minVerticalDistanceApart )
+                ( x, platformY - minVerticalDistanceApart )
 
             Collision2D.Bottom ->
-                ( x, wallY + minVerticalDistanceApart )
+                ( x, platformY + minVerticalDistanceApart )
 
             Collision2D.Right ->
-                ( wallX - minHorizontalDistanceApart, y )
+                ( platformX - minHorizontalDistanceApart, y )
 
             Collision2D.Left ->
-                ( wallX + minHorizontalDistanceApart, y )
+                ( platformX + minHorizontalDistanceApart, y )

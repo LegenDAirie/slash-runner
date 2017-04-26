@@ -9,7 +9,7 @@ import GameTypes exposing (Vector)
 import Coordinates exposing (gameSize, gridToPixelConversion, centerToBottomLeftLocationConverter, gridSquareSize)
 import Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer)
 import Enemy exposing (Enemy, renderEnemy, updateEnemies)
-import Wall exposing (Wall, renderWall, wallDecoder)
+import GamePlatform exposing (Platform, renderPlatform, platformDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
 import Color
@@ -18,7 +18,7 @@ import Color
 type alias NormalPlayState =
     { player : Player
     , enemies : List Enemy
-    , walls : List Wall
+    , platforms : List Platform
     , camera : Camera
     , resources : Resources
     , mouse : Vector
@@ -36,7 +36,7 @@ initialNormalPlayState =
     in
         { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
         , enemies = []
-        , walls = []
+        , platforms = []
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
         , mouse = ( 0, 0 )
@@ -57,7 +57,7 @@ createLevel levelData =
     in
         { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
         , enemies = []
-        , walls = platforms
+        , platforms = platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
         , mouse = ( 0, 0 )
@@ -65,7 +65,7 @@ createLevel levelData =
 
 
 type alias LevelData =
-    { platforms : List Wall
+    { platforms : List Platform
     }
 
 
@@ -76,7 +76,7 @@ updateNormalPlay controllerState state =
             updateEnemies state.enemies
 
         newPlayer =
-            updatePlayer state.enemies state.walls controllerState state.player
+            updatePlayer state.enemies state.platforms controllerState state.player
     in
         { state
             | player = newPlayer
@@ -89,7 +89,7 @@ renderNormalPlay : NormalPlayState -> List Renderable
 renderNormalPlay state =
     List.concat
         [ (List.map renderEnemy state.enemies)
-        , (List.map renderWall state.walls)
+        , (List.map renderPlatform state.platforms)
         , [ renderPlayer state.resources state.player ]
         , [ renderMouse state.mouse ]
         ]
@@ -125,4 +125,4 @@ jsonToLevelData levelDataJson =
 levelDataDecoder : Decoder LevelData
 levelDataDecoder =
     decode LevelData
-        |> required "platforms" (Json.Decode.list wallDecoder)
+        |> required "platforms" (Json.Decode.list platformDecoder)

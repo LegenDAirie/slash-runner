@@ -1,6 +1,6 @@
 module MouseHelpers exposing (mouseToGridInPixels)
 
-import Wall exposing (wallSize)
+import GamePlatform exposing (platformSize)
 import Coordinates exposing (gameSize, convertTouchCoorToGameCoor, convertToGameUnits, pixelToGridConversion, gridToPixelConversion)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import GameTypes exposing (Vector)
@@ -10,7 +10,7 @@ mouseToGridInPixels : Vector -> Camera -> Vector -> Vector
 mouseToGridInPixels canvasSize camera location =
     let
         ( width, height ) =
-            wallSize
+            platformSize
 
         newPosition =
             location

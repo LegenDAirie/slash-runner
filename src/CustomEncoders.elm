@@ -3,7 +3,7 @@ module CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
 import Json.Encode
 import GameTypes exposing (Vector)
 import Coordinates exposing (pixelToGridConversion)
-import Wall exposing (Wall)
+import GamePlatform exposing (Platform)
 
 
 encodeVector : Vector -> Json.Encode.Value
@@ -18,23 +18,23 @@ encodeVector location =
             ]
 
 
-levelDataEncodeHandler : List Wall -> String
-levelDataEncodeHandler walls =
+levelDataEncodeHandler : List Platform -> String
+levelDataEncodeHandler platforms =
     let
-        encodedWalls =
-            List.map (\wall -> encodeWall wall) walls
+        encodedPlatforms =
+            List.map (\platform -> encodePlatform platform) platforms
 
-        platforms =
-            Json.Encode.list encodedWalls
+        newPlatforms =
+            Json.Encode.list encodedPlatforms
 
         encodedlevelData =
             Json.Encode.object
-                [ ( "platforms", platforms ) ]
+                [ ( "platforms", newPlatforms ) ]
     in
         Json.Encode.encode 4 encodedlevelData
 
 
-encodeWall : Wall -> Json.Encode.Value
-encodeWall wall =
+encodePlatform : Platform -> Json.Encode.Value
+encodePlatform platform =
     Json.Encode.object
-        [ ( "location", encodeVector wall.location ) ]
+        [ ( "location", encodeVector platform.location ) ]
