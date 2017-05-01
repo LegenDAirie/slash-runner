@@ -5,9 +5,9 @@ import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
 import Controller exposing (ControllerState)
-import GameTypes exposing (Vector)
+import GameTypes exposing (Vector, Player, PlayerState(..))
 import Coordinates exposing (gameSize, gridToPixelConversion, centerToBottomLeftLocationConverter, gridSquareSize)
-import Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer)
+import Player exposing (updatePlayer, renderPlayer)
 import Enemy exposing (Enemy, renderEnemy, updateEnemies, enemyDecoder)
 import GamePlatform exposing (Platform, renderPlatform, platformDecoder)
 import Json.Decode exposing (Decoder)
@@ -80,7 +80,7 @@ updateNormalPlay : ControllerState -> NormalPlayState -> NormalPlayState
 updateNormalPlay controllerState state =
     let
         newEnemies =
-            updateEnemies state.enemies
+            updateEnemies state.player state.enemies
 
         newPlayer =
             updatePlayer state.enemies state.platforms controllerState state.player

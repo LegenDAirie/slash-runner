@@ -1,36 +1,17 @@
-module Player exposing (Player, PlayerState(..), updatePlayer, renderPlayer)
+module Player exposing (updatePlayer, renderPlayer)
 
 import Vector2 as V2 exposing (getX, getY)
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
 import Game.Resources as Resources exposing (Resources)
 import Color
 import Collision2D
-import GameTypes exposing (Vector)
+import GameTypes exposing (Vector, Player, PlayerState(..))
 import Coordinates exposing (centerToBottomLeftLocationConverter)
 import Controller exposing (DPad(..), ControllerState, ButtonState(..))
 import Forces exposing (gravity, controllerLeftForce, controllerRightForce, maxVerticalSpeed, airResistance)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform)
 import CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
-
-
-type alias Player =
-    { location : Vector
-    , velocity : Vector
-    , playerState : PlayerState
-    , size : Vector
-    , framesSinceLastChain : Int
-    }
-
-
-type PlayerState
-    = Running
-    | Jumping Vector
-    | Falling
-    | Dashing ( Int, Vector )
-    | DashRecovery ( Int, Bool )
-    | OnPlatform ( Int, Bool )
-    | HitStun Int
 
 
 maxWalkingVelocity : Float
