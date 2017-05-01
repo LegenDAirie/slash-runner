@@ -244,12 +244,16 @@ applyPhysics dPad dashButton playerState framesSinceLastChain location velocity 
 
             HitStun framesHitStuned ->
                 let
-                    newLocation =
+                    newerVelocity =
                         newVelocity
+                            |> (\( x, y ) -> ( x * 0.5, y ))
+
+                    newLocation =
+                        newerVelocity
                             |> V2.add location
                             |> resetPlayerToOrigin
                 in
-                    ( location, velocity )
+                    ( newLocation, newerVelocity )
 
 
 incrementPlayerCounters : ( PlayerState, Int ) -> ( PlayerState, Int )
@@ -330,7 +334,6 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
 
                 newerState =
                     if controllerState.jump == Pressed then
-                        -- jumping cancels dashing
                         Jumping defaultJumpForce
                     else
                         newState
@@ -341,7 +344,6 @@ stateAfterControllerInputs controllerState ( playerState, framesSinceLastChain )
             let
                 newerState =
                     if controllerState.jump == Pressed then
-                        -- jumping cancels dashing
                         Jumping defaultJumpForce
                     else
                         Dashing framesDashing

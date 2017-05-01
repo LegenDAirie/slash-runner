@@ -17,6 +17,7 @@ import Color
 
 type alias NormalPlayState =
     { player : Player
+    , permanentEnemies : List Enemy
     , enemies : List Enemy
     , platforms : List Platform
     , camera : Camera
@@ -35,6 +36,7 @@ initialNormalPlayState =
             gameSize
     in
         { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
+        , permanentEnemies = []
         , enemies = []
         , platforms = []
         , camera = Camera.fixedWidth gameWidth startingPoint
@@ -59,6 +61,7 @@ createLevel levelData =
             List.map (\enemy -> { enemy | location = gridToPixelConversion enemy.location }) levelData.enemies
     in
         { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
+        , permanentEnemies = enemies
         , enemies = enemies
         , platforms = platforms
         , camera = Camera.fixedWidth gameWidth startingPoint

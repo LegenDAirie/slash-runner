@@ -76,10 +76,31 @@ update msg model =
                 ! []
 
         KeyboardMsg keyMsg ->
-            { model
-                | keyboardState = Keyboard.Extra.update keyMsg model.keyboardState
-            }
-                ! []
+            case model.gameScreen of
+                Uninitialized ->
+                    model ! []
+
+                NormalPlay normalPlayState ->
+                    let
+                        pressedKeys =
+                            Keyboard.Extra.pressedDown model.keyboardState
+
+                        newEnemies =
+                            if List.member Keyboard.Extra.CharR pressedKeys then
+                                normalPlayState.permanentEnemies
+                            else
+                                normalPlayState.enemies
+
+                        newNormalPlayState =
+                            { normalPlayState
+                                | enemies = newEnemies
+                            }
+                    in
+                        { model
+                            | keyboardState = Keyboard.Extra.update keyMsg model.keyboardState
+                            , gameScreen = NormalPlay newNormalPlayState
+                        }
+                            ! []
 
         Resources msg ->
             case model.gameScreen of
