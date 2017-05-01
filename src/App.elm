@@ -190,7 +190,7 @@ update msg model =
                             else if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
                                 []
                             else
-                                state.enemies
+                                state.permanentEnemies
 
                         keyboardState =
                             model.keyboardState
