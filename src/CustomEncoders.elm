@@ -4,7 +4,7 @@ import Json.Encode
 import GameTypes exposing (Vector)
 import Coordinates exposing (pixelToGridConversion)
 import GamePlatform exposing (Platform)
-import Enemy exposing (Enemy)
+import Enemy exposing (Enemy, Movement(..))
 
 
 encodeVector : Vector -> Json.Encode.Value
@@ -51,4 +51,20 @@ encodeEnemy : Enemy -> Json.Encode.Value
 encodeEnemy enemy =
     Json.Encode.object
         [ ( "location", encodeVector enemy.location )
+        , ( "movement", encodeMovement enemy.movement )
         ]
+
+
+encodeMovement : Movement -> Json.Encode.Value
+encodeMovement movement =
+    case movement of
+        NoMovement ->
+            Json.Encode.null
+
+        LinePath lineMovementSpec ->
+            Json.Encode.object
+                [ ( "startNode", encodeVector lineMovementSpec.startNode )
+                , ( "endNode", encodeVector lineMovementSpec.endNode )
+                , ( "startingDirectionLeftOrDown", Json.Encode.bool lineMovementSpec.startingDirectionLeftOrDown )
+                , ( "speed", Json.Encode.float lineMovementSpec.speed )
+                ]

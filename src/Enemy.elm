@@ -14,6 +14,20 @@ type alias Enemy =
     { location : Vector
     , timeExisted : Int
     , size : Vector
+    , movement : Movement
+    }
+
+
+type Movement
+    = NoMovement
+    | LinePath LineMovementSpec
+
+
+type alias LineMovementSpec =
+    { startNode : Vector
+    , endNode : Vector
+    , startingDirectionLeftOrDown : Bool
+    , speed : Float
     }
 
 
@@ -126,3 +140,31 @@ enemyDecoder =
         |> required "location" vectorDecoder
         |> hardcoded 0
         |> hardcoded ( 64, 64 )
+        |> required "movement" movementDecoder
+
+
+movementDecoder : Decoder Movement
+movementDecoder =
+    Json.Decode.oneOf
+        [ decodeNoMovement
+        , decodeLinePath
+        ]
+
+
+decodeNoMovement : Decoder Movement
+decodeNoMovement =
+    Json.Decode.null NoMovement
+
+
+decodeLinePath : Decoder Movement
+decodeLinePath =
+    Json.Decode.map LinePath decodeLinePathMovementSpec
+
+
+decodeLinePathMovementSpec : Decoder LineMovementSpec
+decodeLinePathMovementSpec =
+    decode LineMovementSpec
+        |> required "startNode" vectorDecoder
+        |> required "endNode" vectorDecoder
+        |> required "startingDirectionLeftOrDown" Json.Decode.bool
+        |> required "speed" Json.Decode.float

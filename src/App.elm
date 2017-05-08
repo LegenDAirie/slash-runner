@@ -18,7 +18,7 @@ import Json.Decode exposing (Decoder)
 import CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
 import Mouse
 import GamePlatform exposing (Platform, platformSize)
-import Enemy exposing (Enemy)
+import Enemy exposing (Enemy, Movement(..))
 import MouseHelpers exposing (mouseToGridInPixels)
 
 
@@ -178,7 +178,7 @@ update msg model =
                                     |> List.append state.platforms
 
                         newEnemy =
-                            Enemy newPosition 0 ( 64, 64 )
+                            Enemy newPosition 0 ( 64, 64 ) NoMovement
 
                         newEnemies =
                             if List.member Keyboard.Extra.Shift pressedKeys then
@@ -203,9 +203,6 @@ update msg model =
 
                         encodedLevelData =
                             levelDataEncodeHandler newState.platforms newState.enemies
-
-                        -- _ =
-                        --     Debug.log "encoded level data" encodedLevelData
                     in
                         { model
                             | gameScreen = NormalPlay newState
