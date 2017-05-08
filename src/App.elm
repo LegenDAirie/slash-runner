@@ -19,6 +19,7 @@ import CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
 import Mouse
 import GamePlatform exposing (Platform, platformSize)
 import Enemy exposing (Enemy, Movement(..))
+import CreateLevel exposing (LevelCreateState, initialLevelCreateState, updatePlayStateAfterKeyPress, updatePlayStateAfterMouseClick)
 import MouseHelpers exposing (mouseToGridInPixels)
 
 
@@ -32,6 +33,7 @@ type alias Model =
 
 type GameScreen
     = Uninitialized
+    | CreateLevel LevelCreateState
     | NormalPlay NormalPlayState
 
 
@@ -52,7 +54,7 @@ initialModel =
     { canvasSize = ( 0, 0 )
     , keyboardState = Keyboard.Extra.initialState
     , controllerState = initialControllerState
-    , gameScreen = NormalPlay initialNormalPlayState
+    , gameScreen = CreateLevel initialLevelCreateState
     }
 
 
@@ -76,31 +78,33 @@ update msg model =
                 ! []
 
         KeyboardMsg keyMsg ->
-            case model.gameScreen of
-                Uninitialized ->
-                    model ! []
+            let
+                newKeyboardState =
+                    Keyboard.Extra.update keyMsg model.keyboardState
 
-                NormalPlay normalPlayState ->
-                    let
-                        pressedKeys =
-                            Keyboard.Extra.pressedDown model.keyboardState
-
-                        newEnemies =
-                            if List.member Keyboard.Extra.CharR pressedKeys then
-                                normalPlayState.permanentEnemies
-                            else
-                                normalPlayState.enemies
-
-                        newNormalPlayState =
-                            { normalPlayState
-                                | enemies = newEnemies
-                            }
-                    in
-                        { model
-                            | keyboardState = Keyboard.Extra.update keyMsg model.keyboardState
-                            , gameScreen = NormalPlay newNormalPlayState
-                        }
+                newModel =
+                    { model
+                        | keyboardState = newKeyboardState
+                    }
+            in
+                case model.gameScreen of
+                    Uninitialized ->
+                        newModel
                             ! []
+
+                    NormalPlay normalPlayState ->
+                        newModel
+                            ! []
+
+                    CreateLevel levelCreateState ->
+                        let
+                            newPlayState =
+                                updatePlayStateAfterKeyPress newKeyboardState levelCreateState
+                        in
+                            { newModel
+                                | gameScreen = CreateLevel newPlayState
+                            }
+                                ! []
 
         Resources msg ->
             case model.gameScreen of
@@ -114,15 +118,51 @@ update msg model =
                     }
                         ! []
 
+                CreateLevel levelCreateState ->
+                    let
+                        { itemToPlace, playState } =
+                            levelCreateState
+
+                        newPlayState =
+                            { playState | resources = Resources.update msg playState.resources }
+
+                        newLevelCreateState =
+                            { levelCreateState
+                                | playState = newPlayState
+                            }
+                    in
+                        { model
+                            | gameScreen =
+                                CreateLevel newLevelCreateState
+                        }
+                            ! []
+
         ReceiveLevelData levelData ->
             -- let
             --     _ =
             --         Debug.log "level data" levelData
             -- in
-            { model
-                | gameScreen = NormalPlay (createLevel levelData)
-            }
-                ! []
+            case model.gameScreen of
+                Uninitialized ->
+                    model ! []
+
+                NormalPlay playState ->
+                    { model
+                        | gameScreen = NormalPlay (createLevel levelData)
+                    }
+                        ! []
+
+                CreateLevel levelCreateState ->
+                    let
+                        newLevelCreateState =
+                            { levelCreateState
+                                | playState = createLevel levelData
+                            }
+                    in
+                        { model
+                            | gameScreen = CreateLevel newLevelCreateState
+                        }
+                            ! []
 
         MouseMove mousePosition ->
             case model.gameScreen of
@@ -130,20 +170,31 @@ update msg model =
                     model ! []
 
                 NormalPlay state ->
+                    model ! []
+
+                CreateLevel levelCreateState ->
                     let
+                        { itemToPlace, playState } =
+                            levelCreateState
+
                         ( width, height ) =
                             platformSize
 
                         newPosition =
-                            mouseToGridInPixels model.canvasSize state.camera mousePosition
+                            mouseToGridInPixels model.canvasSize playState.camera mousePosition
 
-                        newState =
-                            { state
+                        newPlayState =
+                            { playState
                                 | mouse = newPosition
+                            }
+
+                        newLevelCreateState =
+                            { levelCreateState
+                                | playState = newPlayState
                             }
                     in
                         { model
-                            | gameScreen = NormalPlay newState
+                            | gameScreen = CreateLevel newLevelCreateState
                         }
                             ! []
 
@@ -153,59 +204,15 @@ update msg model =
                     model ! []
 
                 NormalPlay state ->
+                    model ! []
+
+                CreateLevel levelCreateState ->
                     let
-                        ( width, height ) =
-                            platformSize
-
-                        newPosition =
-                            mouseToGridInPixels model.canvasSize state.camera mousePosition
-
-                        newPlatform =
-                            Platform newPosition
-
-                        pressedKeys =
-                            Keyboard.Extra.pressedDown model.keyboardState
-
-                        newPlatforms =
-                            if List.member Keyboard.Extra.Shift pressedKeys then
-                                state.platforms
-                            else if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
-                                []
-                            else if List.member newPlatform state.platforms then
-                                List.filter (\platform -> not (platform == newPlatform)) state.platforms
-                            else
-                                [ Platform newPosition ]
-                                    |> List.append state.platforms
-
-                        newEnemy =
-                            Enemy newPosition 0 ( 64, 64 ) NoMovement
-
-                        newEnemies =
-                            if List.member Keyboard.Extra.Shift pressedKeys then
-                                if List.member newEnemy.location (List.map (\enemy -> enemy.location) state.enemies) then
-                                    List.filter (\enemy -> not (enemy.location == newEnemy.location)) state.enemies
-                                else
-                                    [ newEnemy ]
-                                        |> List.append state.enemies
-                            else if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
-                                []
-                            else
-                                state.permanentEnemies
-
-                        keyboardState =
-                            model.keyboardState
-
-                        newState =
-                            { state
-                                | platforms = newPlatforms
-                                , enemies = newEnemies
-                            }
-
-                        encodedLevelData =
-                            levelDataEncodeHandler newState.platforms newState.enemies
+                        ( newLevelCreateState, encodedLevelData ) =
+                            updatePlayStateAfterMouseClick model.canvasSize mousePosition model.keyboardState levelCreateState
                     in
                         { model
-                            | gameScreen = NormalPlay newState
+                            | gameScreen = CreateLevel newLevelCreateState
                         }
                             ! [ writeLevelData encodedLevelData ]
 
@@ -246,6 +253,25 @@ update msg model =
                         }
                             ! []
 
+                    CreateLevel levelCreateState ->
+                        let
+                            { itemToPlace, playState } =
+                                levelCreateState
+
+                            newPlayState =
+                                updateNormalPlay newControllerState playState
+
+                            newLevelCreateState =
+                                { levelCreateState
+                                    | playState = newPlayState
+                                }
+                        in
+                            { newModel
+                                | gameScreen =
+                                    CreateLevel newLevelCreateState
+                            }
+                                ! []
+
 
 view : Model -> Html Msg
 view model =
@@ -257,6 +283,9 @@ view model =
 
                 NormalPlay state ->
                     ( state.camera, renderNormalPlay state )
+
+                CreateLevel levelCreateState ->
+                    ( levelCreateState.playState.camera, renderNormalPlay levelCreateState.playState )
     in
         div []
             [ Game.renderCenteredWithOptions
