@@ -667,7 +667,8 @@ renderPlayer resources player =
             else
                 color
     in
-        Render.rectangle
+        Render.shape
+            Render.rectangle
             { color = newColor
             , position = centerToBottomLeftLocationConverter player.location player.size
             , size = player.size

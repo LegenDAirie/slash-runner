@@ -24,7 +24,8 @@ renderPlatform platform =
         ( x, y ) =
             platform.location
     in
-        Render.rectangle
+        Render.shape
+            Render.rectangle
             { color = Color.charcoal
             , position = centerToBottomLeftLocationConverter platform.location platformSize
             , size = platformSize

@@ -127,7 +127,8 @@ renderEnemy enemy =
         y =
             getY enemy.location
     in
-        Render.rectangle
+        Render.shape
+            Render.rectangle
             { color = Color.red
             , position = centerToBottomLeftLocationConverter enemy.location enemy.size
             , size = enemy.size

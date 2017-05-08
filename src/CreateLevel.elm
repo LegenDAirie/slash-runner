@@ -171,7 +171,8 @@ renderMouse itemToPlace location =
                 AnEnemy ->
                     Color.red
     in
-        Render.rectangle
+        Render.shape
+            Render.rectangle
             { color = mouseColor
             , position = centerToBottomLeftLocationConverter location gridSquareSize
             , size = gridSquareSize
