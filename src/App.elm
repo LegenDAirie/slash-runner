@@ -15,11 +15,9 @@ import Coordinates exposing (gameSize, convertTouchCoorToGameCoor, convertToGame
 import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
 import Keyboard.Extra
 import Json.Decode exposing (Decoder)
-import CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
 import Mouse
 import GamePlatform exposing (Platform, platformSize)
-import Enemy exposing (Enemy, Movement(..))
-import CreateLevel exposing (LevelCreateState, initialLevelCreateState, updatePlayStateAfterKeyPress, updatePlayStateAfterMouseClick)
+import CreateLevel exposing (LevelCreateState, initialLevelCreateState, updatePlayStateAfterKeyPress, updatePlayStateAfterMouseClick, renderLevelCreateScreen)
 import MouseHelpers exposing (mouseToGridInPixels)
 
 
@@ -174,7 +172,7 @@ update msg model =
 
                 CreateLevel levelCreateState ->
                     let
-                        { itemToPlace, playState } =
+                        { itemToPlace, mouseLocation, playState } =
                             levelCreateState
 
                         ( width, height ) =
@@ -183,14 +181,9 @@ update msg model =
                         newPosition =
                             mouseToGridInPixels model.canvasSize playState.camera mousePosition
 
-                        newPlayState =
-                            { playState
-                                | mouse = newPosition
-                            }
-
                         newLevelCreateState =
                             { levelCreateState
-                                | playState = newPlayState
+                                | mouseLocation = newPosition
                             }
                     in
                         { model
@@ -285,7 +278,7 @@ view model =
                     ( state.camera, renderNormalPlay state )
 
                 CreateLevel levelCreateState ->
-                    ( levelCreateState.playState.camera, renderNormalPlay levelCreateState.playState )
+                    ( levelCreateState.playState.camera, renderLevelCreateScreen levelCreateState )
     in
         div []
             [ Game.renderCenteredWithOptions

@@ -1,6 +1,7 @@
 module CreateLevel exposing (..)
 
-import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState)
+import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay)
+import Game.TwoD.Render as Render exposing (Renderable)
 import Keyboard.Extra
 import GameTypes exposing (Vector)
 import GamePlatform exposing (Platform, platformSize)
@@ -8,15 +9,21 @@ import MouseHelpers exposing (mouseToGridInPixels)
 import Enemy exposing (Enemy, Movement(..))
 import CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
 import GamePlatform exposing (Platform, platformSize)
+import Color
+import Coordinates exposing (centerToBottomLeftLocationConverter, gridSquareSize)
 
 
 type alias LevelCreateState =
-    { itemToPlace : ItemToPlace, playState : NormalPlayState }
+    { itemToPlace : ItemToPlace
+    , mouseLocation : Vector
+    , playState : NormalPlayState
+    }
 
 
 initialLevelCreateState : LevelCreateState
 initialLevelCreateState =
     { itemToPlace = PlaceNothing
+    , mouseLocation = ( 0, 0 )
     , playState = initialNormalPlayState
     }
 
@@ -30,7 +37,7 @@ type ItemToPlace
 updatePlayStateAfterKeyPress : Keyboard.Extra.State -> LevelCreateState -> LevelCreateState
 updatePlayStateAfterKeyPress keyboardState levelCreateState =
     let
-        { itemToPlace, playState } =
+        { itemToPlace, mouseLocation, playState } =
             levelCreateState
 
         pressedKeys =
@@ -69,7 +76,7 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
         _ =
             Debug.log "newItemToPlace" newItemToPlace
     in
-        LevelCreateState newItemToPlace newNormalPlayState
+        LevelCreateState newItemToPlace mouseLocation newNormalPlayState
 
 
 updatePlayStateAfterMouseClick : Vector -> Vector -> Keyboard.Extra.State -> LevelCreateState -> ( LevelCreateState, String )
@@ -136,3 +143,36 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
             }
     in
         ( newLevelCreateState, encodedLevelData )
+
+
+renderLevelCreateScreen : LevelCreateState -> List Renderable
+renderLevelCreateScreen levelCreateState =
+    let
+        { itemToPlace, mouseLocation, playState } =
+            levelCreateState
+    in
+        List.concat
+            [ [ renderMouse itemToPlace mouseLocation ]
+            , (renderNormalPlay playState)
+            ]
+
+
+renderMouse : ItemToPlace -> Vector -> Renderable
+renderMouse itemToPlace location =
+    let
+        mouseColor =
+            case itemToPlace of
+                PlaceNothing ->
+                    Color.black
+
+                APlatform ->
+                    Color.charcoal
+
+                AnEnemy ->
+                    Color.red
+    in
+        Render.rectangle
+            { color = mouseColor
+            , position = centerToBottomLeftLocationConverter location gridSquareSize
+            , size = gridSquareSize
+            }

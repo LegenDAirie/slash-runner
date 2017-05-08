@@ -12,7 +12,6 @@ import Enemy exposing (Enemy, renderEnemy, updateEnemies, enemyDecoder)
 import GamePlatform exposing (Platform, renderPlatform, platformDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
-import Color
 
 
 type alias NormalPlayState =
@@ -22,7 +21,6 @@ type alias NormalPlayState =
     , platforms : List Platform
     , camera : Camera
     , resources : Resources
-    , mouse : Vector
     }
 
 
@@ -41,7 +39,6 @@ initialNormalPlayState =
         , platforms = []
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
-        , mouse = ( 0, 0 )
         }
 
 
@@ -66,7 +63,6 @@ createLevel levelData =
         , platforms = platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
-        , mouse = ( 0, 0 )
         }
 
 
@@ -98,17 +94,7 @@ renderNormalPlay state =
         [ (List.map renderEnemy state.enemies)
         , (List.map renderPlatform state.platforms)
         , [ renderPlayer state.resources state.player ]
-        , [ renderMouse state.mouse ]
         ]
-
-
-renderMouse : Vector -> Renderable
-renderMouse location =
-    Render.rectangle
-        { color = Color.charcoal
-        , position = centerToBottomLeftLocationConverter location gridSquareSize
-        , size = gridSquareSize
-        }
 
 
 renderBackground : Resources -> List Renderable
