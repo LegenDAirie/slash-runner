@@ -10,7 +10,7 @@ import Coordinates exposing (centerToBottomLeftLocationConverter)
 import Controller exposing (DPad(..), ControllerState, ButtonState(..))
 import Forces exposing (gravity, controllerLeftForce, controllerRightForce, maxVerticalSpeed, airResistance)
 import Enemy exposing (Enemy)
-import GamePlatform exposing (Platform)
+import GamePlatform exposing (Platform, PlatformType(..))
 import CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
 
 
@@ -80,8 +80,8 @@ updatePlayer enemies platforms controllerState player =
         ( newLocation, newVelocity ) =
             applyPhysics controllerState.dPad controllerState.dash player.playerState player.framesSinceLastChain player.location player.velocity
 
-        ( setPlayerLocation, sideCollidingWithPlatform ) =
-            setByPlatform newLocation player.size platforms Nothing
+        ( setPlayerLocation, sideCollidingWithPlatform, platformType ) =
+            setByPlatform newLocation player.size platforms Nothing Normal
 
         sidecollidingWithEnemy =
             getSideCollidingWithEnemies setPlayerLocation player.size enemies Nothing
@@ -89,7 +89,7 @@ updatePlayer enemies platforms controllerState player =
         ( newPlayerState, newFramesSinceLastChain ) =
             ( player.playerState, player.framesSinceLastChain )
                 |> incrementPlayerCounters
-                |> stateAfterPlatformCollision sideCollidingWithPlatform
+                |> stateAfterPlatformCollision sideCollidingWithPlatform platformType
                 |> stateAfterControllerInputs controllerState
                 |> stateAfterEnemyCollision sidecollidingWithEnemy
     in
@@ -478,114 +478,119 @@ stateAfterEnemyCollision collision ( playerState, framesSinceLastChain ) =
                             ( HitStun framesHitStuned, maxChainDuration )
 
 
-stateAfterPlatformCollision : Maybe Collision2D.Side -> ( PlayerState, Int ) -> ( PlayerState, Int )
-stateAfterPlatformCollision collision ( playerState, framesSinceLastChain ) =
-    case collision of
-        Nothing ->
-            case playerState of
-                Jumping jumpForce ->
-                    ( Jumping jumpForce, framesSinceLastChain )
+stateAfterPlatformCollision : Maybe Collision2D.Side -> PlatformType -> ( PlayerState, Int ) -> ( PlayerState, Int )
+stateAfterPlatformCollision collision platformType ( playerState, framesSinceLastChain ) =
+    case platformType of
+        Dangerous ->
+            ( HitStun 0, maxChainDuration )
 
-                Falling ->
-                    ( Falling, framesSinceLastChain )
-
-                Dashing ( framesDashing, direction ) ->
-                    ( Dashing ( framesDashing, direction ), framesSinceLastChain )
-
-                DashRecovery ( framesRecovering, onGround ) ->
-                    ( DashRecovery ( framesRecovering, False ), framesSinceLastChain )
-
-                HitStun framesHitStuned ->
-                    ( HitStun framesHitStuned, maxChainDuration )
-
-                Running ->
-                    ( Falling, framesSinceLastChain )
-
-                OnPlatform ( framesOnPlatform, platformOnRight ) ->
-                    ( Falling, framesSinceLastChain )
-
-        Just side ->
-            case side of
-                Collision2D.Top ->
-                    ( playerState, framesSinceLastChain )
-
-                Collision2D.Right ->
+        Normal ->
+            case collision of
+                Nothing ->
                     case playerState of
-                        Running ->
-                            ( Running, framesSinceLastChain )
-
                         Jumping jumpForce ->
-                            ( OnPlatform ( 0, True ), framesSinceLastChain )
+                            ( Jumping jumpForce, framesSinceLastChain )
 
                         Falling ->
-                            ( OnPlatform ( 0, True ), framesSinceLastChain )
-
-                        Dashing framesDashing ->
-                            ( HitStun 0, maxChainDuration )
-
-                        DashRecovery ( framesRecovering, onGround ) ->
-                            if onGround then
-                                ( DashRecovery ( framesRecovering, True ), maxChainDuration )
-                            else
-                                ( OnPlatform ( 0, True ), framesSinceLastChain )
-
-                        OnPlatform ( framesOnPlatform, platformOnRight ) ->
-                            ( OnPlatform ( framesOnPlatform, platformOnRight ), framesSinceLastChain )
-
-                        HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, maxChainDuration )
-
-                Collision2D.Left ->
-                    case playerState of
-                        Running ->
-                            ( Running, framesSinceLastChain )
-
-                        Jumping jumpForce ->
-                            ( OnPlatform ( 0, False ), framesSinceLastChain )
-
-                        Falling ->
-                            ( OnPlatform ( 0, False ), framesSinceLastChain )
-
-                        Dashing framesDashing ->
-                            ( HitStun 0, maxChainDuration )
-
-                        DashRecovery ( framesRecovering, onGround ) ->
-                            if onGround then
-                                ( DashRecovery ( framesRecovering, True ), maxChainDuration )
-                            else
-                                ( OnPlatform ( 0, False ), framesSinceLastChain )
-
-                        OnPlatform ( framesOnPlatform, platformOnRight ) ->
-                            ( OnPlatform ( framesOnPlatform, platformOnRight ), framesSinceLastChain )
-
-                        HitStun framesHitStuned ->
-                            ( HitStun framesHitStuned, maxChainDuration )
-
-                Collision2D.Bottom ->
-                    case playerState of
-                        Running ->
-                            ( Running, framesSinceLastChain )
-
-                        Jumping jumpForce ->
-                            ( Running, framesSinceLastChain )
-
-                        Falling ->
-                            ( Running, framesSinceLastChain )
+                            ( Falling, framesSinceLastChain )
 
                         Dashing ( framesDashing, direction ) ->
                             ( Dashing ( framesDashing, direction ), framesSinceLastChain )
 
                         DashRecovery ( framesRecovering, onGround ) ->
-                            if onGround then
-                                ( DashRecovery ( framesRecovering, True ), maxChainDuration )
-                            else
-                                ( Running, framesSinceLastChain )
-
-                        OnPlatform ( framesOnPlatform, platformOnRight ) ->
-                            ( Running, framesSinceLastChain )
+                            ( DashRecovery ( framesRecovering, False ), framesSinceLastChain )
 
                         HitStun framesHitStuned ->
                             ( HitStun framesHitStuned, maxChainDuration )
+
+                        Running ->
+                            ( Falling, framesSinceLastChain )
+
+                        OnPlatform ( framesOnPlatform, platformOnRight ) ->
+                            ( Falling, framesSinceLastChain )
+
+                Just side ->
+                    case side of
+                        Collision2D.Top ->
+                            ( playerState, framesSinceLastChain )
+
+                        Collision2D.Right ->
+                            case playerState of
+                                Running ->
+                                    ( Running, framesSinceLastChain )
+
+                                Jumping jumpForce ->
+                                    ( OnPlatform ( 0, True ), framesSinceLastChain )
+
+                                Falling ->
+                                    ( OnPlatform ( 0, True ), framesSinceLastChain )
+
+                                Dashing framesDashing ->
+                                    ( HitStun 0, maxChainDuration )
+
+                                DashRecovery ( framesRecovering, onGround ) ->
+                                    if onGround then
+                                        ( DashRecovery ( framesRecovering, True ), maxChainDuration )
+                                    else
+                                        ( OnPlatform ( 0, True ), framesSinceLastChain )
+
+                                OnPlatform ( framesOnPlatform, platformOnRight ) ->
+                                    ( OnPlatform ( framesOnPlatform, platformOnRight ), framesSinceLastChain )
+
+                                HitStun framesHitStuned ->
+                                    ( HitStun framesHitStuned, maxChainDuration )
+
+                        Collision2D.Left ->
+                            case playerState of
+                                Running ->
+                                    ( Running, framesSinceLastChain )
+
+                                Jumping jumpForce ->
+                                    ( OnPlatform ( 0, False ), framesSinceLastChain )
+
+                                Falling ->
+                                    ( OnPlatform ( 0, False ), framesSinceLastChain )
+
+                                Dashing framesDashing ->
+                                    ( HitStun 0, maxChainDuration )
+
+                                DashRecovery ( framesRecovering, onGround ) ->
+                                    if onGround then
+                                        ( DashRecovery ( framesRecovering, True ), maxChainDuration )
+                                    else
+                                        ( OnPlatform ( 0, False ), framesSinceLastChain )
+
+                                OnPlatform ( framesOnPlatform, platformOnRight ) ->
+                                    ( OnPlatform ( framesOnPlatform, platformOnRight ), framesSinceLastChain )
+
+                                HitStun framesHitStuned ->
+                                    ( HitStun framesHitStuned, maxChainDuration )
+
+                        Collision2D.Bottom ->
+                            case playerState of
+                                Running ->
+                                    ( Running, framesSinceLastChain )
+
+                                Jumping jumpForce ->
+                                    ( Running, framesSinceLastChain )
+
+                                Falling ->
+                                    ( Running, framesSinceLastChain )
+
+                                Dashing ( framesDashing, direction ) ->
+                                    ( Dashing ( framesDashing, direction ), framesSinceLastChain )
+
+                                DashRecovery ( framesRecovering, onGround ) ->
+                                    if onGround then
+                                        ( DashRecovery ( framesRecovering, True ), maxChainDuration )
+                                    else
+                                        ( Running, framesSinceLastChain )
+
+                                OnPlatform ( framesOnPlatform, platformOnRight ) ->
+                                    ( Running, framesSinceLastChain )
+
+                                HitStun framesHitStuned ->
+                                    ( HitStun framesHitStuned, maxChainDuration )
 
 
 resetPlayerToOrigin : Vector -> Vector

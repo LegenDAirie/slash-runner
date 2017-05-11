@@ -1,7 +1,7 @@
 module CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
 
 import GameTypes exposing (Vector)
-import GamePlatform exposing (Platform, platformSize)
+import GamePlatform exposing (Platform, PlatformType(..), platformSize)
 import Enemy exposing (Enemy)
 import Collision2D
 
@@ -80,11 +80,11 @@ isCollidingWithPlatform entityLocation entitySize platform =
         Collision2D.rectangleSide entityHitbox platformHitbox
 
 
-setByPlatform : Vector -> Vector -> List Platform -> Maybe Collision2D.Side -> ( Vector, Maybe Collision2D.Side )
-setByPlatform location size platforms lastSide =
+setByPlatform : Vector -> Vector -> List Platform -> Maybe Collision2D.Side -> PlatformType -> ( Vector, Maybe Collision2D.Side, PlatformType )
+setByPlatform location size platforms lastSide platformType =
     case platforms of
         [] ->
-            ( location, lastSide )
+            ( location, lastSide, platformType )
 
         platform :: rest ->
             case isCollidingWithPlatform location size platform of
@@ -93,10 +93,15 @@ setByPlatform location size platforms lastSide =
                         newSide =
                             calculateNewSide location platform side
                     in
-                        setByPlatform (setEntity location size platform newSide) size rest (Just newSide)
+                        case platform.platformType of
+                            Normal ->
+                                setByPlatform (setEntity location size platform newSide) size rest (Just newSide) platformType
+
+                            Dangerous ->
+                                setByPlatform (setEntity location size platform newSide) size rest (Just newSide) Dangerous
 
                 Nothing ->
-                    setByPlatform location size rest lastSide
+                    setByPlatform location size rest lastSide platformType
 
 
 calculateNewSide : Vector -> Platform -> Collision2D.Side -> Collision2D.Side
