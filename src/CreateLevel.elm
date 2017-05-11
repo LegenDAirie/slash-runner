@@ -8,7 +8,7 @@ import GamePlatform exposing (Platform, platformSize)
 import MouseHelpers exposing (mouseToGridInPixels)
 import Enemy exposing (Enemy, Movement(..))
 import CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
-import GamePlatform exposing (Platform, platformSize)
+import GamePlatform exposing (Platform, platformSize, PlatformType(..))
 import Color
 import Coordinates exposing (centerToBottomLeftLocationConverter, gridSquareSize)
 
@@ -30,7 +30,8 @@ initialLevelCreateState =
 
 type ItemToPlace
     = PlaceNothing
-    | APlatform
+    | ANormalPlatform
+    | ADangerousPlatform
     | AnEnemy
 
 
@@ -67,9 +68,11 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
             if List.member Keyboard.Extra.Number0 pressedKeys then
                 PlaceNothing
             else if List.member Keyboard.Extra.Number1 pressedKeys then
-                APlatform
+                ANormalPlatform
             else if List.member Keyboard.Extra.Number2 pressedKeys then
                 AnEnemy
+            else if List.member Keyboard.Extra.Number3 pressedKeys then
+                ADangerousPlatform
             else
                 itemToPlace
 
@@ -91,8 +94,11 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
         newPosition =
             mouseToGridInPixels canvasSize playState.camera mousePosition
 
-        newPlatform =
-            Platform newPosition
+        newNormalPlatform =
+            Platform newPosition Normal
+
+        newDangerousPlatform =
+            Platform newPosition Dangerous
 
         newPlatforms =
             case itemToPlace of
@@ -102,11 +108,18 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                 AnEnemy ->
                     playState.platforms
 
-                APlatform ->
-                    if List.member newPlatform playState.platforms then
-                        List.filter (\platform -> not (platform == newPlatform)) playState.platforms
+                ANormalPlatform ->
+                    if List.member newNormalPlatform playState.platforms then
+                        List.filter (\platform -> not (platform == newNormalPlatform)) playState.platforms
                     else
-                        [ Platform newPosition ]
+                        [ newNormalPlatform ]
+                            |> List.append playState.platforms
+
+                ADangerousPlatform ->
+                    if List.member newDangerousPlatform playState.platforms then
+                        List.filter (\platform -> not (platform == newDangerousPlatform)) playState.platforms
+                    else
+                        [ newDangerousPlatform ]
                             |> List.append playState.platforms
 
         newEnemy =
@@ -117,7 +130,10 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                 PlaceNothing ->
                     playState.permanentEnemies
 
-                APlatform ->
+                ANormalPlatform ->
+                    playState.permanentEnemies
+
+                ADangerousPlatform ->
                     playState.permanentEnemies
 
                 AnEnemy ->
@@ -165,8 +181,11 @@ renderMouse itemToPlace location =
                 PlaceNothing ->
                     Color.black
 
-                APlatform ->
+                ANormalPlatform ->
                     Color.charcoal
+
+                ADangerousPlatform ->
+                    Color.yellow
 
                 AnEnemy ->
                     Color.red

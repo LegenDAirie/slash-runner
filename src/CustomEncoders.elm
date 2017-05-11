@@ -3,7 +3,7 @@ module CustomEncoders exposing (encodeVector, levelDataEncodeHandler, encodeEnem
 import Json.Encode
 import GameTypes exposing (Vector)
 import Coordinates exposing (pixelToGridConversion)
-import GamePlatform exposing (Platform)
+import GamePlatform exposing (Platform, PlatformType(..))
 import Enemy exposing (Enemy, Movement(..))
 
 
@@ -44,7 +44,9 @@ levelDataEncodeHandler platforms enemies =
 encodePlatform : Platform -> Json.Encode.Value
 encodePlatform platform =
     Json.Encode.object
-        [ ( "location", encodeVector platform.location ) ]
+        [ ( "location", encodeVector platform.location )
+        , ( "platformType", encodePlatformType platform.platformType )
+        ]
 
 
 encodeEnemy : Enemy -> Json.Encode.Value
@@ -68,3 +70,13 @@ encodeMovement movement =
                 , ( "startingDirectionLeftOrDown", Json.Encode.bool lineMovementSpec.startingDirectionLeftOrDown )
                 , ( "speed", Json.Encode.float lineMovementSpec.speed )
                 ]
+
+
+encodePlatformType : PlatformType -> Json.Encode.Value
+encodePlatformType platformType =
+    case platformType of
+        Normal ->
+            Json.Encode.string "Normal"
+
+        Dangerous ->
+            Json.Encode.string "Dangerous"
