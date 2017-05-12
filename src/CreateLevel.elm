@@ -6,11 +6,12 @@ import Keyboard.Extra
 import GameTypes exposing (Vector)
 import GamePlatform exposing (Platform, platformSize)
 import MouseHelpers exposing (mouseToGridInPixels)
-import Enemy exposing (Enemy, Movement(..))
+import Enemy exposing (Enemy, Movement(..), LineMovementSpec)
 import CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
 import GamePlatform exposing (Platform, platformSize, PlatformType(..))
 import Color
 import Coordinates exposing (centerToBottomLeftLocationConverter, gridSquareSize)
+import Vector2 as V2 exposing (getX, getY)
 
 
 type alias LevelCreateState =
@@ -32,7 +33,8 @@ type ItemToPlace
     = PlaceNothing
     | ANormalPlatform
     | ADangerousPlatform
-    | AnEnemy
+    | AStaticEnemy
+    | AnEnemyOnTrack
 
 
 updatePlayStateAfterKeyPress : Keyboard.Extra.State -> LevelCreateState -> LevelCreateState
@@ -70,9 +72,11 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
             else if List.member Keyboard.Extra.Number1 pressedKeys then
                 ANormalPlatform
             else if List.member Keyboard.Extra.Number2 pressedKeys then
-                AnEnemy
+                AStaticEnemy
             else if List.member Keyboard.Extra.Number3 pressedKeys then
                 ADangerousPlatform
+            else if List.member Keyboard.Extra.Number4 pressedKeys then
+                AnEnemyOnTrack
             else
                 itemToPlace
 
@@ -105,7 +109,10 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                 PlaceNothing ->
                     playState.platforms
 
-                AnEnemy ->
+                AStaticEnemy ->
+                    playState.platforms
+
+                AnEnemyOnTrack ->
                     playState.platforms
 
                 ANormalPlatform ->
@@ -122,8 +129,17 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                         [ newDangerousPlatform ]
                             |> List.append playState.platforms
 
-        newEnemy =
+        newStaticEnemy =
             Enemy newPosition 0 ( 64, 64 ) NoMovement
+
+        startNode =
+            V2.add newPosition ( -128, 0 )
+
+        endNode =
+            V2.add newPosition ( 128, 0 )
+
+        newEnemyOnTrack =
+            Enemy newPosition 0 ( 64, 64 ) (LinePath (LineMovementSpec startNode endNode True 1))
 
         newEnemies =
             case itemToPlace of
@@ -136,11 +152,18 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                 ADangerousPlatform ->
                     playState.permanentEnemies
 
-                AnEnemy ->
-                    if List.member newEnemy.location (List.map (\enemy -> enemy.location) playState.permanentEnemies) then
-                        List.filter (\enemy -> not (enemy.location == newEnemy.location)) playState.permanentEnemies
+                AStaticEnemy ->
+                    if List.member newStaticEnemy.location (List.map (\enemy -> enemy.location) playState.permanentEnemies) then
+                        List.filter (\enemy -> not (enemy.location == newStaticEnemy.location)) playState.permanentEnemies
                     else
-                        [ newEnemy ]
+                        [ newStaticEnemy ]
+                            |> List.append playState.permanentEnemies
+
+                AnEnemyOnTrack ->
+                    if List.member newEnemyOnTrack.location (List.map (\enemy -> enemy.location) playState.permanentEnemies) then
+                        List.filter (\enemy -> not (enemy.location == newEnemyOnTrack.location)) playState.permanentEnemies
+                    else
+                        [ newEnemyOnTrack ]
                             |> List.append playState.permanentEnemies
 
         newPlayState =
@@ -187,8 +210,11 @@ renderMouse itemToPlace location =
                 ADangerousPlatform ->
                     Color.yellow
 
-                AnEnemy ->
+                AStaticEnemy ->
                     Color.red
+
+                AnEnemyOnTrack ->
+                    Color.orange
     in
         Render.shape
             Render.rectangle

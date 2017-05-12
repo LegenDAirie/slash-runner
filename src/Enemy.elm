@@ -46,8 +46,43 @@ updateEnemy enemy =
     in
         { enemy
             | timeExisted = newTimeExisted
-            , location = enemy.location
+            , location = updateMovement newTimeExisted enemy.movement enemy.location
         }
+
+
+updateMovement : Int -> Movement -> Vector -> Vector
+updateMovement timeExisted movement location =
+    case movement of
+        NoMovement ->
+            location
+
+        LinePath { startNode, endNode, startingDirectionLeftOrDown, speed } ->
+            let
+                -- _ =
+                --     Debug.log "startNode" startNode
+                --
+                -- _ =
+                --     Debug.log "endNode" endNode
+                halfWayPoint =
+                    V2.sub endNode startNode
+                        |> V2.divideBy 2
+
+                -- _ =
+                --     Debug.log "halfWayPoint" halfWayPoint
+                -- _ =
+                --     Debug.log "time occupied" timeExisted
+                -- halfDistance =
+                --     (getX endNode - getX startNode) / 2
+                newLocation =
+                    halfWayPoint
+                        |> V2.scale (sin (toFloat timeExisted * 0.017))
+                        |> V2.add startNode
+                        |> V2.add halfWayPoint
+
+                -- _ =
+                --     Debug.log "x" (sin timeExisted)
+            in
+                newLocation
 
 
 notCollidingWithPlayer : Player -> Enemy -> Bool
@@ -126,10 +161,18 @@ renderEnemy enemy =
 
         y =
             getY enemy.location
+
+        color =
+            case enemy.movement of
+                NoMovement ->
+                    Color.red
+
+                LinePath linePathSpec ->
+                    Color.orange
     in
         Render.shape
             Render.rectangle
-            { color = Color.red
+            { color = color
             , position = centerToBottomLeftLocationConverter enemy.location enemy.size
             , size = enemy.size
             }
