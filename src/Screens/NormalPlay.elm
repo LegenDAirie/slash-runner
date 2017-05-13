@@ -91,7 +91,7 @@ updateNormalPlay controllerState state =
 renderNormalPlay : NormalPlayState -> List Renderable
 renderNormalPlay state =
     List.concat
-        [ (List.map renderEnemy state.enemies)
+        [ (List.concatMap renderEnemy state.enemies)
         , (List.map renderPlatform state.platforms)
         , [ renderPlayer state.resources state.player ]
         ]

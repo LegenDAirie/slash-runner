@@ -153,7 +153,7 @@ dashedIntoByPlayer playerState =
             True
 
 
-renderEnemy : Enemy -> Renderable
+renderEnemy : Enemy -> List Renderable
 renderEnemy enemy =
     let
         x =
@@ -169,13 +169,43 @@ renderEnemy enemy =
 
                 LinePath linePathSpec ->
                     Color.orange
+
+        enemyRenderable =
+            Render.shape
+                Render.rectangle
+                { color = color
+                , position = centerToBottomLeftLocationConverter enemy.location enemy.size
+                , size = enemy.size
+                }
+
+        linePathNodesRenderable =
+            case enemy.movement of
+                NoMovement ->
+                    []
+
+                LinePath { startNode, endNode } ->
+                    let
+                        startNodeRenderable =
+                            renderLinePathNode startNode
+
+                        endNodeRenderable =
+                            renderLinePathNode endNode
+                    in
+                        [ startNodeRenderable, endNodeRenderable ]
     in
-        Render.shape
-            Render.rectangle
-            { color = color
-            , position = centerToBottomLeftLocationConverter enemy.location enemy.size
-            , size = enemy.size
-            }
+        List.concat
+            [ [ enemyRenderable ]
+            , linePathNodesRenderable
+            ]
+
+
+renderLinePathNode : Vector -> Renderable
+renderLinePathNode location =
+    Render.shape Render.circle
+        { color = Color.lightBrown
+        , position = centerToBottomLeftLocationConverter location ( 64, 64 )
+        , size = ( 16, 16 )
+        }
 
 
 gridToPixelEnemyConvert : Enemy -> Enemy
