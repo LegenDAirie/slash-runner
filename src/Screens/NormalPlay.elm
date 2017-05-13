@@ -8,7 +8,7 @@ import Controller exposing (ControllerState)
 import GameTypes exposing (Vector, Player, PlayerState(..))
 import Coordinates exposing (gameSize, gridToPixelConversion, centerToBottomLeftLocationConverter, gridSquareSize)
 import Player exposing (updatePlayer, renderPlayer)
-import Enemy exposing (Enemy, renderEnemy, updateEnemies, enemyDecoder)
+import Enemy exposing (Enemy, renderEnemy, updateEnemies, enemyDecoder, gridToPixelEnemyConvert)
 import GamePlatform exposing (Platform, renderPlatform, platformDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
@@ -55,7 +55,7 @@ createLevel levelData =
             List.map (\platform -> { platform | location = gridToPixelConversion platform.location }) levelData.platforms
 
         enemies =
-            List.map (\enemy -> { enemy | location = gridToPixelConversion enemy.location }) levelData.enemies
+            List.map (\enemy -> gridToPixelEnemyConvert enemy) levelData.enemies
     in
         { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
         , permanentEnemies = enemies

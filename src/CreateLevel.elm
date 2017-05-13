@@ -174,7 +174,7 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
             }
 
         encodedLevelData =
-            levelDataEncodeHandler newPlayState.platforms newPlayState.enemies
+            levelDataEncodeHandler newPlayState.platforms newPlayState.permanentEnemies
 
         newLevelCreateState =
             { levelCreateState

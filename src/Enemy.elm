@@ -4,7 +4,7 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Vector2 as V2 exposing (getX, getY)
 import Color
 import GameTypes exposing (Vector, vectorDecoder, Player, PlayerState(..))
-import Coordinates exposing (centerToBottomLeftLocationConverter)
+import Coordinates exposing (centerToBottomLeftLocationConverter, gridToPixelConversion)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 import Collision2D
@@ -176,6 +176,31 @@ renderEnemy enemy =
             , position = centerToBottomLeftLocationConverter enemy.location enemy.size
             , size = enemy.size
             }
+
+
+gridToPixelEnemyConvert : Enemy -> Enemy
+gridToPixelEnemyConvert enemy =
+    { enemy
+        | location = gridToPixelConversion enemy.location
+        , movement = gridToPixelMovementConvert enemy.movement
+    }
+
+
+gridToPixelMovementConvert : Movement -> Movement
+gridToPixelMovementConvert movement =
+    case movement of
+        NoMovement ->
+            NoMovement
+
+        LinePath lineMovementSpec ->
+            let
+                newLineMovementSpec =
+                    { lineMovementSpec
+                        | startNode = gridToPixelConversion lineMovementSpec.startNode
+                        , endNode = gridToPixelConversion lineMovementSpec.endNode
+                    }
+            in
+                LinePath newLineMovementSpec
 
 
 enemyDecoder : Decoder Enemy
