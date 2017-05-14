@@ -4,6 +4,7 @@ import Color
 import GameTypes exposing (Vector, vectorDecoder)
 import Coordinates exposing (centerToBottomLeftLocationConverter, gridSquareSize)
 import Game.TwoD.Render as Render exposing (Renderable)
+import Game.Resources as Resources exposing (Resources)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
 
@@ -24,26 +25,51 @@ platformSize =
     gridSquareSize
 
 
-renderPlatform : Platform -> Renderable
-renderPlatform platform =
+renderPlatform : Resources -> Platform -> Renderable
+renderPlatform resources platform =
     let
         ( x, y ) =
             platform.location
 
-        color =
+        resource =
             case platform.platformType of
                 Normal ->
-                    Color.charcoal
+                    "../assets/tile-bricks-test.png"
 
                 Dangerous ->
-                    Color.yellow
+                    "../assets/tile-bricks-test.png"
     in
-        Render.shape
-            Render.rectangle
-            { color = color
-            , position = centerToBottomLeftLocationConverter platform.location platformSize
+        Render.spriteWithOptions
+            { position = ( x, y, 0 )
             , size = platformSize
+            , texture = Resources.getTexture resource resources
+            , rotation = 0
+            , pivot = ( 0.5, 0.5 )
+            , tiling = ( 1, 1 )
             }
+
+
+
+-- renderPlatform : Resources -> Platform -> Renderable
+-- renderPlatform resources platform =
+--     let
+--         ( x, y ) =
+--             platform.location
+--
+--         color =
+--             case platform.platformType of
+--                 Normal ->
+--                     Color.charcoal
+--
+--                 Dangerous ->
+--                     Color.yellow
+--     in
+--         Render.shape
+--             Render.rectangle
+--             { color = color
+--             , position = centerToBottomLeftLocationConverter platform.location platformSize
+--             , size = platformSize
+--             }
 
 
 platformDecoder : Decoder Platform

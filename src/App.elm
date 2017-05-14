@@ -60,7 +60,7 @@ init : ( Model, Cmd Msg )
 init =
     initialModel
         ! [ Task.perform SetCanvasSize Window.size
-          , Cmd.map Resources <| Resources.loadTextures [ "../assets/background-square.jpg" ]
+          , Cmd.map Resources <| Resources.loadTextures [ "../assets/tile-bricks-test.png" ]
           , fetchLevelData 1
           ]
 

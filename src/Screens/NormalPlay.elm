@@ -92,22 +92,23 @@ renderNormalPlay : NormalPlayState -> List Renderable
 renderNormalPlay state =
     List.concat
         [ (List.concatMap renderEnemy state.enemies)
-        , (List.map renderPlatform state.platforms)
+        , (List.map (renderPlatform state.resources) state.platforms)
         , [ renderPlayer state.resources state.player ]
         ]
 
 
-renderBackground : Resources -> List Renderable
-renderBackground resources =
-    [ Render.spriteWithOptions
-        { position = ( -1024, -1024, 0 )
-        , size = ( 6144, 2048 )
-        , texture = Resources.getTexture "../assets/background-square.jpg" resources
-        , rotation = 0
-        , pivot = ( 0, 0 )
-        , tiling = ( 6, 2 )
-        }
-    ]
+
+-- renderBackground : Resources -> List Renderable
+-- renderBackground resources =
+--     [ Render.spriteWithOptions
+--         { position = ( -1024, -1024, 0 )
+--         , size = ( 6144, 2048 )
+--         , texture = Resources.getTexture "../assets/background-square.jpg" resources
+--         , rotation = 0
+--         , pivot = ( 0, 0 )
+--         , tiling = ( 6, 2 )
+--         }
+--     ]
 
 
 jsonToLevelData : Json.Decode.Value -> Result String LevelData
