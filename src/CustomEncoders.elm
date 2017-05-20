@@ -61,13 +61,15 @@ encodeMovement : Movement -> Json.Encode.Value
 encodeMovement movement =
     case movement of
         NoMovement ->
-            Json.Encode.null
+            Json.Encode.string "NoMovement"
+
+        Walk ->
+            Json.Encode.string "Walk"
 
         LinePath lineMovementSpec ->
             Json.Encode.object
                 [ ( "startNode", encodeVector lineMovementSpec.startNode )
                 , ( "endNode", encodeVector lineMovementSpec.endNode )
-                , ( "startingDirectionLeftOrDown", Json.Encode.bool lineMovementSpec.startingDirectionLeftOrDown )
                 , ( "speed", Json.Encode.float lineMovementSpec.speed )
                 ]
 

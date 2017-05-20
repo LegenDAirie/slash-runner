@@ -15,18 +15,19 @@ type alias Enemy =
     , timeExisted : Int
     , size : Vector
     , movement : Movement
+    , directionLeft : Bool
     }
 
 
 type Movement
     = NoMovement
     | LinePath LineMovementSpec
+    | Walk
 
 
 type alias LineMovementSpec =
     { startNode : Vector
     , endNode : Vector
-    , startingDirectionLeftOrDown : Bool
     , speed : Float
     }
 
@@ -56,7 +57,10 @@ updateMovement timeExisted movement location =
         NoMovement ->
             location
 
-        LinePath { startNode, endNode, startingDirectionLeftOrDown, speed } ->
+        Walk ->
+            location
+
+        LinePath { startNode, endNode, speed } ->
             let
                 -- _ =
                 --     Debug.log "startNode" startNode
@@ -167,6 +171,9 @@ renderEnemy enemy =
                 NoMovement ->
                     Color.red
 
+                Walk ->
+                    Color.purple
+
                 LinePath linePathSpec ->
                     Color.orange
 
@@ -181,6 +188,9 @@ renderEnemy enemy =
         linePathNodesRenderable =
             case enemy.movement of
                 NoMovement ->
+                    []
+
+                Walk ->
                     []
 
                 LinePath { startNode, endNode } ->
@@ -222,6 +232,9 @@ gridToPixelMovementConvert movement =
         NoMovement ->
             NoMovement
 
+        Walk ->
+            Walk
+
         LinePath lineMovementSpec ->
             let
                 newLineMovementSpec =
@@ -240,23 +253,38 @@ enemyDecoder =
         |> hardcoded 0
         |> hardcoded ( 64, 64 )
         |> required "movement" movementDecoder
+        |> required "directionLeft" Json.Decode.bool
 
 
 movementDecoder : Decoder Movement
 movementDecoder =
     Json.Decode.oneOf
-        [ decodeNoMovement
-        , decodeLinePath
+        [ decodeWithNoData
+        , decodeWithData
         ]
 
 
-decodeNoMovement : Decoder Movement
-decodeNoMovement =
-    Json.Decode.null NoMovement
+decodeWithNoData : Decoder Movement
+decodeWithNoData =
+    Json.Decode.string
+        |> Json.Decode.andThen stringToMovementType
 
 
-decodeLinePath : Decoder Movement
-decodeLinePath =
+stringToMovementType : String -> Decoder Movement
+stringToMovementType movement =
+    case movement of
+        "Walk" ->
+            Json.Decode.succeed Walk
+
+        "NoMovement" ->
+            Json.Decode.succeed NoMovement
+
+        _ ->
+            Json.Decode.succeed NoMovement
+
+
+decodeWithData : Decoder Movement
+decodeWithData =
     Json.Decode.map LinePath decodeLinePathMovementSpec
 
 
@@ -265,5 +293,4 @@ decodeLinePathMovementSpec =
     decode LineMovementSpec
         |> required "startNode" vectorDecoder
         |> required "endNode" vectorDecoder
-        |> required "startingDirectionLeftOrDown" Json.Decode.bool
         |> required "speed" Json.Decode.float
