@@ -253,7 +253,7 @@ enemyDecoder =
         |> hardcoded 0
         |> hardcoded ( 64, 64 )
         |> required "movement" movementDecoder
-        |> required "directionLeft" Json.Decode.bool
+        |> hardcoded True
 
 
 movementDecoder : Decoder Movement

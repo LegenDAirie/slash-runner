@@ -35,6 +35,7 @@ type ItemToPlace
     | ADangerousPlatform
     | AStaticEnemy
     | AnEnemyOnTrack
+    | AWalkingEnemy
 
 
 updatePlayStateAfterKeyPress : Keyboard.Extra.State -> LevelCreateState -> LevelCreateState
@@ -77,6 +78,8 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
                 ADangerousPlatform
             else if List.member Keyboard.Extra.Number4 pressedKeys then
                 AnEnemyOnTrack
+            else if List.member Keyboard.Extra.Number5 pressedKeys then
+                AWalkingEnemy
             else
                 itemToPlace
 
@@ -115,6 +118,9 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                 AnEnemyOnTrack ->
                     playState.platforms
 
+                AWalkingEnemy ->
+                    playState.platforms
+
                 ANormalPlatform ->
                     if List.member newNormalPlatform playState.platforms then
                         List.filter (\platform -> not (platform == newNormalPlatform)) playState.platforms
@@ -130,7 +136,7 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                             |> List.append playState.platforms
 
         newStaticEnemy =
-            Enemy newPosition 0 ( 64, 64 ) NoMovement
+            Enemy newPosition 0 ( 64, 64 ) NoMovement True
 
         startNode =
             V2.add newPosition ( -128, 0 )
@@ -139,7 +145,10 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
             V2.add newPosition ( 128, 0 )
 
         newEnemyOnTrack =
-            Enemy newPosition 0 ( 64, 64 ) (LinePath (LineMovementSpec startNode endNode True 1))
+            Enemy newPosition 0 ( 64, 64 ) (LinePath (LineMovementSpec startNode endNode 1)) True
+
+        newWalkingEnemy =
+            Enemy newPosition 0 ( 64, 64 ) Walk True
 
         newEnemies =
             case itemToPlace of
@@ -164,6 +173,13 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                         List.filter (\enemy -> not (enemy.location == newEnemyOnTrack.location)) playState.permanentEnemies
                     else
                         [ newEnemyOnTrack ]
+                            |> List.append playState.permanentEnemies
+
+                AWalkingEnemy ->
+                    if List.member newWalkingEnemy.location (List.map (\enemy -> enemy.location) playState.permanentEnemies) then
+                        List.filter (\enemy -> not (enemy.location == newWalkingEnemy.location)) playState.permanentEnemies
+                    else
+                        [ newWalkingEnemy ]
                             |> List.append playState.permanentEnemies
 
         newPlayState =
@@ -215,6 +231,9 @@ renderMouse itemToPlace location =
 
                 AnEnemyOnTrack ->
                     Color.orange
+
+                AWalkingEnemy ->
+                    Color.purple
     in
         Render.shape
             Render.rectangle
