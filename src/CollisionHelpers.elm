@@ -2,7 +2,7 @@ module CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
 
 import GameTypes exposing (Vector)
 import GamePlatform exposing (Platform, PlatformType(..), platformSize)
-import Enemy exposing (Enemy)
+import Enemy exposing (Enemy, Movement(..))
 import Collision2D
 
 
@@ -21,7 +21,15 @@ isCollidingWithEnemy entityLocation entitySize enemy =
             entitySize
 
         ( enemyX, enemyY ) =
-            enemy.startingLocation
+            case enemy.movement of
+                NoMovement ->
+                    enemy.startingLocation
+
+                Walk currentLocation ->
+                    currentLocation
+
+                LinePath { currentLocation } ->
+                    currentLocation
 
         ( enemyWidth, enemyHeight ) =
             enemy.size

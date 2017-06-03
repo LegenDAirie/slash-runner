@@ -76,7 +76,7 @@ updateNormalPlay : ControllerState -> NormalPlayState -> NormalPlayState
 updateNormalPlay controllerState state =
     let
         newEnemies =
-            updateEnemies state.player state.enemies
+            updateEnemies state.player state.platforms state.enemies
 
         newPlayer =
             updatePlayer state.enemies state.platforms controllerState state.player
