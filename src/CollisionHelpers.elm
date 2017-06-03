@@ -21,7 +21,7 @@ isCollidingWithEnemy entityLocation entitySize enemy =
             entitySize
 
         ( enemyX, enemyY ) =
-            enemy.location
+            enemy.startingLocation
 
         ( enemyWidth, enemyHeight ) =
             enemy.size

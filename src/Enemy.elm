@@ -8,10 +8,11 @@ import Coordinates exposing (centerToBottomLeftLocationConverter, gridToPixelCon
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 import Collision2D
+import Forces exposing (gravity, maxVerticalSpeed, airResistance)
 
 
 type alias Enemy =
-    { location : Vector
+    { startingLocation : Vector
     , timeExisted : Int
     , size : Vector
     , movement : Movement
@@ -22,12 +23,13 @@ type alias Enemy =
 type Movement
     = NoMovement
     | LinePath LineMovementSpec
-    | Walk
+    | Walk Vector
 
 
 type alias LineMovementSpec =
     { startNode : Vector
     , endNode : Vector
+    , currentLocation : Vector
     , speed : Float
     }
 
@@ -47,18 +49,18 @@ updateEnemy enemy =
     in
         { enemy
             | timeExisted = newTimeExisted
-            , location = updateMovement newTimeExisted enemy.movement enemy.location
+            , startingLocation = updateMovement newTimeExisted enemy.movement enemy.startingLocation
         }
 
 
 updateMovement : Int -> Movement -> Vector -> Vector
-updateMovement timeExisted movement location =
+updateMovement timeExisted movement startingLocation =
     case movement of
         NoMovement ->
-            location
+            startingLocation
 
-        Walk ->
-            location
+        Walk currentLocation ->
+            startingLocation
 
         LinePath { startNode, endNode, speed } ->
             let
@@ -89,11 +91,59 @@ updateMovement timeExisted movement location =
                 newLocation
 
 
+
+-------------------------------------------------------------------------
+
+
+maxWalkingVelocity : Float
+maxWalkingVelocity =
+    6
+
+
+capHorizontalVelocity : Float -> Vector -> Vector
+capHorizontalVelocity maxSpeed ( x, y ) =
+    if x > maxSpeed then
+        ( maxSpeed, y )
+    else if x < -maxSpeed then
+        ( -maxSpeed, y )
+    else
+        ( x, y )
+
+
+capVerticalVelocity : Float -> Vector -> Vector
+capVerticalVelocity maxSpeed ( x, y ) =
+    if y < -maxSpeed then
+        ( x, -maxSpeed )
+    else
+        ( x, y )
+
+
+applyPhysics : Vector -> Vector -> ( Vector, Vector )
+applyPhysics location velocity =
+    let
+        newVelocity =
+            velocity
+                |> (\( x, y ) -> ( x * airResistance, y ))
+                |> V2.add gravity
+                |> capHorizontalVelocity maxWalkingVelocity
+                |> capVerticalVelocity maxVerticalSpeed
+
+        newLocation =
+            newVelocity
+                |> V2.add location
+    in
+        ( newLocation, newVelocity )
+
+
+
+-------------------------------------------------------------------------
+
+
 notCollidingWithPlayer : Player -> Enemy -> Bool
 notCollidingWithPlayer player enemy =
     let
         ( x, y ) =
-            enemy.location
+            enemy.startingLocation
 
         ( width, height ) =
             enemy.size
@@ -161,17 +211,17 @@ renderEnemy : Enemy -> List Renderable
 renderEnemy enemy =
     let
         x =
-            getX enemy.location
+            getX enemy.startingLocation
 
         y =
-            getY enemy.location
+            getY enemy.startingLocation
 
         color =
             case enemy.movement of
                 NoMovement ->
                     Color.red
 
-                Walk ->
+                Walk currentLocation ->
                     Color.purple
 
                 LinePath linePathSpec ->
@@ -181,7 +231,7 @@ renderEnemy enemy =
             Render.shape
                 Render.rectangle
                 { color = color
-                , position = centerToBottomLeftLocationConverter enemy.location enemy.size
+                , position = centerToBottomLeftLocationConverter enemy.startingLocation enemy.size
                 , size = enemy.size
                 }
 
@@ -190,7 +240,7 @@ renderEnemy enemy =
                 NoMovement ->
                     []
 
-                Walk ->
+                Walk currentLocation ->
                     []
 
                 LinePath { startNode, endNode } ->
@@ -221,7 +271,7 @@ renderLinePathNode location =
 gridToPixelEnemyConvert : Enemy -> Enemy
 gridToPixelEnemyConvert enemy =
     { enemy
-        | location = gridToPixelConversion enemy.location
+        | startingLocation = gridToPixelConversion enemy.startingLocation
         , movement = gridToPixelMovementConvert enemy.movement
     }
 
@@ -232,8 +282,8 @@ gridToPixelMovementConvert movement =
         NoMovement ->
             NoMovement
 
-        Walk ->
-            Walk
+        Walk currentLocation ->
+            Walk currentLocation
 
         LinePath lineMovementSpec ->
             let
@@ -258,34 +308,37 @@ enemyDecoder =
 
 movementDecoder : Decoder Movement
 movementDecoder =
-    Json.Decode.oneOf
-        [ decodeWithNoData
-        , decodeWithData
-        ]
-
-
-decodeWithNoData : Decoder Movement
-decodeWithNoData =
     Json.Decode.string
         |> Json.Decode.andThen stringToMovementType
+
+
+
+-- decodeWithNoData : Decoder Movement
+-- decodeWithNoData =
+-- Json.Decode.string
+--     |> Json.Decode.andThen stringToMovementType
 
 
 stringToMovementType : String -> Decoder Movement
 stringToMovementType movement =
     case movement of
-        "Walk" ->
-            Json.Decode.succeed Walk
-
         "NoMovement" ->
             Json.Decode.succeed NoMovement
+
+        "Walk" ->
+            Json.Decode.map Walk vectorDecoder
+
+        "LinePath" ->
+            Json.Decode.map LinePath decodeLinePathMovementSpec
 
         _ ->
             Json.Decode.succeed NoMovement
 
 
-decodeWithData : Decoder Movement
-decodeWithData =
-    Json.Decode.map LinePath decodeLinePathMovementSpec
+
+-- decodeWithData : Decoder Movement
+-- decodeWithData =
+--     case movement of
 
 
 decodeLinePathMovementSpec : Decoder LineMovementSpec
@@ -293,4 +346,5 @@ decodeLinePathMovementSpec =
     decode LineMovementSpec
         |> required "startNode" vectorDecoder
         |> required "endNode" vectorDecoder
+        |> required "startingLocation" vectorDecoder
         |> required "speed" Json.Decode.float

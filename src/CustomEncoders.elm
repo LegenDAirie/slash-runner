@@ -52,7 +52,7 @@ encodePlatform platform =
 encodeEnemy : Enemy -> Json.Encode.Value
 encodeEnemy enemy =
     Json.Encode.object
-        [ ( "location", encodeVector enemy.location )
+        [ ( "location", encodeVector enemy.startingLocation )
         , ( "movement", encodeMovement enemy.movement )
         ]
 
@@ -63,7 +63,7 @@ encodeMovement movement =
         NoMovement ->
             Json.Encode.string "NoMovement"
 
-        Walk ->
+        Walk currentLocation ->
             Json.Encode.string "Walk"
 
         LinePath lineMovementSpec ->

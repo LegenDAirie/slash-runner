@@ -145,10 +145,10 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
             V2.add newPosition ( 128, 0 )
 
         newEnemyOnTrack =
-            Enemy newPosition 0 ( 64, 64 ) (LinePath (LineMovementSpec startNode endNode 1)) True
+            Enemy newPosition 0 ( 64, 64 ) (LinePath (LineMovementSpec startNode endNode newPosition 1)) True
 
         newWalkingEnemy =
-            Enemy newPosition 0 ( 64, 64 ) Walk True
+            Enemy newPosition 0 ( 64, 64 ) (Walk newPosition) True
 
         newEnemies =
             case itemToPlace of
@@ -162,22 +162,22 @@ updatePlayStateAfterMouseClick canvasSize mousePosition keyboardState levelCreat
                     playState.permanentEnemies
 
                 AStaticEnemy ->
-                    if List.member newStaticEnemy.location (List.map (\enemy -> enemy.location) playState.permanentEnemies) then
-                        List.filter (\enemy -> not (enemy.location == newStaticEnemy.location)) playState.permanentEnemies
+                    if List.member newStaticEnemy.startingLocation (List.map (\enemy -> enemy.startingLocation) playState.permanentEnemies) then
+                        List.filter (\enemy -> not (enemy.startingLocation == newStaticEnemy.startingLocation)) playState.permanentEnemies
                     else
                         [ newStaticEnemy ]
                             |> List.append playState.permanentEnemies
 
                 AnEnemyOnTrack ->
-                    if List.member newEnemyOnTrack.location (List.map (\enemy -> enemy.location) playState.permanentEnemies) then
-                        List.filter (\enemy -> not (enemy.location == newEnemyOnTrack.location)) playState.permanentEnemies
+                    if List.member newEnemyOnTrack.startingLocation (List.map (\enemy -> enemy.startingLocation) playState.permanentEnemies) then
+                        List.filter (\enemy -> not (enemy.startingLocation == newEnemyOnTrack.startingLocation)) playState.permanentEnemies
                     else
                         [ newEnemyOnTrack ]
                             |> List.append playState.permanentEnemies
 
                 AWalkingEnemy ->
-                    if List.member newWalkingEnemy.location (List.map (\enemy -> enemy.location) playState.permanentEnemies) then
-                        List.filter (\enemy -> not (enemy.location == newWalkingEnemy.location)) playState.permanentEnemies
+                    if List.member newWalkingEnemy.startingLocation (List.map (\enemy -> enemy.startingLocation) playState.permanentEnemies) then
+                        List.filter (\enemy -> not (enemy.startingLocation == newWalkingEnemy.startingLocation)) playState.permanentEnemies
                     else
                         [ newWalkingEnemy ]
                             |> List.append playState.permanentEnemies
