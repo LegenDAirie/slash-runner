@@ -35,11 +35,21 @@ type GameScreen
     | NormalPlay NormalPlayState
 
 
+type alias GamePadState =
+    { up : Bool
+    , left : Bool
+    , right : Bool
+    , down : Bool
+    , jump : Bool
+    , dash : Bool
+    }
+
+
 type Msg
     = NoOp
     | SetCanvasSize Window.Size
     | GetControllerState
-    | Tick { up : Bool, left : Bool, right : Bool, down : Bool, jump : Bool, dash : Bool }
+    | Tick GamePadState
     | Resources Resources.Msg
     | KeyboardMsg Keyboard.Extra.Msg
     | ReceiveLevelData LevelData
