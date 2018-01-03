@@ -1,4 +1,4 @@
-port module App exposing (..)
+port module App exposing (Model, Msg, view, init, update, subscriptions)
 
 import Html exposing (Html, div)
 import Html.Attributes exposing (style)

@@ -1,6 +1,6 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import App exposing (..)
+import App exposing (Model, Msg, view, init, update, subscriptions)
 import Html exposing (program)
 
 
