@@ -243,21 +243,20 @@ update msg model =
                         |>
                             calculateControllerStateFromKeyboardState model.keyboardState
 
-                newModel =
-                    { model
-                        | controllerState = newControllerState
-                    }
-
                 -- _ =
                 --     Debug.log "buttons" buttons
             in
-                case newModel.gameScreen of
+                case model.gameScreen of
                     Uninitialized ->
-                        newModel ! []
+                        { model
+                            | controllerState = newControllerState
+                        }
+                            ! []
 
                     NormalPlay state ->
-                        { newModel
-                            | gameScreen =
+                        { model
+                            | controllerState = newControllerState
+                            , gameScreen =
                                 NormalPlay <|
                                     updateNormalPlay
                                         newControllerState
@@ -267,19 +266,17 @@ update msg model =
 
                     CreateLevel levelCreateState ->
                         let
-                            { itemToPlace, playState } =
-                                levelCreateState
-
                             newPlayState =
-                                updateNormalPlay newControllerState playState
+                                updateNormalPlay newControllerState levelCreateState.playState
 
                             newLevelCreateState =
                                 { levelCreateState
                                     | playState = newPlayState
                                 }
                         in
-                            { newModel
-                                | gameScreen =
+                            { model
+                                | controllerState = newControllerState
+                                , gameScreen =
                                     CreateLevel newLevelCreateState
                             }
                                 ! []

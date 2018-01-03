@@ -207,13 +207,13 @@ renderLevelCreateScreen levelCreateState =
             levelCreateState
     in
         List.concat
-            [ [ renderMouse itemToPlace mouseLocation ]
+            [ [ renderBlockToPlace itemToPlace mouseLocation ]
             , (renderNormalPlay playState)
             ]
 
 
-renderMouse : ItemToPlace -> Vector -> Renderable
-renderMouse itemToPlace location =
+renderBlockToPlace : ItemToPlace -> Vector -> Renderable
+renderBlockToPlace itemToPlace location =
     let
         mouseColor =
             case itemToPlace of
