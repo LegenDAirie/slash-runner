@@ -1,6 +1,6 @@
 port module App exposing (Model, Msg, view, init, update, subscriptions)
 
-import Html exposing (Html, div)
+import Html exposing (Html, div, h3, text)
 import Html.Attributes exposing (style)
 import Vector2 as V2 exposing (distance, normalize, setX, getX, getY)
 import Game.Resources as Resources exposing (Resources)
@@ -301,6 +301,12 @@ view model =
 
         canvasSize =
             calculateCanvasSize model.windowSize
+
+        sideMargin =
+            style [ ( "margin", "15px 10px" ) ]
+
+        flexBoxRow =
+            style [ ( "display", "flex" ), ( "flex-direction", "row" ) ]
     in
         div []
             [ Game.renderCenteredWithOptions
@@ -311,6 +317,50 @@ view model =
                 , camera = camera
                 }
                 gameScene
+            , div
+                [ style [ ( "display", "flex" ), ( "flex-direction", "column" ) ]
+                ]
+                [ div
+                    [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text (toString 0) ]
+                    , Html.p [] [ text "- PlaceNothing" ]
+                    ]
+                , div
+                    [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text (toString 1) ]
+                    , Html.p [] [ text "- Normal Platform" ]
+                    ]
+                , div
+                    [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text (toString 2) ]
+                    , Html.p [] [ text "- Static enemy that doesn't move" ]
+                    ]
+                , div
+                    [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text (toString 3) ]
+                    , Html.p [] [ text "- Dangerous platform" ]
+                    ]
+                , div
+                    [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text (toString 4) ]
+                    , Html.p [] [ text "- Enemy on a set path" ]
+                    ]
+                , div
+                    [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text (toString 5) ]
+                    , Html.p [] [ text "- Walking Enemy" ]
+                    ]
+                , div
+                    [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text "R" ]
+                    , Html.p [] [ text "- Resets enemies to starting positions" ]
+                    ]
+                , div
+                    [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text "G + H" ]
+                    , Html.p [] [ text "- Wipe the whole level clean of everyting" ]
+                    ]
+                ]
             ]
 
 
