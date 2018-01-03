@@ -1,4 +1,4 @@
-module Coordinates exposing (convertTouchCoorToGameCoor, convertToGameUnits, gameSize, centerToBottomLeftLocationConverter, gridSquareSize, gridToPixelConversion, pixelToGridConversion)
+module Coordinates exposing (convertMouseCoorToGameCoor, convertToGameUnits, gameSize, centerToBottomLeftLocationConverter, gridSquareSize, gridToPixelConversion, pixelToGridConversion, calculateCanvasSize)
 
 import GameTypes exposing (Vector)
 import Vector2 as V2 exposing (distance, normalize, setX, getX, getY)
@@ -13,6 +13,18 @@ gameSize =
 gridSquareSize : Vector
 gridSquareSize =
     ( 64, 64 )
+
+
+calculateCanvasSize : Vector -> Vector
+calculateCanvasSize ( width, height ) =
+    let
+        newWidth =
+            min width (16 / 9 * height)
+
+        newHeight =
+            min height (9 / 16 * width)
+    in
+        ( newWidth, newHeight )
 
 
 gridToPixelConversion : Vector -> Vector
@@ -30,12 +42,12 @@ pixelToGridConversion ( pixelX, pixelY ) =
         ( gridSquareInPixelsX, gridSquareInPixelsY ) =
             gridSquareSize
     in
-        ( toFloat (floor pixelX // floor gridSquareInPixelsX), toFloat (floor pixelY // floor gridSquareInPixelsY) )
+        ( toFloat (floor (pixelX / gridSquareInPixelsX)), toFloat (floor (pixelY / gridSquareInPixelsY)) )
 
 
-convertTouchCoorToGameCoor : Camera -> Vector -> Vector
-convertTouchCoorToGameCoor camera touchLocation =
-    touchLocation
+convertMouseCoorToGameCoor : Camera -> Vector -> Vector
+convertMouseCoorToGameCoor camera mouseLocation =
+    mouseLocation
         |> offSetOrigin
         |> offSetByCamera camera
         |> flipY
@@ -47,8 +59,8 @@ flipY ( x, y ) =
 
 
 convertToGameUnits : Vector -> Vector -> Vector
-convertToGameUnits canvasSize touchLocation =
-    V2.scale (getX gameSize / getX canvasSize) touchLocation
+convertToGameUnits canvasSize mouseLocation =
+    V2.scale (getX gameSize / getX canvasSize) mouseLocation
 
 
 offSetOrigin : Vector -> Vector

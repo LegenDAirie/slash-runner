@@ -89,8 +89,8 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
         LevelCreateState newItemToPlace mouseLocation newNormalPlayState
 
 
-updatePlayStateAfterMouseClick : Vector -> Vector -> Vector -> Keyboard.Extra.State -> LevelCreateState -> ( LevelCreateState, String )
-updatePlayStateAfterMouseClick windowSize canvasSize mousePosition keyboardState levelCreateState =
+updatePlayStateAfterMouseClick : Vector -> Vector -> Keyboard.Extra.State -> LevelCreateState -> ( LevelCreateState, String )
+updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreateState =
     let
         ( width, height ) =
             platformSize
@@ -99,7 +99,7 @@ updatePlayStateAfterMouseClick windowSize canvasSize mousePosition keyboardState
             levelCreateState
 
         newPosition =
-            mouseToGridInPixels windowSize canvasSize playState.camera mousePosition
+            mouseToGridInPixels windowSize playState.camera mousePosition
 
         newNormalPlatform =
             Platform newPosition Normal

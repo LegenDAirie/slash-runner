@@ -11,7 +11,7 @@ import Window
 import Task
 import GameTypes exposing (Vector)
 import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerStateFromKeyboardState, initialControllerState, calculateControllerStateFromGamePad)
-import Coordinates exposing (gameSize, convertTouchCoorToGameCoor, convertToGameUnits, pixelToGridConversion, gridToPixelConversion)
+import Coordinates exposing (gameSize, convertToGameUnits, pixelToGridConversion, gridToPixelConversion, calculateCanvasSize)
 import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
 import Keyboard.Extra
 import Json.Decode exposing (Decoder)
@@ -194,11 +194,8 @@ update msg model =
                         ( width, height ) =
                             platformSize
 
-                        canvasSize =
-                            setCanvasSize model.windowSize
-
                         newPosition =
-                            mouseToGridInPixels model.windowSize canvasSize playState.camera mousePosition
+                            mouseToGridInPixels model.windowSize playState.camera mousePosition
 
                         newLevelCreateState =
                             { levelCreateState
@@ -221,10 +218,10 @@ update msg model =
                 CreateLevel levelCreateState ->
                     let
                         canvasSize =
-                            setCanvasSize model.windowSize
+                            calculateCanvasSize model.windowSize
 
                         ( newLevelCreateState, encodedLevelData ) =
-                            updatePlayStateAfterMouseClick model.windowSize canvasSize mousePosition model.keyboardState levelCreateState
+                            updatePlayStateAfterMouseClick model.windowSize mousePosition model.keyboardState levelCreateState
                     in
                         { model
                             | gameScreen = CreateLevel newLevelCreateState
@@ -303,7 +300,7 @@ view model =
                     ( levelCreateState.playState.camera, renderLevelCreateScreen levelCreateState )
 
         canvasSize =
-            setCanvasSize model.windowSize
+            calculateCanvasSize model.windowSize
     in
         div []
             [ Game.renderCenteredWithOptions
@@ -315,18 +312,6 @@ view model =
                 }
                 gameScene
             ]
-
-
-setCanvasSize : Vector -> Vector
-setCanvasSize ( width, height ) =
-    let
-        newWidth =
-            min width (16 / 9 * height)
-
-        newHeight =
-            min height (9 / 16 * width)
-    in
-        ( newWidth, newHeight )
 
 
 port fetchLevelData : Int -> Cmd msg
