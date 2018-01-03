@@ -22,7 +22,7 @@ import MouseHelpers exposing (mouseToGridInPixels)
 
 
 type alias Model =
-    { canvasSize : Vector
+    { windowSize : Window.Size
     , keyboardState : Keyboard.Extra.State
     , controllerState : ControllerState
     , gameScreen : GameScreen
@@ -48,7 +48,7 @@ type alias GamePadState =
 type Msg
     = NoOp
     | SetCanvasSize Window.Size
-    | GetControllerState
+    | GetGamePadState
     | Tick GamePadState
     | Resources Resources.Msg
     | KeyboardMsg Keyboard.Extra.Msg
@@ -59,7 +59,7 @@ type Msg
 
 initialModel : Model
 initialModel =
-    { canvasSize = ( 0, 0 )
+    { windowSize = Window.Size 0 0
     , keyboardState = Keyboard.Extra.initialState
     , controllerState = initialControllerState
     , gameScreen = CreateLevel initialLevelCreateState
@@ -82,7 +82,9 @@ update msg model =
             model ! []
 
         SetCanvasSize size ->
-            { model | canvasSize = setCanvasSize size }
+            { model
+                | windowSize = size
+            }
                 ! []
 
         KeyboardMsg keyMsg ->
@@ -188,8 +190,11 @@ update msg model =
                         ( width, height ) =
                             platformSize
 
+                        canvasSize =
+                            setCanvasSize model.windowSize
+
                         newPosition =
-                            mouseToGridInPixels model.canvasSize playState.camera mousePosition
+                            mouseToGridInPixels canvasSize playState.camera mousePosition
 
                         newLevelCreateState =
                             { levelCreateState
@@ -211,20 +216,23 @@ update msg model =
 
                 CreateLevel levelCreateState ->
                     let
+                        canvasSize =
+                            setCanvasSize model.windowSize
+
                         ( newLevelCreateState, encodedLevelData ) =
-                            updatePlayStateAfterMouseClick model.canvasSize mousePosition model.keyboardState levelCreateState
+                            updatePlayStateAfterMouseClick canvasSize mousePosition model.keyboardState levelCreateState
                     in
                         { model
                             | gameScreen = CreateLevel newLevelCreateState
                         }
                             ! [ writeLevelData encodedLevelData ]
 
-        GetControllerState ->
+        GetGamePadState ->
             let
                 player1 =
                     1
             in
-                model ! [ getControllerState player1 ]
+                model ! [ getGamePadState player1 ]
 
         Tick gamePad ->
             let
@@ -289,13 +297,16 @@ view model =
 
                 CreateLevel levelCreateState ->
                     ( levelCreateState.playState.camera, renderLevelCreateScreen levelCreateState )
+
+        canvasSize =
+            setCanvasSize model.windowSize
     in
         div []
             [ Game.renderCenteredWithOptions
                 []
                 [ style [ ( "border", "solid 1px black" ) ] ]
                 { time = 0
-                , size = ( floor <| getX model.canvasSize, floor <| getY model.canvasSize )
+                , size = ( floor <| getX canvasSize, floor <| getY canvasSize )
                 , camera = camera
                 }
                 gameScene
@@ -325,7 +336,7 @@ port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg
 port writeLevelData : String -> Cmd msg
 
 
-port getControllerState : Int -> Cmd msg
+port getGamePadState : Int -> Cmd msg
 
 
 port receiveControllerState : ({ up : Bool, left : Bool, right : Bool, down : Bool, jump : Bool, dash : Bool } -> msg) -> Sub msg
@@ -348,7 +359,7 @@ levelDataDecodeHandler levelDataJson =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ AnimationFrame.diffs (\dt -> GetControllerState)
+        [ AnimationFrame.diffs (\dt -> GetGamePadState)
         , receiveControllerState (\buttons -> Tick buttons)
         , Window.resizes (\size -> SetCanvasSize size)
         , Sub.map KeyboardMsg Keyboard.Extra.subscriptions

@@ -7,13 +7,13 @@ import GameTypes exposing (Vector)
 
 
 mouseToGridInPixels : Vector -> Camera -> Vector -> Vector
-mouseToGridInPixels canvasSize camera location =
+mouseToGridInPixels canvasSize camera mousePosition =
     let
         ( width, height ) =
             platformSize
 
         newPosition =
-            location
+            mousePosition
                 |> convertToGameUnits canvasSize
                 |> convertTouchCoorToGameCoor camera
                 |> (\( x, y ) -> ( x + width / 2, y + height / 2 ))
