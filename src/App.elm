@@ -22,7 +22,7 @@ import MouseHelpers exposing (mouseToGridInPixels)
 
 
 type alias Model =
-    { windowSize : Window.Size
+    { windowSize : Vector
     , keyboardState : Keyboard.Extra.State
     , controllerState : ControllerState
     , gameScreen : GameScreen
@@ -47,7 +47,7 @@ type alias GamePadState =
 
 type Msg
     = NoOp
-    | SetCanvasSize Window.Size
+    | SetWindowSize Window.Size
     | GetGamePadState
     | Tick GamePadState
     | Resources Resources.Msg
@@ -59,7 +59,7 @@ type Msg
 
 initialModel : Model
 initialModel =
-    { windowSize = Window.Size 0 0
+    { windowSize = ( 0, 0 )
     , keyboardState = Keyboard.Extra.initialState
     , controllerState = initialControllerState
     , gameScreen = CreateLevel initialLevelCreateState
@@ -69,7 +69,7 @@ initialModel =
 init : ( Model, Cmd Msg )
 init =
     initialModel
-        ! [ Task.perform SetCanvasSize Window.size
+        ! [ Task.perform SetWindowSize Window.size
           , Cmd.map Resources <| Resources.loadTextures [ "../assets/tile-bricks-test.png" ]
           , fetchLevelData 1
           ]
@@ -81,11 +81,15 @@ update msg model =
         NoOp ->
             model ! []
 
-        SetCanvasSize size ->
-            { model
-                | windowSize = size
-            }
-                ! []
+        SetWindowSize size ->
+            let
+                windowSize =
+                    (\windowSize -> ( toFloat windowSize.width, toFloat windowSize.height )) size
+            in
+                { model
+                    | windowSize = windowSize
+                }
+                    ! []
 
         KeyboardMsg keyMsg ->
             let
@@ -194,7 +198,7 @@ update msg model =
                             setCanvasSize model.windowSize
 
                         newPosition =
-                            mouseToGridInPixels canvasSize playState.camera mousePosition
+                            mouseToGridInPixels model.windowSize canvasSize playState.camera mousePosition
 
                         newLevelCreateState =
                             { levelCreateState
@@ -220,7 +224,7 @@ update msg model =
                             setCanvasSize model.windowSize
 
                         ( newLevelCreateState, encodedLevelData ) =
-                            updatePlayStateAfterMouseClick canvasSize mousePosition model.keyboardState levelCreateState
+                            updatePlayStateAfterMouseClick model.windowSize canvasSize mousePosition model.keyboardState levelCreateState
                     in
                         { model
                             | gameScreen = CreateLevel newLevelCreateState
@@ -313,18 +317,16 @@ view model =
             ]
 
 
-setCanvasSize : Window.Size -> ( Float, Float )
-setCanvasSize size =
+setCanvasSize : Vector -> Vector
+setCanvasSize ( width, height ) =
     let
-        width =
-            min size.width <|
-                floor (16 / 9 * toFloat size.height)
+        newWidth =
+            min width (16 / 9 * height)
 
-        height =
-            min size.height <|
-                floor (9 / 16 * toFloat size.width)
+        newHeight =
+            min height (9 / 16 * width)
     in
-        ( toFloat width, toFloat height )
+        ( newWidth, newHeight )
 
 
 port fetchLevelData : Int -> Cmd msg
@@ -361,7 +363,7 @@ subscriptions model =
     Sub.batch
         [ AnimationFrame.diffs (\dt -> GetGamePadState)
         , receiveControllerState (\buttons -> Tick buttons)
-        , Window.resizes (\size -> SetCanvasSize size)
+        , Window.resizes (\size -> SetWindowSize size)
         , Sub.map KeyboardMsg Keyboard.Extra.subscriptions
         , receiveLevelData levelDataDecodeHandler
         , Mouse.moves (\{ x, y } -> MouseMove ( toFloat x, toFloat y ))

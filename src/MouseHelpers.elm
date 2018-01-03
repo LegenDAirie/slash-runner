@@ -6,8 +6,8 @@ import Game.TwoD.Camera as Camera exposing (Camera)
 import GameTypes exposing (Vector)
 
 
-mouseToGridInPixels : Vector -> Camera -> Vector -> Vector
-mouseToGridInPixels canvasSize camera mousePosition =
+mouseToGridInPixels : Vector -> Vector -> Camera -> Vector -> Vector
+mouseToGridInPixels windowSize canvasSize camera mousePosition =
     let
         ( width, height ) =
             platformSize
