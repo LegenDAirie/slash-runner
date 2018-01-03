@@ -64,8 +64,8 @@ getSideCollidingWithEnemies location size enemies side =
 ------------------------------------------------------------------
 
 
-isCollidingWithPlatform : Vector -> Vector -> Platform -> Maybe Collision2D.Side
-isCollidingWithPlatform entityLocation entitySize platform =
+sideOfPlatformBeingCollidedWith : Vector -> Vector -> Platform -> Maybe Collision2D.Side
+sideOfPlatformBeingCollidedWith entityLocation entitySize platform =
     let
         ( x, y ) =
             entityLocation
@@ -95,25 +95,25 @@ setByPlatform location size platforms lastSide platformType =
             ( location, lastSide, platformType )
 
         platform :: rest ->
-            case isCollidingWithPlatform location size platform of
+            case sideOfPlatformBeingCollidedWith location size platform of
                 Just side ->
                     let
                         newSide =
-                            calculateNewSide location platform side
+                            calculateNewCollisionSide location platform side
                     in
                         case platform.platformType of
                             Normal ->
-                                setByPlatform (setEntity location size platform newSide) size rest (Just newSide) platformType
+                                setByPlatform (setEntityXY location size platform newSide) size rest (Just newSide) platformType
 
                             Dangerous ->
-                                setByPlatform (setEntity location size platform newSide) size rest (Just newSide) Dangerous
+                                setByPlatform (setEntityXY location size platform newSide) size rest (Just newSide) Dangerous
 
                 Nothing ->
                     setByPlatform location size rest lastSide platformType
 
 
-calculateNewSide : Vector -> Platform -> Collision2D.Side -> Collision2D.Side
-calculateNewSide entityLocation platform side =
+calculateNewCollisionSide : Vector -> Platform -> Collision2D.Side -> Collision2D.Side
+calculateNewCollisionSide entityLocation platform side =
     let
         ( x, y ) =
             entityLocation
@@ -144,8 +144,8 @@ calculateNewSide entityLocation platform side =
                     Collision2D.Left
 
 
-setEntity : Vector -> Vector -> Platform -> Collision2D.Side -> Vector
-setEntity entityLocation entitySize platform side =
+setEntityXY : Vector -> Vector -> Platform -> Collision2D.Side -> Vector
+setEntityXY entityLocation entitySize platform side =
     let
         ( x, y ) =
             entityLocation
