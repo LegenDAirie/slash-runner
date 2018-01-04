@@ -87,4 +87,4 @@ centerToBottomLeftLocationConverter location size =
         ( width, height ) =
             size
     in
-        ( currentX - width / 2, currentY - height / 2 )
+        ( currentX, currentY )

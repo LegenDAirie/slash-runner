@@ -15,7 +15,7 @@ import Vector2 as V2 exposing (getX, getY)
 
 
 type alias LevelCreateState =
-    { itemToPlace : ItemToPlace
+    { itemToPlace : ItemToBePlace
     , mouseLocation : Vector
     , playState : NormalPlayState
     }
@@ -29,7 +29,7 @@ initialLevelCreateState =
     }
 
 
-type ItemToPlace
+type ItemToBePlace
     = PlaceNothing
     | ANormalPlatform
     | ADangerousPlatform
@@ -212,11 +212,11 @@ renderLevelCreateScreen levelCreateState =
             ]
 
 
-renderBlockToPlace : ItemToPlace -> Vector -> Renderable
-renderBlockToPlace itemToPlace location =
+renderBlockToPlace : ItemToBePlace -> Vector -> Renderable
+renderBlockToPlace itemToBePlace location =
     let
         mouseColor =
-            case itemToPlace of
+            case itemToBePlace of
                 PlaceNothing ->
                     Color.black
 

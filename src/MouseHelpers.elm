@@ -29,7 +29,6 @@ mouseToGridInPixels windowSize camera mousePosition =
                 |> (\( x, y ) -> ( x - xOffset, y ))
                 |> convertToGameUnits canvasSize
                 |> convertMouseCoorToGameCoor camera
-                |> (\( x, y ) -> ( x + width / 2, y + height / 2 ))
                 |> pixelToGridConversion
                 |> gridToPixelConversion
     in
