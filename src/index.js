@@ -1,10 +1,7 @@
-require('./main.css');
+import './main.css';
+import { Main } from './Main.elm';
 
-var Elm = require('./Main.elm');
-
-var root = document.getElementById('root');
-
-var app = Elm.Main.embed(root);
+var app = Main.embed(document.getElementById('root'));
 
 app.ports.writeLevelData.subscribe(function(levelDataJson) {
   // console.log('level data json', levelDataJson);
@@ -20,7 +17,7 @@ app.ports.fetchLevelData.subscribe(function(levelNumber) {
     app.ports.receiveLevelData.send(actual_JSON);
 });
 
-app.ports.getControllerState.subscribe(function(playerNumber) {
+app.ports.getGamePadState.subscribe(function(playerNumber) {
   var gamePads = navigator.getGamepads ? navigator.getGamepads() : []
   var gamePad = gamePads[0]
   var releventButtons = {
@@ -31,7 +28,7 @@ app.ports.getControllerState.subscribe(function(playerNumber) {
     jump: gamePad ? gamePad.buttons[0].pressed : false,
     dash: gamePad ? gamePad.buttons[2].pressed : false
   }
-  app.ports.receiveControllerState.send(releventButtons)
+  app.ports.receiveGamePadState.send(releventButtons)
 });
 
 window.addEventListener("gamepadconnected", function(e) {
