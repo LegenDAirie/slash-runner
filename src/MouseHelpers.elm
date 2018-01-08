@@ -15,18 +15,21 @@ mouseToGridInPixels windowSize camera mousePosition =
         canvasSize =
             calculateCanvasSize windowSize
 
-        ( windowWidth, _ ) =
+        ( windowWidth, windowHeight ) =
             windowSize
 
-        ( canvasWidth, _ ) =
+        ( canvasWidth, canvasHeight ) =
             canvasSize
 
         xOffset =
             (windowWidth - canvasWidth) / 2
 
+        yOffset =
+            (windowHeight - canvasHeight) / 2
+
         newPosition =
             mousePosition
-                |> (\( x, y ) -> ( x - xOffset, y ))
+                |> (\( x, y ) -> ( x - xOffset, y - yOffset ))
                 |> convertToGameUnits canvasSize
                 |> convertMouseCoorToGameCoor camera
                 |> pixelToGridConversion
