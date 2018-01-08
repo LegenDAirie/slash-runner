@@ -10,7 +10,7 @@ import AnimationFrame
 import Window
 import Task
 import GameTypes exposing (Vector)
-import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, calculateControllerStateFromKeyboardState, initialControllerState, calculateControllerStateFromGamePad)
+import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, GamePadState, calculateControllerStateFromKeyboardState, initialControllerState, calculateControllerStateFromGamePad)
 import Coordinates exposing (gameSize, convertToGameUnits, pixelToGridConversion, gridToPixelConversion, calculateCanvasSize)
 import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
 import Keyboard.Extra
@@ -45,16 +45,6 @@ type GameScreen
     | NormalPlay NormalPlayState
 
 
-type alias GamePadState =
-    { up : Bool
-    , left : Bool
-    , right : Bool
-    , down : Bool
-    , jump : Bool
-    , dash : Bool
-    }
-
-
 type Msg
     = NoOp
     | SetWindowSize Window.Size
@@ -83,6 +73,15 @@ init =
           , Cmd.map Resources <| Resources.loadTextures [ "../assets/tile-bricks-test.png" ]
           , fetchLevelData 1
           ]
+
+
+port fetchLevelData : Int -> Cmd msg
+
+
+port writeLevelData : String -> Cmd msg
+
+
+port getGamePadState : Int -> Cmd msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -239,22 +238,19 @@ update msg model =
                             ! [ writeLevelData encodedLevelData ]
 
         GetGamePadState ->
-            let
-                player1 =
-                    1
-            in
-                model ! [ getGamePadState player1 ]
+            model ! [ getGamePadState 0 ]
 
-        Tick gamePad ->
+        Tick gamepadState ->
             let
                 newControllerState =
-                    model.controllerState
-                        -- |> calculateControllerStateFromGamePad gamePad
-                        |>
-                            calculateControllerStateFromKeyboardState model.keyboardState
+                    case gamepadState.gamepadConnected of
+                        True ->
+                            model.controllerState
+                                |> calculateControllerStateFromGamePad gamepadState
 
-                -- _ =
-                --     Debug.log "buttons" buttons
+                        False ->
+                            model.controllerState
+                                |> calculateControllerStateFromKeyboardState model.keyboardState
             in
                 case model.gameScreen of
                     Uninitialized ->
@@ -371,19 +367,10 @@ view model =
             ]
 
 
-port fetchLevelData : Int -> Cmd msg
-
-
 port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg
 
 
-port writeLevelData : String -> Cmd msg
-
-
-port getGamePadState : Int -> Cmd msg
-
-
-port receiveGamePadState : ({ up : Bool, left : Bool, right : Bool, down : Bool, jump : Bool, dash : Bool } -> msg) -> Sub msg
+port receiveGamePadState : (GamePadState -> msg) -> Sub msg
 
 
 levelDataDecodeHandler : Json.Decode.Value -> Msg
@@ -404,7 +391,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ AnimationFrame.diffs (\dt -> GetGamePadState)
-        , receiveGamePadState (\buttons -> Tick buttons)
+        , receiveGamePadState (\gamepadState -> Tick gamepadState)
         , Window.resizes (\size -> SetWindowSize size)
         , Sub.map KeyboardMsg Keyboard.Extra.subscriptions
         , receiveLevelData levelDataDecodeHandler

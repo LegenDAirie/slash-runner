@@ -19,8 +19,9 @@ app.ports.fetchLevelData.subscribe(function(levelNumber) {
 
 app.ports.getGamePadState.subscribe(function(playerNumber) {
   var gamePads = navigator.getGamepads ? navigator.getGamepads() : []
-  var gamePad = gamePads[0]
+  var gamePad = gamePads[playerNumber]
   var releventButtons = {
+    gamepadConnected: gamePad !== null,
     up: gamePad ? gamePad.buttons[12].pressed : false,
     left: gamePad ? gamePad.buttons[14].pressed : false,
     right: gamePad ? gamePad.buttons[15].pressed : false,
