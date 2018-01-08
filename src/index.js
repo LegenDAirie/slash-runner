@@ -3,6 +3,15 @@ import { Main } from './Main.elm';
 
 var app = Main.embed(document.getElementById('root'));
 
+function onKeyDown(e) {
+  var canvas = document.getElementsByTagName('canvas')[0];
+  if (canvas && canvas.webkitRequestFullScreen && e.code === "KeyF"){
+    canvas.webkitRequestFullScreen();
+  }
+}
+
+document.onkeydown  = onKeyDown;
+
 app.ports.writeLevelData.subscribe(function(levelDataJson) {
   // console.log('level data json', levelDataJson);
   console.log('save level data');
