@@ -11,7 +11,7 @@ import Controller exposing (DPad(..), ControllerState, ButtonState(..))
 import Forces exposing (gravity, controllerLeftForce, controllerRightForce, maxVerticalSpeed, airResistance)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, PlatformType(..))
-import CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
+import CollisionHelpers exposing (moveOutOfCollision, getSideCollidingWithEnemies)
 
 
 maxWalkingVelocity : Float
@@ -81,7 +81,7 @@ updatePlayer enemies platforms controllerState player =
             applyPhysics controllerState.dPad controllerState.dash player.playerState player.framesSinceLastChain player.location player.velocity
 
         ( setPlayerLocation, sideCollidingWithPlatform, platformType ) =
-            setByPlatform newLocation player.size platforms Nothing Normal
+            moveOutOfCollision newLocation player.size platforms Nothing Normal
 
         sidecollidingWithEnemy =
             getSideCollidingWithEnemies setPlayerLocation player.size enemies Nothing

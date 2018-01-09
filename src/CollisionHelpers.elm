@@ -1,4 +1,4 @@
-module CollisionHelpers exposing (setByPlatform, getSideCollidingWithEnemies)
+module CollisionHelpers exposing (moveOutOfCollision, getSideCollidingWithEnemies)
 
 import GameTypes exposing (Vector)
 import GamePlatform exposing (Platform, PlatformType(..), platformSize)
@@ -9,10 +9,34 @@ import Collision2D
 ------------------------------------------------------------------
 -- collision with enemies
 ------------------------------------------------------------------
+------------------------------
+-- main function
+------------------------------
 
 
-isCollidingWithEnemy : Vector -> Vector -> Enemy -> Maybe Collision2D.Side
-isCollidingWithEnemy entityLocation entitySize enemy =
+getSideCollidingWithEnemies : Vector -> Vector -> List Enemy -> Maybe Collision2D.Side -> Maybe Collision2D.Side
+getSideCollidingWithEnemies location size enemies side =
+    case enemies of
+        [] ->
+            side
+
+        enemy :: rest ->
+            case sideCollidingWithEnemy location size enemy of
+                Just side ->
+                    getSideCollidingWithEnemies location size rest (Just side)
+
+                Nothing ->
+                    getSideCollidingWithEnemies location size rest side
+
+
+
+------------------------------
+-- helper
+------------------------------
+
+
+sideCollidingWithEnemy : Vector -> Vector -> Enemy -> Maybe Collision2D.Side
+sideCollidingWithEnemy entityLocation entitySize enemy =
     let
         ( x, y ) =
             entityLocation
@@ -43,25 +67,43 @@ isCollidingWithEnemy entityLocation entitySize enemy =
         Collision2D.rectangleSide entityHitbox enemyHitbox
 
 
-getSideCollidingWithEnemies : Vector -> Vector -> List Enemy -> Maybe Collision2D.Side -> Maybe Collision2D.Side
-getSideCollidingWithEnemies location size enemies side =
-    case enemies of
-        [] ->
-            side
 
-        enemy :: rest ->
-            case isCollidingWithEnemy location size enemy of
+--------------------------------------------------------------------------------
+-- collision with platforms
+--------------------------------------------------------------------------------
+------------------------------
+-- main function
+------------------------------
+
+
+moveOutOfCollision : Vector -> Vector -> List Platform -> Maybe Collision2D.Side -> PlatformType -> ( Vector, Maybe Collision2D.Side, PlatformType )
+moveOutOfCollision location size platforms lastSide platformType =
+    case platforms of
+        [] ->
+            ( location, lastSide, platformType )
+
+        platform :: rest ->
+            case sideOfPlatformBeingCollidedWith location size platform of
                 Just side ->
-                    getSideCollidingWithEnemies location size rest (Just side)
+                    let
+                        newSide =
+                            calculateNewCollisionSide location platform side
+                    in
+                        case platform.platformType of
+                            Normal ->
+                                moveOutOfCollision (setEntityXY location size platform newSide) size rest (Just newSide) platformType
+
+                            Dangerous ->
+                                moveOutOfCollision (setEntityXY location size platform newSide) size rest (Just newSide) Dangerous
 
                 Nothing ->
-                    getSideCollidingWithEnemies location size rest side
+                    moveOutOfCollision location size rest lastSide platformType
 
 
 
-------------------------------------------------------------------
--- collision with platforms
-------------------------------------------------------------------
+------------------------------
+-- helpers
+------------------------------
 
 
 sideOfPlatformBeingCollidedWith : Vector -> Vector -> Platform -> Maybe Collision2D.Side
@@ -86,30 +128,6 @@ sideOfPlatformBeingCollidedWith entityLocation entitySize platform =
             Collision2D.rectangle platformX platformY platformWidth platformHeight
     in
         Collision2D.rectangleSide entityHitbox platformHitbox
-
-
-setByPlatform : Vector -> Vector -> List Platform -> Maybe Collision2D.Side -> PlatformType -> ( Vector, Maybe Collision2D.Side, PlatformType )
-setByPlatform location size platforms lastSide platformType =
-    case platforms of
-        [] ->
-            ( location, lastSide, platformType )
-
-        platform :: rest ->
-            case sideOfPlatformBeingCollidedWith location size platform of
-                Just side ->
-                    let
-                        newSide =
-                            calculateNewCollisionSide location platform side
-                    in
-                        case platform.platformType of
-                            Normal ->
-                                setByPlatform (setEntityXY location size platform newSide) size rest (Just newSide) platformType
-
-                            Dangerous ->
-                                setByPlatform (setEntityXY location size platform newSide) size rest (Just newSide) Dangerous
-
-                Nothing ->
-                    setByPlatform location size rest lastSide platformType
 
 
 calculateNewCollisionSide : Vector -> Platform -> Collision2D.Side -> Collision2D.Side
