@@ -5,6 +5,17 @@ module Controller
         , initialControllerState
         , calculateControllerStateFromGamePad
         , GamePadState
+        , DPad
+            ( Up
+            , UpRight
+            , Right
+            , DownRight
+            , Down
+            , DownLeft
+            , Left
+            , UpLeft
+            , NoDirection
+            )
         )
 
 import Keyboard.Extra

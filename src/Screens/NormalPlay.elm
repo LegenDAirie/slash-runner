@@ -13,14 +13,28 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2
-import Controller exposing (ControllerState)
-import GameTypes exposing (Player)
+import GameTypes exposing (Vector, Player)
 import Coordinates exposing (gameSize, gridToPixelConversion)
 import Player exposing (renderPlayer)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, renderPlatform, platformDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
+import Controller
+    exposing
+        ( ControllerState
+        , DPad
+            ( Up
+            , UpRight
+            , Right
+            , DownRight
+            , Down
+            , DownLeft
+            , Left
+            , UpLeft
+            , NoDirection
+            )
+        )
 
 
 type alias NormalPlayState =
@@ -77,11 +91,62 @@ type alias LevelData =
     }
 
 
+getAcceleration : DPad -> Vector
+getAcceleration dPad =
+    case dPad of
+        Up ->
+            ( 0, 0.1 )
+
+        UpRight ->
+            ( 0.1, 0.1 )
+
+        Right ->
+            ( 0.1, 0 )
+
+        DownRight ->
+            ( 0.1, -0.1 )
+
+        Down ->
+            ( 0, -0.1 )
+
+        DownLeft ->
+            ( -0.1, -0.1 )
+
+        Left ->
+            ( -0.1, 0 )
+
+        UpLeft ->
+            ( -0.1, 0.1 )
+
+        NoDirection ->
+            ( 0, 0 )
+
+
 updateNormalPlay : ControllerState -> NormalPlayState -> NormalPlayState
 updateNormalPlay controllerState state =
-    { state
-        | camera = Camera.follow 0.5 0.17 (V2.sub state.player.location ( -100, -100 )) state.camera
-    }
+    let
+        { player } =
+            state
+
+        acceleration =
+            getAcceleration controllerState.dPad
+
+        newVelocity =
+            V2.add player.velocity acceleration
+
+        newLocation =
+            V2.add player.location newVelocity
+
+        updatedPlayer =
+            { player
+                | location = newLocation
+                , velocity = newVelocity
+            }
+    in
+        { state
+            | camera = Camera.follow 0.5 0.17 (V2.sub state.player.location ( -100, -100 )) state.camera
+            , player = updatedPlayer
+        }
 
 
 renderNormalPlay : NormalPlayState -> List Renderable
