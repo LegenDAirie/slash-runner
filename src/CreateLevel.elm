@@ -1,17 +1,23 @@
-module CreateLevel exposing (..)
+module CreateLevel
+    exposing
+        ( LevelCreateState
+        , initialLevelCreateState
+        , updatePlayStateAfterKeyPress
+        , updatePlayStateAfterMouseClick
+        , renderLevelCreateScreen
+        )
 
 import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay)
 import Game.TwoD.Render as Render exposing (Renderable)
 import Keyboard.Extra
 import GameTypes exposing (Vector)
-import GamePlatform exposing (Platform, platformSize)
 import MouseHelpers exposing (mouseToGridInPixels)
-import Enemy exposing (Enemy, Movement(..), LineMovementSpec)
-import CustomEncoders exposing (encodeVector, levelDataEncodeHandler)
-import GamePlatform exposing (Platform, platformSize, PlatformType(..))
+import Enemy exposing (Enemy, EnemyMovement(NoMovement, LinePath, Walk), LineMovementSpec)
+import CustomEncoders exposing (levelDataEncodeHandler)
+import GamePlatform exposing (Platform, platformSize, PlatformType(Normal, Dangerous))
 import Color
 import Coordinates exposing (centerToBottomLeftLocationConverter, gridSquareSize)
-import Vector2 as V2 exposing (getX, getY)
+import Vector2 as V2
 
 
 type alias LevelCreateState =

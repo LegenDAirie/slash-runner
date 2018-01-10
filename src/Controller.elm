@@ -1,9 +1,6 @@
 module Controller
     exposing
-        ( ButtonState(..)
-        , calculateButtonState
-        , DPad(..)
-        , ControllerState
+        ( ControllerState
         , calculateControllerStateFromKeyboardState
         , initialControllerState
         , calculateControllerStateFromGamePad

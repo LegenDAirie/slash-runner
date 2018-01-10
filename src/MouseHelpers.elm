@@ -1,7 +1,7 @@
 module MouseHelpers exposing (mouseToGridInPixels)
 
 import GamePlatform exposing (platformSize)
-import Coordinates exposing (gameSize, convertMouseCoorToGameCoor, convertToGameUnits, pixelToGridConversion, gridToPixelConversion, calculateCanvasSize)
+import Coordinates exposing (convertMouseCoorToGameCoor, convertToGameUnits, pixelToGridConversion, gridToPixelConversion, calculateCanvasSize)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import GameTypes exposing (Vector)
 

@@ -1,7 +1,17 @@
-module Coordinates exposing (convertMouseCoorToGameCoor, convertToGameUnits, gameSize, centerToBottomLeftLocationConverter, gridSquareSize, gridToPixelConversion, pixelToGridConversion, calculateCanvasSize)
+module Coordinates
+    exposing
+        ( convertMouseCoorToGameCoor
+        , convertToGameUnits
+        , gameSize
+        , centerToBottomLeftLocationConverter
+        , gridSquareSize
+        , gridToPixelConversion
+        , pixelToGridConversion
+        , calculateCanvasSize
+        )
 
 import GameTypes exposing (Vector)
-import Vector2 as V2 exposing (distance, normalize, setX, getX, getY)
+import Vector2 as V2 exposing (getX)
 import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
 
 

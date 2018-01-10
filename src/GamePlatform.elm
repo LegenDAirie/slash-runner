@@ -1,8 +1,14 @@
-module GamePlatform exposing (Platform, renderPlatform, platformSize, platformDecoder, PlatformType(..))
+module GamePlatform
+    exposing
+        ( Platform
+        , PlatformType(Normal, Dangerous)
+        , renderPlatform
+        , platformSize
+        , platformDecoder
+        )
 
-import Color
 import GameTypes exposing (Vector, vectorDecoder)
-import Coordinates exposing (centerToBottomLeftLocationConverter, gridSquareSize)
+import Coordinates exposing (gridSquareSize)
 import Game.TwoD.Render as Render exposing (Renderable)
 import Game.Resources as Resources exposing (Resources)
 import Json.Decode exposing (Decoder)
@@ -47,29 +53,6 @@ renderPlatform resources platform =
             , pivot = ( 0.5, 0.5 )
             , tiling = ( 1, 1 )
             }
-
-
-
--- renderPlatform : Resources -> Platform -> Renderable
--- renderPlatform resources platform =
---     let
---         ( x, y ) =
---             platform.location
---
---         color =
---             case platform.platformType of
---                 Normal ->
---                     Color.charcoal
---
---                 Dangerous ->
---                     Color.yellow
---     in
---         Render.shape
---             Render.rectangle
---             { color = color
---             , position = centerToBottomLeftLocationConverter platform.location platformSize
---             , size = platformSize
---             }
 
 
 platformDecoder : Decoder Platform

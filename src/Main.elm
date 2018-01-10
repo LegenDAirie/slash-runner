@@ -1,24 +1,46 @@
-port module Main exposing (Model, Msg, view, init, update, subscriptions)
+port module Main exposing (main)
 
 import Html exposing (program, Html, div, h3, text)
 import Html.Attributes exposing (style)
-import Vector2 as V2 exposing (distance, normalize, setX, getX, getY)
+import Vector2 as V2 exposing (getX, getY)
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD as Game
-import Game.TwoD.Camera as Camera exposing (Camera, getViewSize, getPosition)
+import Game.TwoD.Camera as Camera
 import AnimationFrame
 import Window
 import Task
-import GameTypes exposing (Vector)
-import Controller exposing (ButtonState(..), calculateButtonState, DPad(..), ControllerState, GamePadState, calculateControllerStateFromKeyboardState, initialControllerState, calculateControllerStateFromGamePad)
-import Coordinates exposing (gameSize, convertToGameUnits, pixelToGridConversion, gridToPixelConversion, calculateCanvasSize)
-import Screens.NormalPlay exposing (initialNormalPlayState, LevelData, createLevel, updateNormalPlay, renderNormalPlay, NormalPlayState, jsonToLevelData)
-import Keyboard.Extra
-import Json.Decode exposing (Decoder)
 import Mouse
-import GamePlatform exposing (Platform, platformSize)
-import CreateLevel exposing (LevelCreateState, initialLevelCreateState, updatePlayStateAfterKeyPress, updatePlayStateAfterMouseClick, renderLevelCreateScreen)
+import Keyboard.Extra
+import Json.Decode
+import GameTypes exposing (Vector)
+import GamePlatform exposing (platformSize)
 import MouseHelpers exposing (mouseToGridInPixels)
+import Coordinates exposing (gameSize, calculateCanvasSize)
+import Controller
+    exposing
+        ( ControllerState
+        , GamePadState
+        , calculateControllerStateFromKeyboardState
+        , initialControllerState
+        , calculateControllerStateFromGamePad
+        )
+import Screens.NormalPlay
+    exposing
+        ( LevelData
+        , createLevel
+        , updateNormalPlay
+        , renderNormalPlay
+        , NormalPlayState
+        , jsonToLevelData
+        )
+import CreateLevel
+    exposing
+        ( LevelCreateState
+        , initialLevelCreateState
+        , updatePlayStateAfterKeyPress
+        , updatePlayStateAfterMouseClick
+        , renderLevelCreateScreen
+        )
 
 
 main : Program Never Model Msg

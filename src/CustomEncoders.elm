@@ -3,8 +3,19 @@ module CustomEncoders exposing (encodeVector, levelDataEncodeHandler, encodeEnem
 import Json.Encode
 import GameTypes exposing (Vector)
 import Coordinates exposing (pixelToGridConversion)
-import GamePlatform exposing (Platform, PlatformType(..))
-import Enemy exposing (Enemy, Movement(..))
+import GamePlatform
+    exposing
+        ( Platform
+        , PlatformType
+            ( Normal
+            , Dangerous
+            )
+        )
+import Enemy
+    exposing
+        ( Enemy
+        , EnemyMovement(NoMovement, Walk, LinePath)
+        )
 
 
 encodeVector : Vector -> Json.Encode.Value
@@ -57,7 +68,7 @@ encodeEnemy enemy =
         ]
 
 
-encodeMovement : Movement -> Json.Encode.Value
+encodeMovement : EnemyMovement -> Json.Encode.Value
 encodeMovement movement =
     case movement of
         NoMovement ->

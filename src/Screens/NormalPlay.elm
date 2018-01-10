@@ -1,14 +1,23 @@
-module Screens.NormalPlay exposing (..)
+module Screens.NormalPlay
+    exposing
+        ( NormalPlayState
+        , initialNormalPlayState
+        , renderNormalPlay
+        , LevelData
+        , createLevel
+        , updateNormalPlay
+        , jsonToLevelData
+        )
 
 import Game.TwoD.Render as Render exposing (Renderable)
-import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
+import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
-import Vector2 as V2 exposing (getX, getY)
+import Vector2 as V2
 import Controller exposing (ControllerState)
-import GameTypes exposing (Vector, Player, PlayerState(..))
-import Coordinates exposing (gameSize, gridToPixelConversion, centerToBottomLeftLocationConverter, gridSquareSize)
-import Player exposing (updatePlayer, renderPlayer)
-import Enemy exposing (Enemy, renderEnemy, updateEnemies, enemyDecoder, gridToPixelEnemyConvert)
+import GameTypes exposing (Player)
+import Coordinates exposing (gameSize, gridToPixelConversion)
+import Player exposing (renderPlayer)
+import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, renderPlatform, platformDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
@@ -33,7 +42,7 @@ initialNormalPlayState =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
+        { player = Player startingPoint ( 0, 0 ) ( 64, 64 ) 0
         , permanentEnemies = []
         , enemies = []
         , platforms = []
@@ -53,62 +62,34 @@ createLevel levelData =
 
         platforms =
             List.map (\platform -> { platform | location = gridToPixelConversion platform.location }) levelData.platforms
-
-        enemies =
-            List.map (\enemy -> gridToPixelEnemyConvert enemy) levelData.enemies
     in
-        { player = Player startingPoint ( 0, 0 ) Running ( 64, 64 ) 0
-        , permanentEnemies = enemies
-        , enemies = enemies
+        { player = Player startingPoint ( 0, 0 ) ( 64, 64 ) 0
         , platforms = platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
+        , permanentEnemies = []
+        , enemies = []
         }
 
 
 type alias LevelData =
     { platforms : List Platform
-    , enemies : List Enemy
     }
 
 
 updateNormalPlay : ControllerState -> NormalPlayState -> NormalPlayState
 updateNormalPlay controllerState state =
-    let
-        newEnemies =
-            updateEnemies state.player state.platforms state.enemies
-
-        newPlayer =
-            updatePlayer state.enemies state.platforms controllerState state.player
-    in
-        { state
-            | player = newPlayer
-            , enemies = newEnemies
-            , camera = Camera.follow 0.5 0.17 (V2.sub state.player.location ( -100, -100 )) state.camera
-        }
+    { state
+        | camera = Camera.follow 0.5 0.17 (V2.sub state.player.location ( -100, -100 )) state.camera
+    }
 
 
 renderNormalPlay : NormalPlayState -> List Renderable
 renderNormalPlay state =
     List.concat
-        [ (List.concatMap renderEnemy state.enemies)
-        , (List.map (renderPlatform state.resources) state.platforms)
+        [ (List.map (renderPlatform state.resources) state.platforms)
         , [ renderPlayer state.resources state.player ]
         ]
-
-
-
--- renderBackground : Resources -> List Renderable
--- renderBackground resources =
---     [ Render.spriteWithOptions
---         { position = ( -1024, -1024, 0 )
---         , size = ( 6144, 2048 )
---         , texture = Resources.getTexture "../assets/background-square.jpg" resources
---         , rotation = 0
---         , pivot = ( 0, 0 )
---         , tiling = ( 6, 2 )
---         }
---     ]
 
 
 jsonToLevelData : Json.Decode.Value -> Result String LevelData
@@ -120,4 +101,3 @@ levelDataDecoder : Decoder LevelData
 levelDataDecoder =
     decode LevelData
         |> required "platforms" (Json.Decode.list platformDecoder)
-        |> required "enemies" (Json.Decode.list enemyDecoder)

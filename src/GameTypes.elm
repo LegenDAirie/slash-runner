@@ -1,4 +1,4 @@
-module GameTypes exposing (..)
+module GameTypes exposing (Vector, Player, vectorDecoder)
 
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
@@ -18,17 +18,6 @@ vectorDecoder =
 type alias Player =
     { location : Vector
     , velocity : Vector
-    , playerState : PlayerState
     , size : Vector
     , framesSinceLastChain : Int
     }
-
-
-type PlayerState
-    = Running
-    | Jumping Vector
-    | Falling
-    | Dashing ( Int, Vector )
-    | DashRecovery ( Int, Bool )
-    | OnPlatform ( Int, Bool )
-    | HitStun Int
