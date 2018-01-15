@@ -4,20 +4,19 @@ module GamePlatform
         , PlatformType(Normal, Dangerous)
         , renderPlatform
         , platformSize
-        , platformDecoder
+        , platformWithLocationsDecoder
         )
 
-import GameTypes exposing (Vector, vectorDecoder)
+import GameTypes exposing (Vector, GridCoordinate, gridCoordinateDecoder)
 import Coordinates exposing (gridSquareSize)
 import Game.TwoD.Render as Render exposing (Renderable)
-import Game.Resources as Resources exposing (Resources)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
+import Color
 
 
 type alias Platform =
-    { location : Vector
-    , platformType : PlatformType
+    { platformType : PlatformType
     }
 
 
@@ -31,34 +30,30 @@ platformSize =
     gridSquareSize
 
 
-renderPlatform : Resources -> Platform -> Renderable
-renderPlatform resources platform =
+renderPlatform : GridCoordinate -> Platform -> Renderable
+renderPlatform location platform =
     let
         ( x, y ) =
-            platform.location
-
-        resource =
-            case platform.platformType of
-                Normal ->
-                    "../assets/tile-bricks-test.png"
-
-                Dangerous ->
-                    "../assets/tile-bricks-test.png"
+            location
     in
-        Render.spriteWithOptions
-            { position = ( x, y, 0 )
+        Render.shape
+            Render.rectangle
+            { position = ( toFloat x, toFloat y )
             , size = platformSize
-            , texture = Resources.getTexture resource resources
-            , rotation = 0
-            , pivot = ( 0.5, 0.5 )
-            , tiling = ( 1, 1 )
+            , color = Color.grey
             }
+
+
+platformWithLocationsDecoder : Decoder ( GridCoordinate, Platform )
+platformWithLocationsDecoder =
+    decode (,)
+        |> required "location" gridCoordinateDecoder
+        |> required "Platform" platformDecoder
 
 
 platformDecoder : Decoder Platform
 platformDecoder =
     decode Platform
-        |> required "location" vectorDecoder
         |> required "platformType" platformTypeDecoder
 
 

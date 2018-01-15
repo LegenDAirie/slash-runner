@@ -12,7 +12,7 @@ import Task
 import Mouse
 import Keyboard.Extra
 import Json.Decode
-import GameTypes exposing (Vector)
+import GameTypes exposing (Vector, gridCoordToVector)
 import GamePlatform exposing (platformSize)
 import MouseHelpers exposing (mouseToGridInPixels)
 import Coordinates exposing (gameSize, calculateCanvasSize)
@@ -230,7 +230,7 @@ update msg model =
 
                         newLevelCreateState =
                             { levelCreateState
-                                | mouseLocation = newPosition
+                                | mouseLocation = gridCoordToVector newPosition
                             }
                     in
                         { model

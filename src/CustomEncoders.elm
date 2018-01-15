@@ -1,8 +1,9 @@
 module CustomEncoders exposing (encodeVector, levelDataEncodeHandler, encodeEnemy)
 
 import Json.Encode
-import GameTypes exposing (Vector)
+import GameTypes exposing (Vector, GridCoordinate)
 import Coordinates exposing (pixelToGridConversion)
+import Dict exposing (Dict)
 import GamePlatform
     exposing
         ( Platform
@@ -30,11 +31,25 @@ encodeVector location =
             ]
 
 
-levelDataEncodeHandler : List Platform -> List Enemy -> String
+encodeGridCoordinate : GridCoordinate -> Json.Encode.Value
+encodeGridCoordinate gridCoordinate =
+    let
+        ( x, y ) =
+            gridCoordinate
+    in
+        Json.Encode.object
+            [ ( "x", Json.Encode.int x )
+            , ( "y", Json.Encode.int y )
+            ]
+
+
+levelDataEncodeHandler : Dict GridCoordinate Platform -> List Enemy -> String
 levelDataEncodeHandler platforms enemies =
     let
         encodedPlatforms =
-            List.map (\platform -> encodePlatform platform) platforms
+            platforms
+                |> Dict.toList
+                |> List.map (\( gridCoordinate, platform ) -> encodePlatform gridCoordinate platform)
 
         newPlatforms =
             Json.Encode.list encodedPlatforms
@@ -52,10 +67,10 @@ levelDataEncodeHandler platforms enemies =
         Json.Encode.encode 4 encodedlevelData
 
 
-encodePlatform : Platform -> Json.Encode.Value
-encodePlatform platform =
+encodePlatform : GridCoordinate -> Platform -> Json.Encode.Value
+encodePlatform location platform =
     Json.Encode.object
-        [ ( "location", encodeVector platform.location )
+        [ ( "location", encodeGridCoordinate location )
         , ( "platformType", encodePlatformType platform.platformType )
         ]
 

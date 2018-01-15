@@ -10,7 +10,7 @@ module CreateLevel
 import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay)
 import Game.TwoD.Render as Render exposing (Renderable)
 import Keyboard.Extra
-import GameTypes exposing (Vector)
+import GameTypes exposing (Vector, gridCoordToVector)
 import MouseHelpers exposing (mouseToGridInPixels)
 import Enemy exposing (Enemy, EnemyMovement(NoMovement, LinePath, Walk), LineMovementSpec)
 import CustomEncoders exposing (levelDataEncodeHandler)
@@ -18,6 +18,7 @@ import GamePlatform exposing (Platform, platformSize, PlatformType(Normal, Dange
 import Color
 import Coordinates exposing (centerToBottomLeftLocationConverter, gridSquareSize)
 import Vector2 as V2
+import Dict
 
 
 type alias LevelCreateState =
@@ -63,7 +64,7 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
 
         newPlatforms =
             if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
-                []
+                Dict.empty
             else
                 playState.platforms
 
@@ -108,10 +109,10 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
             mouseToGridInPixels windowSize playState.camera mousePosition
 
         newNormalPlatform =
-            Platform newPosition Normal
+            Platform Normal
 
         newDangerousPlatform =
-            Platform newPosition Dangerous
+            Platform Dangerous
 
         newPlatforms =
             case itemToPlace of
@@ -128,33 +129,34 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
                     playState.platforms
 
                 ANormalPlatform ->
-                    if List.member newNormalPlatform playState.platforms then
-                        List.filter (\platform -> not (platform == newNormalPlatform)) playState.platforms
+                    if Dict.member newPosition playState.platforms then
+                        Dict.remove newPosition playState.platforms
                     else
-                        [ newNormalPlatform ]
-                            |> List.append playState.platforms
+                        Dict.insert newPosition newNormalPlatform playState.platforms
 
                 ADangerousPlatform ->
-                    if List.member newDangerousPlatform playState.platforms then
-                        List.filter (\platform -> not (platform == newDangerousPlatform)) playState.platforms
+                    if Dict.member newPosition playState.platforms then
+                        Dict.remove newPosition playState.platforms
                     else
-                        [ newDangerousPlatform ]
-                            |> List.append playState.platforms
+                        Dict.insert newPosition newDangerousPlatform playState.platforms
+
+        floatPosition =
+            gridCoordToVector newPosition
 
         newStaticEnemy =
-            Enemy newPosition 0 ( 64, 64 ) NoMovement True
+            Enemy floatPosition 0 ( 64, 64 ) NoMovement True
 
         startNode =
-            V2.add newPosition ( -128, 0 )
+            V2.add floatPosition ( -128, 0 )
 
         endNode =
-            V2.add newPosition ( 128, 0 )
+            V2.add floatPosition ( 128, 0 )
 
         newEnemyOnTrack =
-            Enemy newPosition 0 ( 64, 64 ) (LinePath (LineMovementSpec startNode endNode newPosition 1)) True
+            Enemy floatPosition 0 ( 64, 64 ) (LinePath (LineMovementSpec startNode endNode floatPosition 1)) True
 
         newWalkingEnemy =
-            Enemy newPosition 0 ( 64, 64 ) (Walk newPosition) True
+            Enemy floatPosition 0 ( 64, 64 ) (Walk floatPosition) True
 
         newEnemies =
             case itemToPlace of
