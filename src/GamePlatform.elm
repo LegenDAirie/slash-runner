@@ -12,7 +12,7 @@ import Coordinates exposing (gridSquareSize)
 import Game.TwoD.Render as Render exposing (Renderable)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
-import Color
+import Color exposing (Color)
 
 
 type alias Platform =
@@ -30,8 +30,8 @@ platformSize =
     gridSquareSize
 
 
-renderPlatform : GridCoordinate -> Platform -> Renderable
-renderPlatform location platform =
+renderPlatform : Color -> GridCoordinate -> Renderable
+renderPlatform color location =
     let
         ( x, y ) =
             location
@@ -40,7 +40,7 @@ renderPlatform location platform =
             Render.rectangle
             { position = ( toFloat x, toFloat y )
             , size = platformSize
-            , color = Color.grey
+            , color = color
             }
 
 
@@ -48,7 +48,7 @@ platformWithLocationsDecoder : Decoder ( GridCoordinate, Platform )
 platformWithLocationsDecoder =
     decode (,)
         |> required "location" gridCoordinateDecoder
-        |> required "Platform" platformDecoder
+        |> required "platform" platformDecoder
 
 
 platformDecoder : Decoder Platform

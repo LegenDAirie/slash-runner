@@ -23,7 +23,7 @@ type alias GridCoordinate =
 
 vectorToGridCoordinate : Vector -> GridCoordinate
 vectorToGridCoordinate ( x, y ) =
-    ( floor x, floor y )
+    ( round x, round y )
 
 
 gridCoordToVector : GridCoordinate -> Vector

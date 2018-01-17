@@ -49,7 +49,7 @@ levelDataEncodeHandler platforms enemies =
         encodedPlatforms =
             platforms
                 |> Dict.toList
-                |> List.map (\( gridCoordinate, platform ) -> encodePlatform gridCoordinate platform)
+                |> List.map (\( gridCoordinate, platform ) -> encodePlatformAndLocation gridCoordinate platform)
 
         newPlatforms =
             Json.Encode.list encodedPlatforms
@@ -67,11 +67,18 @@ levelDataEncodeHandler platforms enemies =
         Json.Encode.encode 4 encodedlevelData
 
 
-encodePlatform : GridCoordinate -> Platform -> Json.Encode.Value
-encodePlatform location platform =
+encodePlatformAndLocation : GridCoordinate -> Platform -> Json.Encode.Value
+encodePlatformAndLocation location platform =
     Json.Encode.object
         [ ( "location", encodeGridCoordinate location )
-        , ( "platformType", encodePlatformType platform.platformType )
+        , ( "platform", encodePlatform platform )
+        ]
+
+
+encodePlatform : Platform -> Json.Encode.Value
+encodePlatform platform =
+    Json.Encode.object
+        [ ( "platformType", encodePlatformType platform.platformType )
         ]
 
 

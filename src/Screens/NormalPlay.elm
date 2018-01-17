@@ -13,14 +13,15 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, GridCoordinate, Player)
-import Coordinates exposing (gameSize, gridToPixelConversion)
+import GameTypes exposing (Vector, GridCoordinate, Player, vectorToGridCoordinate, gridCoordToVector)
 import Player exposing (renderPlayer)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
 import Dict exposing (Dict)
+import Coordinates exposing (gameSize, pixelToGridConversion, gridToPixelConversion)
+import Color
 import Controller
     exposing
         ( ControllerState
@@ -35,6 +36,12 @@ import Controller
             , UpLeft
             , NoDirection
             )
+        )
+import CollisionHelpers
+    exposing
+        ( getCollidingTiles
+        , calculateLocationAndVelocityFromCollision
+        , getCollisionDisplacementVector
         )
 
 
@@ -135,17 +142,16 @@ updateNormalPlay controllerState state =
         locationAfterMovement =
             V2.add player.location velocityAfterAcceleration
 
-        -- ( locationAfterCollision, velocityAfterCollision ) =
-        --     calculateLocationAndVelocityFromCollision locationAfterMovement velocityAfterAcceleration player.size platforms
-        -- updatedPlayer =
-        --     { player
-        --         | location = locationAfterCollision
-        --         , velocity = velocityAfterCollision
-        --     }
+        collidingTileGridCoords =
+            getCollidingTiles (vectorToGridCoordinate locationAfterMovement) velocityAfterAcceleration player.size platforms
+
+        ( locationAfterCollision, velocityAfterCollision ) =
+            calculateLocationAndVelocityFromCollision locationAfterMovement velocityAfterAcceleration player.size collidingTileGridCoords platforms
+
         updatedPlayer =
             { player
-                | location = locationAfterMovement
-                , velocity = velocityAfterAcceleration
+                | location = locationAfterCollision
+                , velocity = velocityAfterCollision
             }
     in
         { state
@@ -154,141 +160,17 @@ updateNormalPlay controllerState state =
         }
 
 
-
--- calculateLocationAndVelocityFromCollision : Vector -> Vector -> Vector -> Dict GridCoordinate Platform -> ( Vector, Vector )
--- calculateLocationAndVelocityFromCollision playerLocation playerVelocity playerSize platforms =
---     let
---         topLeftTile =
---         topRightTile =
---         bottomLeftTile =
---         bottomRightTile =
---
---         -- get overlapping tiles (should be 4)
---         -- calculate which ones are walls, floor or neither
---         -- put the ones that are walls and floors into a list
---         -- for each one displaced location (for walls x first, for floors y first)
---         -- return final displacedLocation
---
---
---         displacementVector =
---             getCollisionDisplacementVector playerLocation playerSize platform.location ( 64, 64 )
---
---         disPlacedLocation =
---             V2.add playerLocation displacementVector
---
---         velocityAfterCollision =
---             getVelocityAfterCollision playerVelocity displacementVector
---     in
---         calculateLocationAndVelocityFromCollision disPlacedLocation velocityAfterCollision playerSize rest
-
-
-getCollisionDisplacementVector : Vector -> Vector -> Vector -> Vector -> Vector
-getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH =
-    let
-        ( boxOneHalfWidth, boxOneHalfHeight ) =
-            V2.divideBy 2 boxOneWH
-
-        ( boxTwoHalfWidth, boxTwoHalfHeight ) =
-            V2.divideBy 2 boxTwoWH
-
-        verticalDistanceBetweenCenters =
-            abs (getY boxOneXY - getY boxTwoXY)
-
-        minnimumVerticalDistanceBetweenCenters =
-            (boxOneHalfHeight + boxTwoHalfHeight)
-
-        overlappingVertically =
-            verticalDistanceBetweenCenters < minnimumVerticalDistanceBetweenCenters
-
-        horizontalDistanceBetweenCenters =
-            abs (getX boxOneXY - getX boxTwoXY)
-
-        minnimumHorizontalDistanceBetweenCenters =
-            (boxOneHalfWidth + boxTwoHalfWidth)
-
-        overlappingHorizontally =
-            horizontalDistanceBetweenCenters < minnimumHorizontalDistanceBetweenCenters
-
-        colliding =
-            overlappingVertically && overlappingHorizontally
-
-        --------------------------------------------------------------------------------------
-        boxOneIsAboveBoxTwo =
-            getY boxOneXY > getY boxTwoXY
-
-        amountOverlappingVertically =
-            max (minnimumVerticalDistanceBetweenCenters - verticalDistanceBetweenCenters) 0
-
-        verticalDisplacement =
-            case colliding of
-                True ->
-                    case boxOneIsAboveBoxTwo of
-                        True ->
-                            amountOverlappingVertically
-
-                        False ->
-                            -amountOverlappingVertically
-
-                False ->
-                    0
-
-        boxOneIsRightOfBoxTwo =
-            getX boxOneXY > getX boxTwoXY
-
-        amountOverlappingHorizontally =
-            max (minnimumHorizontalDistanceBetweenCenters - horizontalDistanceBetweenCenters) 0
-
-        horizontalDisplacement =
-            case colliding of
-                True ->
-                    case boxOneIsRightOfBoxTwo of
-                        True ->
-                            amountOverlappingHorizontally
-
-                        False ->
-                            -amountOverlappingHorizontally
-
-                False ->
-                    0
-    in
-        case abs verticalDisplacement < abs horizontalDisplacement of
-            True ->
-                ( 0, verticalDisplacement )
-
-            False ->
-                ( horizontalDisplacement, 0 )
-
-
-getVelocityAfterCollision : Vector -> Vector -> Vector
-getVelocityAfterCollision currentVelocity locationDisplacementVector =
-    let
-        ( displacementX, displacementY ) =
-            locationDisplacementVector
-
-        ( currentVelocityX, currentVelocityY ) =
-            currentVelocity
-
-        newVelocityX =
-            if displacementX == 0 then
-                currentVelocityX
-            else
-                0
-
-        newVelocitY =
-            if displacementY == 0 then
-                currentVelocityY
-            else
-                0
-    in
-        ( newVelocityX, newVelocitY )
-
-
 renderNormalPlay : NormalPlayState -> List Renderable
 renderNormalPlay state =
-    List.concat
-        [ (List.map (\( gridCoordinate, platform ) -> renderPlatform gridCoordinate platform) (Dict.toList state.platforms))
-        , [ renderPlayer state.resources state.player ]
-        ]
+    let
+        collidingTiles =
+            getCollidingTiles (vectorToGridCoordinate state.player.location) state.player.velocity state.player.size state.platforms
+    in
+        List.concat
+            [ (List.map (\( gridCoordinate, platform ) -> renderPlatform Color.grey gridCoordinate) (Dict.toList state.platforms))
+            , (List.map (renderPlatform Color.green) collidingTiles)
+            , [ renderPlayer state.resources state.player ]
+            ]
 
 
 jsonToLevelData : Json.Decode.Value -> Result String LevelData
