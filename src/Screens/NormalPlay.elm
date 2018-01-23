@@ -13,7 +13,7 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, IntVector, Player, vectorToGridCoordinate, gridCoordToVector)
+import GameTypes exposing (Vector, IntVector, Player, vectorFloatToInt)
 import Player exposing (renderPlayer)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
@@ -143,7 +143,7 @@ updateNormalPlay controllerState state =
             V2.add player.location velocityAfterAcceleration
 
         collidingTileGridCoords =
-            getCollidingTiles (vectorToGridCoordinate locationAfterMovement) velocityAfterAcceleration player.size platforms
+            getCollidingTiles (vectorFloatToInt locationAfterMovement) velocityAfterAcceleration player.size platforms
 
         ( locationAfterCollision, velocityAfterCollision ) =
             calculateLocationAndVelocityFromCollision locationAfterMovement velocityAfterAcceleration player.size collidingTileGridCoords platforms
@@ -164,7 +164,7 @@ renderNormalPlay : NormalPlayState -> List Renderable
 renderNormalPlay state =
     let
         collidingTiles =
-            getCollidingTiles (vectorToGridCoordinate state.player.location) state.player.velocity state.player.size state.platforms
+            getCollidingTiles (vectorFloatToInt state.player.location) state.player.velocity state.player.size state.platforms
     in
         List.concat
             [ (List.map (\( gridCoordinate, platform ) -> renderPlatform Color.grey gridCoordinate) (Dict.toList state.platforms))

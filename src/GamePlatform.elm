@@ -7,7 +7,7 @@ module GamePlatform
         , platformWithLocationsDecoder
         )
 
-import GameTypes exposing (Vector, IntVector, gridCoordinateDecoder, gridCoordToVector)
+import GameTypes exposing (Vector, IntVector, intVectorDecoder, vectorIntToFloat)
 import Coordinates exposing (gridSquareSize)
 import Game.TwoD.Render as Render exposing (Renderable)
 import Json.Decode exposing (Decoder)
@@ -39,7 +39,7 @@ renderPlatform color location =
         Render.shape
             Render.rectangle
             { position = ( toFloat x, toFloat y )
-            , size = gridCoordToVector platformSize
+            , size = vectorIntToFloat platformSize
             , color = color
             }
 
@@ -47,7 +47,7 @@ renderPlatform color location =
 platformWithLocationsDecoder : Decoder ( IntVector, Platform )
 platformWithLocationsDecoder =
     decode (,)
-        |> required "location" gridCoordinateDecoder
+        |> required "location" intVectorDecoder
         |> required "platform" platformDecoder
 
 

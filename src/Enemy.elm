@@ -8,7 +8,7 @@ module Enemy
 import Game.TwoD.Render as Render exposing (Renderable)
 import Vector2 as V2 exposing (getX, getY)
 import Color
-import GameTypes exposing (Vector, IntVector, vectorDecoder, gridCoordToVector)
+import GameTypes exposing (Vector, IntVector, vectorDecoder, vectorIntToFloat)
 import Coordinates exposing (centerToBottomLeftLocationConverter)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
@@ -92,7 +92,7 @@ renderEnemy enemy =
                 Render.rectangle
                 { color = color
                 , position = centerToBottomLeftLocationConverter location enemy.size
-                , size = gridCoordToVector enemy.size
+                , size = vectorIntToFloat enemy.size
                 }
 
         linePathNodesRenderable =

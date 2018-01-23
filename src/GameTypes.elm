@@ -4,9 +4,9 @@ module GameTypes
         , IntVector
         , Player
         , vectorDecoder
-        , gridCoordinateDecoder
-        , vectorToGridCoordinate
-        , gridCoordToVector
+        , intVectorDecoder
+        , vectorIntToFloat
+        , vectorFloatToInt
         )
 
 import Json.Decode exposing (Decoder)
@@ -21,13 +21,13 @@ type alias IntVector =
     ( Int, Int )
 
 
-vectorToGridCoordinate : Vector -> IntVector
-vectorToGridCoordinate ( x, y ) =
+vectorFloatToInt : Vector -> IntVector
+vectorFloatToInt ( x, y ) =
     ( round x, round y )
 
 
-gridCoordToVector : IntVector -> Vector
-gridCoordToVector ( x, y ) =
+vectorIntToFloat : IntVector -> Vector
+vectorIntToFloat ( x, y ) =
     ( toFloat x, toFloat y )
 
 
@@ -38,8 +38,8 @@ vectorDecoder =
         |> required "y" Json.Decode.float
 
 
-gridCoordinateDecoder : Decoder IntVector
-gridCoordinateDecoder =
+intVectorDecoder : Decoder IntVector
+intVectorDecoder =
     decode (,)
         |> required "x" Json.Decode.int
         |> required "y" Json.Decode.int

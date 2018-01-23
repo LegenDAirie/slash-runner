@@ -9,7 +9,7 @@ import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
 import Coordinates exposing (pixelToGridConversion, gridToPixelConversion)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, IntVector, Player, vectorToGridCoordinate, gridCoordToVector)
+import GameTypes exposing (Vector, IntVector, Player, vectorFloatToInt, vectorIntToFloat)
 
 
 getCollidingTiles : IntVector -> Vector -> IntVector -> Dict IntVector Platform -> List IntVector
@@ -47,31 +47,31 @@ getCollidingTiles playerLocation playerVelocity playerSize platforms =
 
         topLeftTileCoord =
             playerTopLeft
-                |> gridCoordToVector
+                |> vectorIntToFloat
                 |> pixelToGridConversion
                 |> gridToPixelConversion
-                |> vectorToGridCoordinate
+                |> vectorFloatToInt
 
         topRightTileCoord =
             playerTopRight
-                |> gridCoordToVector
+                |> vectorIntToFloat
                 |> pixelToGridConversion
                 |> gridToPixelConversion
-                |> vectorToGridCoordinate
+                |> vectorFloatToInt
 
         bottomLeftTileCoord =
             playerBottomLeft
-                |> gridCoordToVector
+                |> vectorIntToFloat
                 |> pixelToGridConversion
                 |> gridToPixelConversion
-                |> vectorToGridCoordinate
+                |> vectorFloatToInt
 
         bottomRightTileCoord =
             playerBottomRight
-                |> gridCoordToVector
+                |> vectorIntToFloat
                 |> pixelToGridConversion
                 |> gridToPixelConversion
-                |> vectorToGridCoordinate
+                |> vectorFloatToInt
     in
         [ topLeftTileCoord, topRightTileCoord, bottomLeftTileCoord, bottomRightTileCoord ]
 
@@ -114,10 +114,10 @@ getCollisionDisplacementVector : Vector -> IntVector -> IntVector -> IntVector -
 getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH =
     let
         ( boxOneHalfWidth, boxOneHalfHeight ) =
-            V2.divideBy 2 (gridCoordToVector boxOneWH)
+            V2.divideBy 2 (vectorIntToFloat boxOneWH)
 
         ( boxTwoHalfWidth, boxTwoHalfHeight ) =
-            V2.divideBy 2 (gridCoordToVector boxTwoWH)
+            V2.divideBy 2 (vectorIntToFloat boxTwoWH)
 
         verticalDistanceBetweenCenters =
             abs (getY boxOneXY - toFloat (getY boxTwoXY))

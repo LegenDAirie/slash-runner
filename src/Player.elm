@@ -3,7 +3,7 @@ module Player exposing (renderPlayer)
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
 import Game.Resources as Resources exposing (Resources)
 import Color
-import GameTypes exposing (Player, gridCoordToVector)
+import GameTypes exposing (Player, vectorIntToFloat)
 import Coordinates exposing (centerToBottomLeftLocationConverter)
 
 
@@ -13,5 +13,5 @@ renderPlayer resources player =
         Render.rectangle
         { color = Color.blue
         , position = centerToBottomLeftLocationConverter player.location player.size
-        , size = gridCoordToVector player.size
+        , size = vectorIntToFloat player.size
         }

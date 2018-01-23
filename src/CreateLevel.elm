@@ -10,7 +10,7 @@ module CreateLevel
 import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay)
 import Game.TwoD.Render as Render exposing (Renderable)
 import Keyboard.Extra
-import GameTypes exposing (Vector, gridCoordToVector)
+import GameTypes exposing (Vector, vectorIntToFloat)
 import MouseHelpers exposing (mouseToGridInPixels)
 import Enemy exposing (Enemy, EnemyMovement(NoMovement, LinePath, Walk), LineMovementSpec)
 import CustomEncoders exposing (levelDataEncodeHandler)
@@ -141,7 +141,7 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
                         Dict.insert newPosition newDangerousPlatform playState.platforms
 
         floatPosition =
-            gridCoordToVector newPosition
+            vectorIntToFloat newPosition
 
         newStaticEnemy =
             Enemy floatPosition 0 ( 64, 64 ) NoMovement True
@@ -247,5 +247,5 @@ renderBlockToPlace itemToBePlace location =
             Render.rectangle
             { color = mouseColor
             , position = centerToBottomLeftLocationConverter location gridSquareSize
-            , size = gridCoordToVector gridSquareSize
+            , size = vectorIntToFloat gridSquareSize
             }
