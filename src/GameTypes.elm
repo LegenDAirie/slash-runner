@@ -7,6 +7,7 @@ module GameTypes
         , intVectorDecoder
         , vectorIntToFloat
         , vectorFloatToInt
+        , intVectorAdd
         )
 
 import Json.Decode exposing (Decoder)
@@ -19,6 +20,11 @@ type alias Vector =
 
 type alias IntVector =
     ( Int, Int )
+
+
+intVectorAdd : IntVector -> IntVector -> IntVector
+intVectorAdd ( x1, y1 ) ( x2, y2 ) =
+    ( x1 + x2, y1 + y2 )
 
 
 vectorFloatToInt : Vector -> IntVector

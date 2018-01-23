@@ -7,9 +7,9 @@ module CollisionHelpers
 
 import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
-import Coordinates exposing (pixelToGridConversion, gridToPixelConversion)
+import Coordinates exposing (pixelToGridConversion, gridToPixelConversion, gridSquareSize)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, IntVector, Player, vectorFloatToInt, vectorIntToFloat)
+import GameTypes exposing (Vector, IntVector, Player, vectorFloatToInt, vectorIntToFloat, intVectorAdd)
 
 
 getCollidingTiles : IntVector -> Vector -> IntVector -> Dict IntVector Platform -> List IntVector
@@ -90,28 +90,19 @@ calculateLocationAndVelocityFromCollision location velocity playerSize gridCoord
                 Just _ ->
                     let
                         displacementVector =
-                            getCollisionDisplacementVector location playerSize gridCoordinate ( 64, 64 )
+                            getCollisionDisplacementVector location playerSize gridCoordinate ( 64, 64 ) platforms
 
                         newLocation =
                             V2.add location displacementVector
 
                         newVelocity =
                             getVelocityAfterCollision velocity displacementVector
-
-                        _ =
-                            Debug.log "location before collision " location
-
-                        _ =
-                            Debug.log "displacementVector" displacementVector
-
-                        _ =
-                            Debug.log "location after collision" newLocation
                     in
                         calculateLocationAndVelocityFromCollision newLocation newVelocity playerSize rest platforms
 
 
-getCollisionDisplacementVector : Vector -> IntVector -> IntVector -> IntVector -> Vector
-getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH =
+getCollisionDisplacementVector : Vector -> IntVector -> IntVector -> IntVector -> Dict IntVector Platform -> Vector
+getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH platforms =
     let
         ( boxOneHalfWidth, boxOneHalfHeight ) =
             V2.divideBy 2 (vectorIntToFloat boxOneWH)
@@ -137,34 +128,96 @@ getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH =
         amountOverlappingVertically =
             max (minnimumVerticalDistanceBetweenCenters - verticalDistanceBetweenCenters) 0
 
-        verticalDisplacement =
-            case boxOneIsAboveBoxTwo of
-                True ->
-                    amountOverlappingVertically
-
-                False ->
-                    -amountOverlappingVertically
-
         boxOneIsRightOfBoxTwo =
             getX boxOneXY > toFloat (getX boxTwoXY)
 
         amountOverlappingHorizontally =
             max (minnimumHorizontalDistanceBetweenCenters - horizontalDistanceBetweenCenters) 0
-
-        horizontalDisplacement =
-            case boxOneIsRightOfBoxTwo of
-                True ->
-                    amountOverlappingHorizontally
-
-                False ->
-                    -amountOverlappingHorizontally
     in
-        case abs verticalDisplacement <= abs horizontalDisplacement of
+        case amountOverlappingVertically <= amountOverlappingHorizontally of
             True ->
-                ( 0, verticalDisplacement )
+                case boxOneIsAboveBoxTwo of
+                    True ->
+                        case canDisplaceUp boxTwoXY platforms of
+                            True ->
+                                ( 0, amountOverlappingVertically )
+
+                            False ->
+                                ( 0, 0 )
+
+                    False ->
+                        case canDisplaceDown boxTwoXY platforms of
+                            True ->
+                                ( 0, -amountOverlappingVertically )
+
+                            False ->
+                                ( 0, 0 )
 
             False ->
-                ( horizontalDisplacement, 0 )
+                case boxOneIsRightOfBoxTwo of
+                    True ->
+                        case canDisplaceRight boxTwoXY platforms of
+                            True ->
+                                ( amountOverlappingHorizontally, 0 )
+
+                            False ->
+                                ( 0, 0 )
+
+                    False ->
+                        case canDisplaceLeft boxTwoXY platforms of
+                            True ->
+                                ( -amountOverlappingHorizontally, 0 )
+
+                            False ->
+                                ( 0, 0 )
+
+
+canDisplaceLeft : IntVector -> Dict IntVector Platform -> Bool
+canDisplaceLeft platformLocation platforms =
+    let
+        ( width, height ) =
+            gridSquareSize
+
+        leftNeighbor =
+            intVectorAdd platformLocation ( -width, 0 )
+    in
+        not (Dict.member leftNeighbor platforms)
+
+
+canDisplaceRight : IntVector -> Dict IntVector Platform -> Bool
+canDisplaceRight platformLocation platforms =
+    let
+        ( width, height ) =
+            gridSquareSize
+
+        rightNeighbor =
+            intVectorAdd platformLocation ( width, 0 )
+    in
+        not (Dict.member rightNeighbor platforms)
+
+
+canDisplaceUp : IntVector -> Dict IntVector Platform -> Bool
+canDisplaceUp platformLocation platforms =
+    let
+        ( width, height ) =
+            gridSquareSize
+
+        aboveNeighbor =
+            intVectorAdd platformLocation ( 0, height )
+    in
+        not (Dict.member aboveNeighbor platforms)
+
+
+canDisplaceDown : IntVector -> Dict IntVector Platform -> Bool
+canDisplaceDown platformLocation platforms =
+    let
+        ( width, height ) =
+            gridSquareSize
+
+        belowNeighbor =
+            intVectorAdd platformLocation ( 0, -height )
+    in
+        not (Dict.member belowNeighbor platforms)
 
 
 getVelocityAfterCollision : Vector -> Vector -> Vector
