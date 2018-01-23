@@ -1,9 +1,9 @@
 module GameTypes
     exposing
         ( Vector
+        , IntVector
         , Player
         , vectorDecoder
-        , GridCoordinate
         , gridCoordinateDecoder
         , vectorToGridCoordinate
         , gridCoordToVector
@@ -17,16 +17,16 @@ type alias Vector =
     ( Float, Float )
 
 
-type alias GridCoordinate =
+type alias IntVector =
     ( Int, Int )
 
 
-vectorToGridCoordinate : Vector -> GridCoordinate
+vectorToGridCoordinate : Vector -> IntVector
 vectorToGridCoordinate ( x, y ) =
     ( round x, round y )
 
 
-gridCoordToVector : GridCoordinate -> Vector
+gridCoordToVector : IntVector -> Vector
 gridCoordToVector ( x, y ) =
     ( toFloat x, toFloat y )
 
@@ -38,7 +38,7 @@ vectorDecoder =
         |> required "y" Json.Decode.float
 
 
-gridCoordinateDecoder : Decoder GridCoordinate
+gridCoordinateDecoder : Decoder IntVector
 gridCoordinateDecoder =
     decode (,)
         |> required "x" Json.Decode.int
@@ -48,6 +48,6 @@ gridCoordinateDecoder =
 type alias Player =
     { location : Vector
     , velocity : Vector
-    , size : Vector
+    , size : IntVector
     , framesSinceLastChain : Int
     }

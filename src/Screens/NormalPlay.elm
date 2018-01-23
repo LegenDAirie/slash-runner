@@ -13,7 +13,7 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, GridCoordinate, Player, vectorToGridCoordinate, gridCoordToVector)
+import GameTypes exposing (Vector, IntVector, Player, vectorToGridCoordinate, gridCoordToVector)
 import Player exposing (renderPlayer)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
@@ -49,7 +49,7 @@ type alias NormalPlayState =
     { player : Player
     , permanentEnemies : List Enemy
     , enemies : List Enemy
-    , platforms : Dict GridCoordinate Platform
+    , platforms : Dict IntVector Platform
     , camera : Camera
     , resources : Resources
     }
@@ -92,7 +92,7 @@ createLevel levelData =
 
 
 type alias LevelData =
-    { platforms : Dict GridCoordinate Platform
+    { platforms : Dict IntVector Platform
     }
 
 

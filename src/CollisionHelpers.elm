@@ -9,10 +9,10 @@ import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
 import Coordinates exposing (pixelToGridConversion, gridToPixelConversion)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, GridCoordinate, Player, vectorToGridCoordinate, gridCoordToVector)
+import GameTypes exposing (Vector, IntVector, Player, vectorToGridCoordinate, gridCoordToVector)
 
 
-getCollidingTiles : GridCoordinate -> Vector -> Vector -> Dict GridCoordinate Platform -> List GridCoordinate
+getCollidingTiles : IntVector -> Vector -> IntVector -> Dict IntVector Platform -> List IntVector
 getCollidingTiles playerLocation playerVelocity playerSize platforms =
     let
         ( playerX, playerY ) =
@@ -25,13 +25,13 @@ getCollidingTiles playerLocation playerVelocity playerSize platforms =
             playerX
 
         playerRightSide =
-            playerX + (round playerWidth - 1)
+            playerX + playerWidth - 1
 
         playerBottom =
             playerY
 
         playerTop =
-            playerY + (round playerHeight - 1)
+            playerY + playerHeight - 1
 
         playerTopLeft =
             ( playerLeftSide, playerTop )
@@ -76,7 +76,7 @@ getCollidingTiles playerLocation playerVelocity playerSize platforms =
         [ topLeftTileCoord, topRightTileCoord, bottomLeftTileCoord, bottomRightTileCoord ]
 
 
-calculateLocationAndVelocityFromCollision : Vector -> Vector -> Vector -> List GridCoordinate -> Dict GridCoordinate Platform -> ( Vector, Vector )
+calculateLocationAndVelocityFromCollision : Vector -> Vector -> IntVector -> List IntVector -> Dict IntVector Platform -> ( Vector, Vector )
 calculateLocationAndVelocityFromCollision location velocity playerSize gridCoordinates platforms =
     case gridCoordinates of
         [] ->
@@ -110,14 +110,14 @@ calculateLocationAndVelocityFromCollision location velocity playerSize gridCoord
                         calculateLocationAndVelocityFromCollision newLocation newVelocity playerSize rest platforms
 
 
-getCollisionDisplacementVector : Vector -> Vector -> GridCoordinate -> Vector -> Vector
+getCollisionDisplacementVector : Vector -> IntVector -> IntVector -> IntVector -> Vector
 getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH =
     let
         ( boxOneHalfWidth, boxOneHalfHeight ) =
-            V2.divideBy 2 boxOneWH
+            V2.divideBy 2 (gridCoordToVector boxOneWH)
 
         ( boxTwoHalfWidth, boxTwoHalfHeight ) =
-            V2.divideBy 2 boxTwoWH
+            V2.divideBy 2 (gridCoordToVector boxTwoWH)
 
         verticalDistanceBetweenCenters =
             abs (getY boxOneXY - toFloat (getY boxTwoXY))
@@ -159,7 +159,7 @@ getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH =
                 False ->
                     -amountOverlappingHorizontally
     in
-        case abs verticalDisplacement < abs horizontalDisplacement of
+        case abs verticalDisplacement <= abs horizontalDisplacement of
             True ->
                 ( 0, verticalDisplacement )
 

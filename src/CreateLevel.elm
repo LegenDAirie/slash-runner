@@ -247,5 +247,5 @@ renderBlockToPlace itemToBePlace location =
             Render.rectangle
             { color = mouseColor
             , position = centerToBottomLeftLocationConverter location gridSquareSize
-            , size = gridSquareSize
+            , size = gridCoordToVector gridSquareSize
             }

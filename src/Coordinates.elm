@@ -10,7 +10,7 @@ module Coordinates
         , calculateCanvasSize
         )
 
-import GameTypes exposing (Vector)
+import GameTypes exposing (Vector, IntVector)
 import Vector2 as V2 exposing (getX)
 import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
 
@@ -20,7 +20,7 @@ gameSize =
     ( 1280, 720 )
 
 
-gridSquareSize : Vector
+gridSquareSize : IntVector
 gridSquareSize =
     ( 64, 64 )
 
@@ -43,7 +43,7 @@ gridToPixelConversion ( gridX, gridY ) =
         ( gridSquareInPixelsX, gridSquareInPixelsY ) =
             gridSquareSize
     in
-        ( gridX * gridSquareInPixelsX, gridY * gridSquareInPixelsY )
+        ( gridX * toFloat gridSquareInPixelsX, gridY * toFloat gridSquareInPixelsY )
 
 
 pixelToGridConversion : Vector -> Vector
@@ -52,7 +52,7 @@ pixelToGridConversion ( pixelX, pixelY ) =
         ( gridSquareInPixelsX, gridSquareInPixelsY ) =
             gridSquareSize
     in
-        ( toFloat (floor (pixelX / gridSquareInPixelsX)), toFloat (floor (pixelY / gridSquareInPixelsY)) )
+        ( toFloat (floor (pixelX / toFloat gridSquareInPixelsX)), toFloat (floor (pixelY / toFloat gridSquareInPixelsY)) )
 
 
 convertMouseCoorToGameCoor : Camera -> Vector -> Vector
@@ -88,7 +88,7 @@ offSetByCamera camera touchLocation =
         |> V2.add touchLocation
 
 
-centerToBottomLeftLocationConverter : Vector -> Vector -> Vector
+centerToBottomLeftLocationConverter : Vector -> IntVector -> Vector
 centerToBottomLeftLocationConverter location size =
     let
         ( currentX, currentY ) =
