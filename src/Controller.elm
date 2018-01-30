@@ -5,6 +5,12 @@ module Controller
         , initialControllerState
         , calculateControllerStateFromGamePad
         , GamePadState
+        , ButtonState
+            ( Pressed
+            , Held
+            , Released
+            , Inactive
+            )
         , DPad
             ( Up
             , UpRight

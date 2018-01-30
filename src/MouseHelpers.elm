@@ -25,7 +25,12 @@ mouseToGridInPixels windowSize camera mousePosition =
             (windowWidth - canvasWidth) / 2
 
         yOffset =
-            (windowHeight - canvasHeight) / 2
+            case (windowHeight > (windowWidth * 9 / 16)) of
+                True ->
+                    0
+
+                False ->
+                    (windowHeight - canvasHeight) / 2
 
         newPosition =
             mousePosition

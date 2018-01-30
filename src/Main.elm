@@ -1,7 +1,8 @@
 port module Main exposing (main)
 
-import Html exposing (program, Html, div, h3, text)
-import Html.Attributes exposing (style)
+import Html exposing (program, Html, div, h3, text, input)
+import Html.Attributes exposing (style, max, min, step, value, type_)
+import Html.Events exposing (onInput)
 import Vector2 as V2 exposing (getX, getY)
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD as Game
@@ -32,6 +33,7 @@ import Screens.NormalPlay
         , renderNormalPlay
         , NormalPlayState
         , jsonToLevelData
+        , TempJumpProperties
         )
 import CreateLevel
     exposing
@@ -58,6 +60,7 @@ type alias Model =
     , keyboardState : Keyboard.Extra.State
     , controllerState : ControllerState
     , gameScreen : GameScreen
+    , tempJumpProperties : TempJumpProperties
     }
 
 
@@ -77,6 +80,9 @@ type Msg
     | ReceiveLevelData LevelData
     | MouseMove Vector
     | MouseClick Vector
+    | TweekJumpDuration Float
+    | TweekMaxJumpHeight Float
+    | TweekMinJumpHeight Float
 
 
 initialModel : Model
@@ -85,6 +91,7 @@ initialModel =
     , keyboardState = Keyboard.Extra.initialState
     , controllerState = initialControllerState
     , gameScreen = CreateLevel initialLevelCreateState
+    , tempJumpProperties = TempJumpProperties 28 256 16
     }
 
 
@@ -111,6 +118,24 @@ update msg model =
     case msg of
         NoOp ->
             model ! []
+
+        TweekJumpDuration framesToApex ->
+            { model
+                | tempJumpProperties = TempJumpProperties framesToApex model.tempJumpProperties.maxJumpHeight model.tempJumpProperties.minJumpHeight
+            }
+                ! []
+
+        TweekMaxJumpHeight maxJumpHeight ->
+            { model
+                | tempJumpProperties = TempJumpProperties model.tempJumpProperties.framesToApex maxJumpHeight model.tempJumpProperties.minJumpHeight
+            }
+                ! []
+
+        TweekMinJumpHeight minJumpHeight ->
+            { model
+                | tempJumpProperties = TempJumpProperties model.tempJumpProperties.framesToApex model.tempJumpProperties.maxJumpHeight minJumpHeight
+            }
+                ! []
 
         SetWindowSize size ->
             let
@@ -289,13 +314,14 @@ update msg model =
                                     updateNormalPlay
                                         newControllerState
                                         state
+                                        model.tempJumpProperties
                         }
                             ! []
 
                     CreateLevel levelCreateState ->
                         let
                             newPlayState =
-                                updateNormalPlay newControllerState levelCreateState.playState
+                                updateNormalPlay newControllerState levelCreateState.playState model.tempJumpProperties
 
                             newLevelCreateState =
                                 { levelCreateState
@@ -342,6 +368,44 @@ view model =
                 , camera = camera
                 }
                 gameScene
+            , div []
+                [ div []
+                    [ text "Frames to Apex"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "128"
+                        , Html.Attributes.min "1"
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.tempJumpProperties.framesToApex)
+                        , onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Max Jumping Height"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "512"
+                        , Html.Attributes.min (toString model.tempJumpProperties.minJumpHeight)
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.tempJumpProperties.maxJumpHeight)
+                        , onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.tempJumpProperties.minJumpHeight 512 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Min Jumping Height"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max (toString model.tempJumpProperties.maxJumpHeight)
+                        , Html.Attributes.min "16"
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.tempJumpProperties.minJumpHeight)
+                        , onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.tempJumpProperties.maxJumpHeight <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                ]
             , div
                 [ style [ ( "display", "flex" ), ( "flex-direction", "column" ) ]
                 ]
