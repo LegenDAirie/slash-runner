@@ -3,7 +3,6 @@ module Coordinates
         ( convertMouseCoorToGameCoor
         , convertToGameUnits
         , gameSize
-        , centerToBottomLeftLocationConverter
         , gridSquareSize
         , gridToPixelConversion
         , pixelToGridConversion
@@ -86,15 +85,3 @@ offSetByCamera camera touchLocation =
         |> getPosition
         |> flipY
         |> V2.add touchLocation
-
-
-centerToBottomLeftLocationConverter : Vector -> IntVector -> Vector
-centerToBottomLeftLocationConverter location size =
-    let
-        ( currentX, currentY ) =
-            location
-
-        ( width, height ) =
-            size
-    in
-        ( currentX, currentY )

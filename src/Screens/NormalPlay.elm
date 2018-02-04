@@ -59,6 +59,7 @@ type alias NormalPlayState =
     , platforms : Dict IntVector Platform
     , camera : Camera
     , resources : Resources
+    , paused : Bool
     }
 
 
@@ -84,6 +85,7 @@ initialNormalPlayState =
         , platforms = Dict.empty
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
+        , paused = False
         }
 
 
@@ -102,6 +104,7 @@ createLevel levelData =
         , resources = Resources.init
         , permanentEnemies = []
         , enemies = []
+        , paused = False
         }
 
 

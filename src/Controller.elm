@@ -124,6 +124,9 @@ calculateControllerStateFromKeyboardState keyboardState controllerState =
         dashPressed =
             List.any (\key -> key == Keyboard.Extra.CharK) pressedKeys
 
+        startPressed =
+            List.any (\key -> key == Keyboard.Extra.CharP) pressedKeys
+
         wasd =
             Keyboard.Extra.wasdDirection keyboardState
 
@@ -160,6 +163,7 @@ calculateControllerStateFromKeyboardState keyboardState controllerState =
             | dPad = direction
             , jump = calculateButtonState jumpPressed controllerState.jump
             , dash = calculateButtonState dashPressed controllerState.dash
+            , start = calculateButtonState startPressed controllerState.start
         }
 
 

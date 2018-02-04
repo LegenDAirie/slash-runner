@@ -10,7 +10,7 @@ import Game.TwoD.Camera as Camera
 import AnimationFrame
 import Window
 import Task
-import Mouse
+import MouseEvents exposing (MouseEvent, onMouseMove, onClick, relPos)
 import Keyboard.Extra
 import Json.Decode
 import GameTypes exposing (Vector, vectorIntToFloat)
@@ -24,6 +24,23 @@ import Controller
         , calculateControllerStateFromKeyboardState
         , initialControllerState
         , calculateControllerStateFromGamePad
+        , ButtonState
+            ( Pressed
+            , Held
+            , Released
+            , Inactive
+            )
+        , DPad
+            ( Up
+            , UpRight
+            , Right
+            , DownRight
+            , Down
+            , DownLeft
+            , Left
+            , UpLeft
+            , NoDirection
+            )
         )
 import Screens.NormalPlay
     exposing
@@ -42,6 +59,7 @@ import CreateLevel
         , updatePlayStateAfterKeyPress
         , updatePlayStateAfterMouseClick
         , renderLevelCreateScreen
+        , getLocationToFollowVelocity
         )
 
 
@@ -208,10 +226,6 @@ update msg model =
                             ! []
 
         ReceiveLevelData levelData ->
-            -- let
-            --     _ =
-            --         Debug.log "level data" levelData
-            -- in
             case model.gameScreen of
                 Uninitialized ->
                     model ! []
@@ -320,20 +334,64 @@ update msg model =
 
                     CreateLevel levelCreateState ->
                         let
-                            newPlayState =
-                                updateNormalPlay newControllerState levelCreateState.playState model.tempJumpProperties
+                            { playState } =
+                                levelCreateState
+
+                            playStateAfterPausedUpdate =
+                                if newControllerState.start == Pressed then
+                                    { playState
+                                        | paused = not playState.paused
+                                    }
+                                else
+                                    playState
+
+                            updatedLocationForCameraToFollow =
+                                case playStateAfterPausedUpdate.paused of
+                                    True ->
+                                        V2.add levelCreateState.locationForCameraToFollow (getLocationToFollowVelocity newControllerState.dPad)
+
+                                    False ->
+                                        playStateAfterPausedUpdate.player.location
+
+                            updatedPlayState =
+                                case playStateAfterPausedUpdate.paused of
+                                    True ->
+                                        { playStateAfterPausedUpdate
+                                            | camera = Camera.follow 0.5 0.17 (V2.sub updatedLocationForCameraToFollow ( -100, -100 )) playStateAfterPausedUpdate.camera
+                                        }
+
+                                    False ->
+                                        updateNormalPlay newControllerState playStateAfterPausedUpdate model.tempJumpProperties
 
                             newLevelCreateState =
                                 { levelCreateState
-                                    | playState = newPlayState
+                                    | playState = updatedPlayState
+                                    , locationForCameraToFollow = updatedLocationForCameraToFollow
                                 }
                         in
                             { model
                                 | controllerState = newControllerState
-                                , gameScreen =
-                                    CreateLevel newLevelCreateState
+                                , gameScreen = CreateLevel newLevelCreateState
                             }
                                 ! []
+
+
+mouseMoveEventToMsg : MouseEvent -> Msg
+mouseMoveEventToMsg mouseEvent =
+    let
+        { x, y } =
+            relPos mouseEvent
+    in
+        MouseMove ( toFloat x, toFloat y )
+
+
+mouseClickEventToMsg : MouseEvent -> Msg
+mouseClickEventToMsg mouseEvent =
+    let
+        { x, y } =
+            relPos mouseEvent
+    in
+        MouseClick ( toFloat x, toFloat y )
 
 
 view : Model -> Html Msg
@@ -360,14 +418,23 @@ view model =
             style [ ( "display", "flex" ), ( "flex-direction", "row" ) ]
     in
         div []
-            [ Game.renderCenteredWithOptions
-                []
-                [ style [ ( "border", "solid 1px black" ) ] ]
-                { time = 0
-                , size = ( floor <| getX canvasSize, floor <| getY canvasSize )
-                , camera = camera
-                }
-                gameScene
+            [ div
+                [ style
+                    [ ( "display", "flex" )
+                    , ( "justify-content", "center" )
+                    ]
+                ]
+                [ Game.renderWithOptions
+                    [ onMouseMove mouseMoveEventToMsg
+                    , onClick mouseClickEventToMsg
+                    , style [ ( "border", "solid 1px black" ) ]
+                    ]
+                    { time = 0
+                    , size = ( floor <| getX canvasSize, floor <| getY canvasSize )
+                    , camera = camera
+                    }
+                    gameScene
+                ]
             , div []
                 [ div []
                     [ text "Frames to Apex"
@@ -481,6 +548,4 @@ subscriptions model =
         , Window.resizes (\size -> SetWindowSize size)
         , Sub.map KeyboardMsg Keyboard.Extra.subscriptions
         , receiveLevelData levelDataDecodeHandler
-        , Mouse.moves (\{ x, y } -> MouseMove ( toFloat x, toFloat y ))
-        , Mouse.clicks (\{ x, y } -> MouseClick ( toFloat x, toFloat y ))
         ]

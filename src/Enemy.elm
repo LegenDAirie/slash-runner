@@ -9,7 +9,6 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Vector2 as V2 exposing (getX, getY)
 import Color
 import GameTypes exposing (Vector, IntVector, vectorDecoder, vectorIntToFloat)
-import Coordinates exposing (centerToBottomLeftLocationConverter)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 
@@ -91,7 +90,7 @@ renderEnemy enemy =
             Render.shape
                 Render.rectangle
                 { color = color
-                , position = centerToBottomLeftLocationConverter location enemy.size
+                , position = location
                 , size = vectorIntToFloat enemy.size
                 }
 
@@ -123,7 +122,7 @@ renderLinePathNode : Vector -> Renderable
 renderLinePathNode location =
     Render.shape Render.circle
         { color = Color.lightBrown
-        , position = centerToBottomLeftLocationConverter location ( 64, 64 )
+        , position = location
         , size = ( 16, 16 )
         }
 

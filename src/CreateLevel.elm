@@ -5,6 +5,7 @@ module CreateLevel
         , updatePlayStateAfterKeyPress
         , updatePlayStateAfterMouseClick
         , renderLevelCreateScreen
+        , getLocationToFollowVelocity
         )
 
 import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay)
@@ -16,15 +17,30 @@ import Enemy exposing (Enemy, EnemyMovement(NoMovement, LinePath, Walk), LineMov
 import CustomEncoders exposing (levelDataEncodeHandler)
 import GamePlatform exposing (Platform, platformSize, PlatformType(Normal, Dangerous))
 import Color
-import Coordinates exposing (centerToBottomLeftLocationConverter, gridSquareSize)
+import Coordinates exposing (gridSquareSize)
 import Vector2 as V2
 import Dict
+import Controller
+    exposing
+        ( DPad
+            ( Up
+            , UpRight
+            , Right
+            , DownRight
+            , Down
+            , DownLeft
+            , Left
+            , UpLeft
+            , NoDirection
+            )
+        )
 
 
 type alias LevelCreateState =
     { itemToPlace : ItemToBePlace
     , mouseLocation : Vector
     , playState : NormalPlayState
+    , locationForCameraToFollow : Vector
     }
 
 
@@ -33,6 +49,7 @@ initialLevelCreateState =
     { itemToPlace = PlaceNothing
     , mouseLocation = ( 0, 0 )
     , playState = initialNormalPlayState
+    , locationForCameraToFollow = ( 0, 0 )
     }
 
 
@@ -93,7 +110,11 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
         _ =
             Debug.log "newItemToPlace" newItemToPlace
     in
-        LevelCreateState newItemToPlace mouseLocation newNormalPlayState
+        { levelCreateState
+            | itemToPlace = newItemToPlace
+            , mouseLocation = mouseLocation
+            , playState = newNormalPlayState
+        }
 
 
 updatePlayStateAfterMouseClick : Vector -> Vector -> Keyboard.Extra.State -> LevelCreateState -> ( LevelCreateState, String )
@@ -208,6 +229,37 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
         ( newLevelCreateState, encodedLevelData )
 
 
+getLocationToFollowVelocity : DPad -> Vector
+getLocationToFollowVelocity dPad =
+    case dPad of
+        Up ->
+            ( 0, 20 )
+
+        UpRight ->
+            ( 20, 20 )
+
+        Right ->
+            ( 20, 0 )
+
+        DownRight ->
+            ( 20, -20 )
+
+        Down ->
+            ( 0, -20 )
+
+        DownLeft ->
+            ( -20, -20 )
+
+        Left ->
+            ( -20, 0 )
+
+        UpLeft ->
+            ( -20, 20 )
+
+        NoDirection ->
+            ( 0, 0 )
+
+
 renderLevelCreateScreen : LevelCreateState -> List Renderable
 renderLevelCreateScreen levelCreateState =
     let
@@ -246,6 +298,6 @@ renderBlockToPlace itemToBePlace location =
         Render.shape
             Render.rectangle
             { color = mouseColor
-            , position = centerToBottomLeftLocationConverter location gridSquareSize
+            , position = location
             , size = vectorIntToFloat gridSquareSize
             }
