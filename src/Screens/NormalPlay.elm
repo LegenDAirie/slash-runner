@@ -14,7 +14,7 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, IntVector, Player, vectorFloatToInt)
+import GameTypes exposing (Vector, IntVector, Player, vectorFloatToInt, PlayerState(OnTheGround, Jumping))
 import Player exposing (renderPlayer)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
@@ -47,7 +47,7 @@ import Controller
 import CollisionHelpers
     exposing
         ( getCollidingTiles
-        , calculateLocationAndVelocityFromCollision
+        , calculatePlayerAttributesFromCollision
         , getCollisionDisplacementVector
         )
 
@@ -79,7 +79,7 @@ initialNormalPlayState =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = Player startingPoint ( 0, 0 ) ( 64, 64 ) 0
+        { player = Player startingPoint ( 0, 0 ) ( 64, 64 ) 0 OnTheGround
         , permanentEnemies = []
         , enemies = []
         , platforms = Dict.empty
@@ -98,7 +98,7 @@ createLevel levelData =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = Player startingPoint ( 0, 0 ) ( 64, 64 ) 0
+        { player = Player startingPoint ( 0, 0 ) ( 64, 64 ) 0 OnTheGround
         , platforms = levelData.platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
@@ -113,8 +113,8 @@ type alias LevelData =
     }
 
 
-getPlayerAcceleration : DPad -> Vector
-getPlayerAcceleration dPad =
+getDPadAcceleration : DPad -> Vector
+getDPadAcceleration dPad =
     case dPad of
         Up ->
             ( 0, 0 )
@@ -182,12 +182,12 @@ updateNormalPlay controllerState state tempJumpProperties =
             calculateYGravityFromJumpProperties tempJumpProperties.maxJumpHeight tempJumpProperties.framesToApex
                 |> (\y -> ( 0, -y ))
 
-        initialJumpVelocity =
+        jumpVelocity =
             calculateInitialJumpVelocityFromJumpProperties tempJumpProperties.maxJumpHeight (getY gravitationalAcceleration)
                 |> (\y -> ( getX playerVelocityAfterAcceleration, y ))
 
         movementAcceleration =
-            getPlayerAcceleration controllerState.dPad
+            getDPadAcceleration controllerState.dPad
 
         finalPlayerAcceleration =
             List.foldr V2.add
@@ -202,26 +202,34 @@ updateNormalPlay controllerState state tempJumpProperties =
                 |> capPlayerNegativeYVelocity
                 |> capPlayerXVelocity
 
-        playerVelocityAfterJump =
+        ( playerVelocityAfterJump, playerStateAfterJump ) =
             case controllerState.jump of
                 Pressed ->
-                    initialJumpVelocity
+                    case player.playerState of
+                        OnTheGround ->
+                            ( jumpVelocity, Jumping )
+
+                        Jumping ->
+                            ( playerVelocityAfterAcceleration, Jumping )
 
                 Held ->
-                    playerVelocityAfterAcceleration
+                    ( playerVelocityAfterAcceleration, player.playerState )
 
                 Released ->
                     let
                         earlyJumpTerminationVelocity =
-                            calculateEarlyJumpTerminationVelocity (getY initialJumpVelocity) (getY gravitationalAcceleration) tempJumpProperties.maxJumpHeight tempJumpProperties.minJumpHeight
+                            calculateEarlyJumpTerminationVelocity (getY jumpVelocity) (getY gravitationalAcceleration) tempJumpProperties.maxJumpHeight tempJumpProperties.minJumpHeight
+
+                        newVelocity =
+                            if (getY playerVelocityAfterAcceleration > earlyJumpTerminationVelocity) then
+                                ( getX playerVelocityAfterAcceleration, earlyJumpTerminationVelocity )
+                            else
+                                playerVelocityAfterAcceleration
                     in
-                        if (getY playerVelocityAfterAcceleration > earlyJumpTerminationVelocity) then
-                            ( getX playerVelocityAfterAcceleration, earlyJumpTerminationVelocity )
-                        else
-                            playerVelocityAfterAcceleration
+                        ( newVelocity, player.playerState )
 
                 Inactive ->
-                    playerVelocityAfterAcceleration
+                    ( playerVelocityAfterAcceleration, player.playerState )
 
         playerLocationAfterMovement =
             V2.add player.location playerVelocityAfterJump
@@ -229,13 +237,14 @@ updateNormalPlay controllerState state tempJumpProperties =
         collidingTileGridCoords =
             getCollidingTiles (vectorFloatToInt playerLocationAfterMovement) playerVelocityAfterJump player.size platforms
 
-        ( playerLocationAfterCollision, playerVelocityAfterCollision ) =
-            calculateLocationAndVelocityFromCollision playerLocationAfterMovement playerVelocityAfterJump player.size collidingTileGridCoords platforms
+        ( playerLocationAfterCollision, playerVelocityAfterCollision, playerStateAfterCollision ) =
+            calculatePlayerAttributesFromCollision playerLocationAfterMovement playerVelocityAfterJump Jumping player.size collidingTileGridCoords platforms
 
         updatedPlayer =
             { player
                 | location = playerLocationAfterCollision
                 , velocity = playerVelocityAfterCollision
+                , playerState = playerStateAfterCollision
             }
     in
         { state

@@ -1,7 +1,7 @@
 module CollisionHelpers
     exposing
         ( getCollidingTiles
-        , calculateLocationAndVelocityFromCollision
+        , calculatePlayerAttributesFromCollision
         , getCollisionDisplacementVector
         )
 
@@ -9,7 +9,7 @@ import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
 import Coordinates exposing (pixelToGridConversion, gridToPixelConversion, gridSquareSize)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, IntVector, Player, vectorFloatToInt, vectorIntToFloat, intVectorAdd)
+import GameTypes exposing (Vector, IntVector, Player, PlayerState(OnTheGround, Jumping), vectorFloatToInt, vectorIntToFloat, intVectorAdd)
 
 
 getCollidingTiles : IntVector -> Vector -> IntVector -> Dict IntVector Platform -> List IntVector
@@ -76,16 +76,16 @@ getCollidingTiles playerLocation playerVelocity playerSize platforms =
         [ topLeftTileCoord, topRightTileCoord, bottomLeftTileCoord, bottomRightTileCoord ]
 
 
-calculateLocationAndVelocityFromCollision : Vector -> Vector -> IntVector -> List IntVector -> Dict IntVector Platform -> ( Vector, Vector )
-calculateLocationAndVelocityFromCollision location velocity playerSize gridCoordinates platforms =
+calculatePlayerAttributesFromCollision : Vector -> Vector -> PlayerState -> IntVector -> List IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
+calculatePlayerAttributesFromCollision location velocity playerState playerSize gridCoordinates platforms =
     case gridCoordinates of
         [] ->
-            ( location, velocity )
+            ( location, velocity, playerState )
 
         gridCoordinate :: rest ->
             case Dict.get gridCoordinate platforms of
                 Nothing ->
-                    calculateLocationAndVelocityFromCollision location velocity playerSize rest platforms
+                    calculatePlayerAttributesFromCollision location velocity playerState playerSize rest platforms
 
                 Just _ ->
                     let
@@ -97,8 +97,14 @@ calculateLocationAndVelocityFromCollision location velocity playerSize gridCoord
 
                         newVelocity =
                             getVelocityAfterCollision velocity displacementVector
+
+                        newPlayerState =
+                            if getY displacementVector > 0 then
+                                OnTheGround
+                            else
+                                playerState
                     in
-                        calculateLocationAndVelocityFromCollision newLocation newVelocity playerSize rest platforms
+                        calculatePlayerAttributesFromCollision newLocation newVelocity newPlayerState playerSize rest platforms
 
 
 getCollisionDisplacementVector : Vector -> IntVector -> IntVector -> IntVector -> Dict IntVector Platform -> Vector
