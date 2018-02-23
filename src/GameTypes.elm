@@ -8,7 +8,7 @@ module GameTypes
         , vectorIntToFloat
         , vectorFloatToInt
         , intVectorAdd
-        , PlayerState(OnTheGround, Jumping)
+        , PlayerState(OnTheGround, Jumping, SlidingOnWall)
         )
 
 import Json.Decode exposing (Decoder)
@@ -64,3 +64,4 @@ type alias Player =
 type PlayerState
     = OnTheGround
     | Jumping
+    | SlidingOnWall

@@ -2,18 +2,30 @@ module CollisionHelpers
     exposing
         ( getCollidingTiles
         , calculatePlayerAttributesFromCollision
-        , getCollisionDisplacementVector
         )
 
 import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
 import Coordinates exposing (pixelToGridConversion, gridToPixelConversion, gridSquareSize)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, IntVector, Player, PlayerState(OnTheGround, Jumping), vectorFloatToInt, vectorIntToFloat, intVectorAdd)
+import GameTypes
+    exposing
+        ( Vector
+        , IntVector
+        , Player
+        , PlayerState
+            ( OnTheGround
+            , Jumping
+            , SlidingOnWall
+            )
+        , vectorFloatToInt
+        , vectorIntToFloat
+        , intVectorAdd
+        )
 
 
-getCollidingTiles : IntVector -> Vector -> IntVector -> Dict IntVector Platform -> List IntVector
-getCollidingTiles playerLocation playerVelocity playerSize platforms =
+getCollidingTiles : IntVector -> IntVector -> Dict IntVector Platform -> List IntVector
+getCollidingTiles playerLocation playerSize platforms =
     let
         ( playerX, playerY ) =
             playerLocation
@@ -89,26 +101,23 @@ calculatePlayerAttributesFromCollision location velocity playerState playerSize 
 
                 Just _ ->
                     let
-                        displacementVector =
-                            getCollisionDisplacementVector location playerSize gridCoordinate ( 64, 64 ) platforms
+                        ( locationDisplacement, velocityDisplacement, newPlayerState ) =
+                            getCollisionDisplacementVector playerState location playerSize gridCoordinate ( 64, 64 ) platforms
 
                         newLocation =
-                            V2.add location displacementVector
+                            V2.add location locationDisplacement
+
+                        ( velocityX, velocityY ) =
+                            velocity
 
                         newVelocity =
-                            getVelocityAfterCollision velocity displacementVector
-
-                        newPlayerState =
-                            if getY displacementVector > 0 then
-                                OnTheGround
-                            else
-                                playerState
+                            ( velocityX * getX velocityDisplacement, velocityY * getY velocityDisplacement )
                     in
                         calculatePlayerAttributesFromCollision newLocation newVelocity newPlayerState playerSize rest platforms
 
 
-getCollisionDisplacementVector : Vector -> IntVector -> IntVector -> IntVector -> Dict IntVector Platform -> Vector
-getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH platforms =
+getCollisionDisplacementVector : PlayerState -> Vector -> IntVector -> IntVector -> IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
+getCollisionDisplacementVector playerState boxOneXY boxOneWH boxTwoXY boxTwoWH platforms =
     let
         ( boxOneHalfWidth, boxOneHalfHeight ) =
             V2.divideBy 2 (vectorIntToFloat boxOneWH)
@@ -139,6 +148,9 @@ getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH platforms =
 
         amountOverlappingHorizontally =
             max (minnimumHorizontalDistanceBetweenCenters - horizontalDistanceBetweenCenters) 0
+
+        noDisplacement =
+            ( ( 0, 0 ), ( 1, 1 ), playerState )
     in
         case amountOverlappingVertically <= amountOverlappingHorizontally of
             True ->
@@ -146,36 +158,36 @@ getCollisionDisplacementVector boxOneXY boxOneWH boxTwoXY boxTwoWH platforms =
                     True ->
                         case canDisplaceUp boxTwoXY platforms of
                             True ->
-                                ( 0, amountOverlappingVertically )
+                                ( ( 0, amountOverlappingVertically ), ( 0.98, 0 ), OnTheGround )
 
                             False ->
-                                ( 0, 0 )
+                                noDisplacement
 
                     False ->
                         case canDisplaceDown boxTwoXY platforms of
                             True ->
-                                ( 0, -amountOverlappingVertically )
+                                ( ( 0, -amountOverlappingVertically ), ( 1, 0 ), playerState )
 
                             False ->
-                                ( 0, 0 )
+                                noDisplacement
 
             False ->
                 case boxOneIsRightOfBoxTwo of
                     True ->
                         case canDisplaceRight boxTwoXY platforms of
                             True ->
-                                ( amountOverlappingHorizontally, 0 )
+                                ( ( amountOverlappingHorizontally, 0 ), ( 0, 0.1 ), SlidingOnWall )
 
                             False ->
-                                ( 0, 0 )
+                                noDisplacement
 
                     False ->
                         case canDisplaceLeft boxTwoXY platforms of
                             True ->
-                                ( -amountOverlappingHorizontally, 0 )
+                                ( ( -amountOverlappingHorizontally, 0 ), ( 0, 0.1 ), SlidingOnWall )
 
                             False ->
-                                ( 0, 0 )
+                                noDisplacement
 
 
 canDisplaceLeft : IntVector -> Dict IntVector Platform -> Bool
@@ -224,27 +236,3 @@ canDisplaceDown platformLocation platforms =
             intVectorAdd platformLocation ( 0, -height )
     in
         not (Dict.member belowNeighbor platforms)
-
-
-getVelocityAfterCollision : Vector -> Vector -> Vector
-getVelocityAfterCollision currentVelocity locationDisplacementVector =
-    let
-        ( displacementX, displacementY ) =
-            locationDisplacementVector
-
-        ( currentVelocityX, currentVelocityY ) =
-            currentVelocity
-
-        newVelocityX =
-            if displacementX == 0 then
-                currentVelocityX
-            else
-                0
-
-        newVelocitY =
-            if displacementY == 0 then
-                currentVelocityY
-            else
-                0
-    in
-        ( newVelocityX, newVelocitY )

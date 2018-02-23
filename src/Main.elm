@@ -10,17 +10,15 @@ import Game.TwoD.Camera as Camera
 import AnimationFrame
 import Window
 import Task
-import MouseEvents exposing (MouseEvent, onMouseMove, onClick, relPos)
+import MouseEvents exposing (MouseEvent, onMouseMove, onClick, relPos, onMouseDown, onMouseUp)
 import Keyboard.Extra
 import Json.Decode
 import GameTypes exposing (Vector, vectorIntToFloat)
-import GamePlatform exposing (platformSize)
-import MouseHelpers exposing (mouseToGridInPixels)
 import Coordinates exposing (gameSize, calculateCanvasSize)
 import Controller
     exposing
-        ( ControllerState
-        , GamePadState
+        ( Controller
+        , GamePad
         , calculateControllerStateFromKeyboardState
         , initialControllerState
         , calculateControllerStateFromGamePad
@@ -75,10 +73,10 @@ main =
 
 type alias Model =
     { windowSize : Vector
-    , keyboardState : Keyboard.Extra.State
-    , controllerState : ControllerState
+    , keyboard : Keyboard.Extra.State
+    , controller : Controller
     , gameScreen : GameScreen
-    , tempJumpProperties : TempJumpProperties
+    , temporaryJumpProperties : TempJumpProperties
     }
 
 
@@ -92,24 +90,24 @@ type Msg
     = NoOp
     | SetWindowSize Window.Size
     | GetGamePadState
-    | Tick GamePadState
+    | Tick GamePad
     | Resources Resources.Msg
     | KeyboardMsg Keyboard.Extra.Msg
     | ReceiveLevelData LevelData
     | MouseMove Vector
-    | MouseClick Vector
     | TweekJumpDuration Float
     | TweekMaxJumpHeight Float
     | TweekMinJumpHeight Float
+    | SetIsCursorActive Bool
 
 
 initialModel : Model
 initialModel =
     { windowSize = ( 0, 0 )
-    , keyboardState = Keyboard.Extra.initialState
-    , controllerState = initialControllerState
+    , keyboard = Keyboard.Extra.initialState
+    , controller = initialControllerState
     , gameScreen = CreateLevel initialLevelCreateState
-    , tempJumpProperties = TempJumpProperties 28 256 16
+    , temporaryJumpProperties = TempJumpProperties 28 256 16
     }
 
 
@@ -139,19 +137,19 @@ update msg model =
 
         TweekJumpDuration framesToApex ->
             { model
-                | tempJumpProperties = TempJumpProperties framesToApex model.tempJumpProperties.maxJumpHeight model.tempJumpProperties.minJumpHeight
+                | temporaryJumpProperties = TempJumpProperties framesToApex model.temporaryJumpProperties.maxJumpHeight model.temporaryJumpProperties.minJumpHeight
             }
                 ! []
 
         TweekMaxJumpHeight maxJumpHeight ->
             { model
-                | tempJumpProperties = TempJumpProperties model.tempJumpProperties.framesToApex maxJumpHeight model.tempJumpProperties.minJumpHeight
+                | temporaryJumpProperties = TempJumpProperties model.temporaryJumpProperties.framesToApex maxJumpHeight model.temporaryJumpProperties.minJumpHeight
             }
                 ! []
 
         TweekMinJumpHeight minJumpHeight ->
             { model
-                | tempJumpProperties = TempJumpProperties model.tempJumpProperties.framesToApex model.tempJumpProperties.maxJumpHeight minJumpHeight
+                | temporaryJumpProperties = TempJumpProperties model.temporaryJumpProperties.framesToApex model.temporaryJumpProperties.maxJumpHeight minJumpHeight
             }
                 ! []
 
@@ -166,33 +164,10 @@ update msg model =
                     ! []
 
         KeyboardMsg keyMsg ->
-            let
-                newKeyboardState =
-                    Keyboard.Extra.update keyMsg model.keyboardState
-
-                newModel =
-                    { model
-                        | keyboardState = newKeyboardState
-                    }
-            in
-                case model.gameScreen of
-                    Uninitialized ->
-                        newModel
-                            ! []
-
-                    NormalPlay normalPlayState ->
-                        newModel
-                            ! []
-
-                    CreateLevel levelCreateState ->
-                        let
-                            newPlayState =
-                                updatePlayStateAfterKeyPress newKeyboardState levelCreateState
-                        in
-                            { newModel
-                                | gameScreen = CreateLevel newPlayState
-                            }
-                                ! []
+            { model
+                | keyboard = Keyboard.Extra.update keyMsg model.keyboard
+            }
+                ! []
 
         Resources msg ->
             case model.gameScreen of
@@ -258,18 +233,9 @@ update msg model =
 
                 CreateLevel levelCreateState ->
                     let
-                        { itemToPlace, mouseLocation, playState } =
-                            levelCreateState
-
-                        ( width, height ) =
-                            platformSize
-
-                        newPosition =
-                            mouseToGridInPixels model.windowSize playState.camera mousePosition
-
                         newLevelCreateState =
                             { levelCreateState
-                                | mouseLocation = vectorIntToFloat newPosition
+                                | cursorLocation = mousePosition
                             }
                     in
                         { model
@@ -277,7 +243,7 @@ update msg model =
                         }
                             ! []
 
-        MouseClick mousePosition ->
+        SetIsCursorActive isActive ->
             case model.gameScreen of
                 Uninitialized ->
                     model ! []
@@ -287,58 +253,60 @@ update msg model =
 
                 CreateLevel levelCreateState ->
                     let
-                        canvasSize =
-                            calculateCanvasSize model.windowSize
-
-                        ( newLevelCreateState, encodedLevelData ) =
-                            updatePlayStateAfterMouseClick model.windowSize mousePosition model.keyboardState levelCreateState
+                        newLevelCreateState =
+                            { levelCreateState
+                                | cursorActive = isActive
+                            }
                     in
                         { model
                             | gameScreen = CreateLevel newLevelCreateState
                         }
-                            ! [ writeLevelData encodedLevelData ]
+                            ! []
 
         GetGamePadState ->
             model ! [ getGamePadState 0 ]
 
         Tick gamepadState ->
             let
-                newControllerState =
+                updatedController =
                     case gamepadState.gamepadConnected of
                         True ->
-                            model.controllerState
+                            model.controller
                                 |> calculateControllerStateFromGamePad gamepadState
 
                         False ->
-                            model.controllerState
-                                |> calculateControllerStateFromKeyboardState model.keyboardState
+                            model.controller
+                                |> calculateControllerStateFromKeyboardState model.keyboard
             in
                 case model.gameScreen of
                     Uninitialized ->
                         { model
-                            | controllerState = newControllerState
+                            | controller = updatedController
                         }
                             ! []
 
-                    NormalPlay state ->
+                    NormalPlay gameState ->
                         { model
-                            | controllerState = newControllerState
+                            | controller = updatedController
                             , gameScreen =
                                 NormalPlay <|
                                     updateNormalPlay
-                                        newControllerState
-                                        state
-                                        model.tempJumpProperties
+                                        updatedController
+                                        gameState
+                                        model.temporaryJumpProperties
                         }
                             ! []
 
                     CreateLevel levelCreateState ->
                         let
+                            newLevelCreateState =
+                                updatePlayStateAfterKeyPress model.keyboard levelCreateState
+
                             { playState } =
-                                levelCreateState
+                                newLevelCreateState
 
                             playStateAfterPausedUpdate =
-                                if newControllerState.start == Pressed then
+                                if updatedController.start == Pressed then
                                     { playState
                                         | paused = not playState.paused
                                     }
@@ -348,7 +316,7 @@ update msg model =
                             updatedLocationForCameraToFollow =
                                 case playStateAfterPausedUpdate.paused of
                                     True ->
-                                        V2.add levelCreateState.locationForCameraToFollow (getLocationToFollowVelocity newControllerState.dPad)
+                                        V2.add newLevelCreateState.locationForCameraToFollow (getLocationToFollowVelocity updatedController.dPad)
 
                                     False ->
                                         playStateAfterPausedUpdate.player.location
@@ -361,19 +329,30 @@ update msg model =
                                         }
 
                                     False ->
-                                        updateNormalPlay newControllerState playStateAfterPausedUpdate model.tempJumpProperties
+                                        updateNormalPlay updatedController playStateAfterPausedUpdate model.temporaryJumpProperties
 
-                            newLevelCreateState =
-                                { levelCreateState
+                            updatedLevelCreateState =
+                                { newLevelCreateState
                                     | playState = updatedPlayState
                                     , locationForCameraToFollow = updatedLocationForCameraToFollow
                                 }
+
+                            ( finalLevelCreateState, encodedLevelData ) =
+                                updatePlayStateAfterMouseClick model.windowSize updatedLevelCreateState.cursorLocation updatedLevelCreateState.cursorActive model.keyboard updatedLevelCreateState
+
+                            cmd =
+                                case encodedLevelData of
+                                    Just encodedLevel ->
+                                        writeLevelData encodedLevel
+
+                                    Nothing ->
+                                        Cmd.none
                         in
                             { model
-                                | controllerState = newControllerState
-                                , gameScreen = CreateLevel newLevelCreateState
+                                | controller = updatedController
+                                , gameScreen = CreateLevel finalLevelCreateState
                             }
-                                ! []
+                                ! [ cmd ]
 
 
 mouseMoveEventToMsg : MouseEvent -> Msg
@@ -383,15 +362,6 @@ mouseMoveEventToMsg mouseEvent =
             relPos mouseEvent
     in
         MouseMove ( toFloat x, toFloat y )
-
-
-mouseClickEventToMsg : MouseEvent -> Msg
-mouseClickEventToMsg mouseEvent =
-    let
-        { x, y } =
-            relPos mouseEvent
-    in
-        MouseClick ( toFloat x, toFloat y )
 
 
 view : Model -> Html Msg
@@ -406,7 +376,7 @@ view model =
                     ( state.camera, renderNormalPlay state )
 
                 CreateLevel levelCreateState ->
-                    ( levelCreateState.playState.camera, renderLevelCreateScreen levelCreateState )
+                    ( levelCreateState.playState.camera, renderLevelCreateScreen model.windowSize levelCreateState )
 
         canvasSize =
             calculateCanvasSize model.windowSize
@@ -426,7 +396,8 @@ view model =
                 ]
                 [ Game.renderWithOptions
                     [ onMouseMove mouseMoveEventToMsg
-                    , onClick mouseClickEventToMsg
+                    , onMouseDown (\_ -> SetIsCursorActive True)
+                    , onMouseUp (\_ -> SetIsCursorActive False)
                     , style [ ( "border", "solid 1px black" ) ]
                     ]
                     { time = 0
@@ -443,7 +414,7 @@ view model =
                         , Html.Attributes.max "128"
                         , Html.Attributes.min "1"
                         , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.tempJumpProperties.framesToApex)
+                        , Html.Attributes.value (toString model.temporaryJumpProperties.framesToApex)
                         , onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
@@ -453,10 +424,10 @@ view model =
                     , input
                         [ type_ "number"
                         , Html.Attributes.max "512"
-                        , Html.Attributes.min (toString model.tempJumpProperties.minJumpHeight)
+                        , Html.Attributes.min (toString model.temporaryJumpProperties.minJumpHeight)
                         , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.tempJumpProperties.maxJumpHeight)
-                        , onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.tempJumpProperties.minJumpHeight 512 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        , Html.Attributes.value (toString model.temporaryJumpProperties.maxJumpHeight)
+                        , onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.temporaryJumpProperties.minJumpHeight 512 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]
@@ -464,11 +435,11 @@ view model =
                     [ text "Min Jumping Height"
                     , input
                         [ type_ "number"
-                        , Html.Attributes.max (toString model.tempJumpProperties.maxJumpHeight)
+                        , Html.Attributes.max (toString model.temporaryJumpProperties.maxJumpHeight)
                         , Html.Attributes.min "16"
                         , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.tempJumpProperties.minJumpHeight)
-                        , onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.tempJumpProperties.maxJumpHeight <| Result.withDefault 0 (String.toFloat stringNumber))
+                        , Html.Attributes.value (toString model.temporaryJumpProperties.minJumpHeight)
+                        , onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.temporaryJumpProperties.maxJumpHeight <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]
@@ -508,6 +479,11 @@ view model =
                     ]
                 , div
                     [ flexBoxRow ]
+                    [ h3 [ sideMargin ] [ text (toString 9) ]
+                    , Html.p [] [ text "- Remove Platform" ]
+                    ]
+                , div
+                    [ flexBoxRow ]
                     [ h3 [ sideMargin ] [ text "R" ]
                     , Html.p [] [ text "- Resets enemies to starting positions" ]
                     ]
@@ -523,7 +499,7 @@ view model =
 port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg
 
 
-port receiveGamePadState : (GamePadState -> msg) -> Sub msg
+port receiveGamePadState : (GamePad -> msg) -> Sub msg
 
 
 levelDataDecodeHandler : Json.Decode.Value -> Msg

@@ -1,10 +1,10 @@
 module Controller
     exposing
-        ( ControllerState
+        ( Controller
         , calculateControllerStateFromKeyboardState
         , initialControllerState
         , calculateControllerStateFromGamePad
-        , GamePadState
+        , GamePad
         , ButtonState
             ( Pressed
             , Held
@@ -27,7 +27,7 @@ module Controller
 import Keyboard.Extra
 
 
-type alias GamePadState =
+type alias GamePad =
     { gamepadConnected : Bool
     , up : Bool
     , left : Bool
@@ -83,7 +83,7 @@ calculateButtonState isPressed currentButtonState =
 --------------------------------------------------------------------------------
 
 
-type alias ControllerState =
+type alias Controller =
     { dPad : DPad
     , jump : ButtonState
     , dash : ButtonState
@@ -103,7 +103,7 @@ type DPad
     | NoDirection
 
 
-initialControllerState : ControllerState
+initialControllerState : Controller
 initialControllerState =
     { dPad = NoDirection
     , jump = Inactive
@@ -112,7 +112,7 @@ initialControllerState =
     }
 
 
-calculateControllerStateFromKeyboardState : Keyboard.Extra.State -> ControllerState -> ControllerState
+calculateControllerStateFromKeyboardState : Keyboard.Extra.State -> Controller -> Controller
 calculateControllerStateFromKeyboardState keyboardState controllerState =
     let
         pressedKeys =
@@ -167,7 +167,7 @@ calculateControllerStateFromKeyboardState keyboardState controllerState =
         }
 
 
-calculateControllerStateFromGamePad : GamePadState -> ControllerState -> ControllerState
+calculateControllerStateFromGamePad : GamePad -> Controller -> Controller
 calculateControllerStateFromGamePad gamePad controllerState =
     let
         direction =

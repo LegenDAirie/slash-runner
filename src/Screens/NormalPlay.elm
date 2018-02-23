@@ -14,7 +14,6 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
-import GameTypes exposing (Vector, IntVector, Player, vectorFloatToInt, PlayerState(OnTheGround, Jumping))
 import Player exposing (renderPlayer)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
@@ -23,9 +22,21 @@ import Json.Decode.Pipeline exposing (decode, required)
 import Dict exposing (Dict)
 import Coordinates exposing (gameSize, pixelToGridConversion, gridToPixelConversion)
 import Color
+import GameTypes
+    exposing
+        ( Vector
+        , IntVector
+        , Player
+        , vectorFloatToInt
+        , PlayerState
+            ( OnTheGround
+            , Jumping
+            , SlidingOnWall
+            )
+        )
 import Controller
     exposing
-        ( ControllerState
+        ( Controller
         , ButtonState
             ( Pressed
             , Held
@@ -48,7 +59,6 @@ import CollisionHelpers
     exposing
         ( getCollidingTiles
         , calculatePlayerAttributesFromCollision
-        , getCollisionDisplacementVector
         )
 
 
@@ -144,14 +154,9 @@ getDPadAcceleration dPad =
             ( 0, 0 )
 
 
-capPlayerNegativeYVelocity : Vector -> Vector
-capPlayerNegativeYVelocity ( x, y ) =
-    ( x, max y -50 )
-
-
-capPlayerXVelocity : Vector -> Vector
-capPlayerXVelocity ( x, y ) =
-    ( clamp -50 50 x, y )
+capPlayerVelocity : Vector -> Vector
+capPlayerVelocity ( x, y ) =
+    ( clamp -50 50 x, max y -50 )
 
 
 calculateYGravityFromJumpProperties : Float -> Float -> Float
@@ -169,8 +174,8 @@ calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJu
     sqrt <| abs ((initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight)))
 
 
-updateNormalPlay : ControllerState -> NormalPlayState -> TempJumpProperties -> NormalPlayState
-updateNormalPlay controllerState state tempJumpProperties =
+updateNormalPlay : Controller -> NormalPlayState -> TempJumpProperties -> NormalPlayState
+updateNormalPlay controller state tempJumpProperties =
     -- leave this function nice and huge, no need to abstract out to updateplayer, updateenemey or anything
     -- ideally one collision function will take in a player and enemy and return new versions of each
     -- it's ok if Elm code gets long! yay!
@@ -187,7 +192,7 @@ updateNormalPlay controllerState state tempJumpProperties =
                 |> (\y -> ( getX playerVelocityAfterAcceleration, y ))
 
         movementAcceleration =
-            getDPadAcceleration controllerState.dPad
+            getDPadAcceleration controller.dPad
 
         finalPlayerAcceleration =
             List.foldr V2.add
@@ -197,16 +202,17 @@ updateNormalPlay controllerState state tempJumpProperties =
                 ]
 
         playerVelocityAfterAcceleration =
-            finalPlayerAcceleration
-                |> V2.add player.velocity
-                |> capPlayerNegativeYVelocity
-                |> capPlayerXVelocity
+            V2.add player.velocity finalPlayerAcceleration
+                |> capPlayerVelocity
 
         ( playerVelocityAfterJump, playerStateAfterJump ) =
-            case controllerState.jump of
+            case controller.jump of
                 Pressed ->
                     case player.playerState of
                         OnTheGround ->
+                            ( jumpVelocity, Jumping )
+
+                        SlidingOnWall ->
                             ( jumpVelocity, Jumping )
 
                         Jumping ->
@@ -231,14 +237,18 @@ updateNormalPlay controllerState state tempJumpProperties =
                 Inactive ->
                     ( playerVelocityAfterAcceleration, player.playerState )
 
+        playerVelocityAfterCap =
+            playerVelocityAfterJump
+                |> capPlayerVelocity
+
         playerLocationAfterMovement =
-            V2.add player.location playerVelocityAfterJump
+            V2.add player.location playerVelocityAfterCap
 
         collidingTileGridCoords =
-            getCollidingTiles (vectorFloatToInt playerLocationAfterMovement) playerVelocityAfterJump player.size platforms
+            getCollidingTiles (vectorFloatToInt playerLocationAfterMovement) player.size platforms
 
         ( playerLocationAfterCollision, playerVelocityAfterCollision, playerStateAfterCollision ) =
-            calculatePlayerAttributesFromCollision playerLocationAfterMovement playerVelocityAfterJump Jumping player.size collidingTileGridCoords platforms
+            calculatePlayerAttributesFromCollision playerLocationAfterMovement playerVelocityAfterCap Jumping player.size collidingTileGridCoords platforms
 
         updatedPlayer =
             { player

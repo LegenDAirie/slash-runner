@@ -10,6 +10,7 @@ module CreateLevel
 
 import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay)
 import Game.TwoD.Render as Render exposing (Renderable)
+import Game.TwoD.Camera as Camera
 import Keyboard.Extra
 import GameTypes exposing (Vector, vectorIntToFloat)
 import MouseHelpers exposing (mouseToGridInPixels)
@@ -38,16 +39,18 @@ import Controller
 
 type alias LevelCreateState =
     { itemToPlace : ItemToBePlace
-    , mouseLocation : Vector
-    , playState : NormalPlayState
+    , cursorLocation : Vector
+    , cursorActive : Bool
     , locationForCameraToFollow : Vector
+    , playState : NormalPlayState
     }
 
 
 initialLevelCreateState : LevelCreateState
 initialLevelCreateState =
     { itemToPlace = PlaceNothing
-    , mouseLocation = ( 0, 0 )
+    , cursorLocation = ( 0, 0 )
+    , cursorActive = False
     , playState = initialNormalPlayState
     , locationForCameraToFollow = ( 0, 0 )
     }
@@ -60,12 +63,13 @@ type ItemToBePlace
     | AStaticEnemy
     | AnEnemyOnTrack
     | AWalkingEnemy
+    | Remove
 
 
 updatePlayStateAfterKeyPress : Keyboard.Extra.State -> LevelCreateState -> LevelCreateState
 updatePlayStateAfterKeyPress keyboardState levelCreateState =
     let
-        { itemToPlace, mouseLocation, playState } =
+        { itemToPlace, playState } =
             levelCreateState
 
         pressedKeys =
@@ -85,10 +89,31 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
             else
                 playState.platforms
 
+        { player, camera } =
+            playState
+
+        ( newPlayer, newCamera ) =
+            if List.member Keyboard.Extra.CharR pressedKeys then
+                let
+                    newPlayer =
+                        { player
+                            | location = ( 0, 0 )
+                            , velocity = ( 0, 0 )
+                        }
+
+                    newCamera =
+                        Camera.moveTo ( 64, 64 ) playState.camera
+                in
+                    ( newPlayer, newCamera )
+            else
+                ( playState.player, playState.camera )
+
         newNormalPlayState =
             { playState
                 | enemies = newEnemies
                 , platforms = newPlatforms
+                , player = newPlayer
+                , camera = newCamera
             }
 
         newItemToPlace =
@@ -104,6 +129,8 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
                 AnEnemyOnTrack
             else if List.member Keyboard.Extra.Number5 pressedKeys then
                 AWalkingEnemy
+            else if List.member Keyboard.Extra.Number9 pressedKeys then
+                Remove
             else
                 itemToPlace
 
@@ -112,13 +139,12 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
     in
         { levelCreateState
             | itemToPlace = newItemToPlace
-            , mouseLocation = mouseLocation
             , playState = newNormalPlayState
         }
 
 
-updatePlayStateAfterMouseClick : Vector -> Vector -> Keyboard.Extra.State -> LevelCreateState -> ( LevelCreateState, String )
-updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreateState =
+updatePlayStateAfterMouseClick : Vector -> Vector -> Bool -> Keyboard.Extra.State -> LevelCreateState -> ( LevelCreateState, Maybe String )
+updatePlayStateAfterMouseClick windowSize cursorLocation cursorActive keyboardState levelCreateState =
     let
         ( width, height ) =
             platformSize
@@ -127,7 +153,7 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
             levelCreateState
 
         newPosition =
-            mouseToGridInPixels windowSize playState.camera mousePosition
+            mouseToGridInPixels windowSize playState.camera cursorLocation
 
         newNormalPlatform =
             Platform Normal
@@ -140,6 +166,14 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
                 PlaceNothing ->
                     playState.platforms
 
+                Remove ->
+                    case cursorActive of
+                        True ->
+                            Dict.remove newPosition playState.platforms
+
+                        False ->
+                            playState.platforms
+
                 AStaticEnemy ->
                     playState.platforms
 
@@ -150,10 +184,15 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
                     playState.platforms
 
                 ANormalPlatform ->
-                    if Dict.member newPosition playState.platforms then
-                        Dict.remove newPosition playState.platforms
-                    else
-                        Dict.insert newPosition newNormalPlatform playState.platforms
+                    case cursorActive of
+                        True ->
+                            if Dict.member newPosition playState.platforms then
+                                playState.platforms
+                            else
+                                Dict.insert newPosition newNormalPlatform playState.platforms
+
+                        False ->
+                            playState.platforms
 
                 ADangerousPlatform ->
                     if Dict.member newPosition playState.platforms then
@@ -182,6 +221,9 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
         newEnemies =
             case itemToPlace of
                 PlaceNothing ->
+                    playState.permanentEnemies
+
+                Remove ->
                     playState.permanentEnemies
 
                 ANormalPlatform ->
@@ -218,8 +260,14 @@ updatePlayStateAfterMouseClick windowSize mousePosition keyboardState levelCreat
                 , permanentEnemies = newEnemies
             }
 
+        pressedKeys =
+            Keyboard.Extra.pressedDown keyboardState
+
         encodedLevelData =
-            levelDataEncodeHandler newPlayState.platforms newPlayState.permanentEnemies
+            if List.member Keyboard.Extra.Shift pressedKeys && List.member Keyboard.Extra.CharS pressedKeys then
+                Just (levelDataEncodeHandler newPlayState.platforms newPlayState.permanentEnemies)
+            else
+                Nothing
 
         newLevelCreateState =
             { levelCreateState
@@ -260,25 +308,31 @@ getLocationToFollowVelocity dPad =
             ( 0, 0 )
 
 
-renderLevelCreateScreen : LevelCreateState -> List Renderable
-renderLevelCreateScreen levelCreateState =
+renderLevelCreateScreen : Vector -> LevelCreateState -> List Renderable
+renderLevelCreateScreen windowSize levelCreateState =
     let
-        { itemToPlace, mouseLocation, playState } =
+        { itemToPlace, cursorLocation, playState } =
             levelCreateState
+
+        newMouseLocation =
+            mouseToGridInPixels windowSize playState.camera cursorLocation
     in
         List.concat
-            [ [ renderBlockToPlace itemToPlace mouseLocation ]
-            , (renderNormalPlay playState)
+            [ [ renderCursorBlock itemToPlace (vectorIntToFloat newMouseLocation) ]
+            , renderNormalPlay playState
             ]
 
 
-renderBlockToPlace : ItemToBePlace -> Vector -> Renderable
-renderBlockToPlace itemToBePlace location =
+renderCursorBlock : ItemToBePlace -> Vector -> Renderable
+renderCursorBlock itemToBePlace location =
     let
         mouseColor =
             case itemToBePlace of
                 PlaceNothing ->
                     Color.black
+
+                Remove ->
+                    Color.brown
 
                 ANormalPlatform ->
                     Color.charcoal

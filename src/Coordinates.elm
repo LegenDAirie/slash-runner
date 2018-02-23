@@ -73,15 +73,15 @@ convertToGameUnits canvasSize mouseLocation =
 
 
 offSetOrigin : Vector -> Vector
-offSetOrigin touchLocation =
+offSetOrigin location =
     gameSize
         |> V2.scale 0.5
-        |> V2.sub touchLocation
+        |> V2.sub location
 
 
 offSetByCamera : Camera -> Vector -> Vector
-offSetByCamera camera touchLocation =
+offSetByCamera camera location =
     camera
         |> getPosition
         |> flipY
-        |> V2.add touchLocation
+        |> V2.add location
