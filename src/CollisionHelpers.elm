@@ -88,8 +88,9 @@ getCollidingTiles playerLocation playerSize platforms =
         [ topLeftTileCoord, topRightTileCoord, bottomLeftTileCoord, bottomRightTileCoord ]
 
 
-calculatePlayerAttributesFromCollision : Vector -> Vector -> PlayerState -> IntVector -> List IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
-calculatePlayerAttributesFromCollision location velocity playerState playerSize gridCoordinates platforms =
+calculatePlayerAttributesFromCollision : Float -> Float -> Vector -> Vector -> PlayerState -> IntVector -> List IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
+calculatePlayerAttributesFromCollision groundFriction wallFriction location velocity playerState playerSize gridCoordinates platforms =
+    ------------ This function is craaaaazy looking だが this will get cleaned up when friction is desided apon--------------
     case gridCoordinates of
         [] ->
             ( location, velocity, playerState )
@@ -97,12 +98,12 @@ calculatePlayerAttributesFromCollision location velocity playerState playerSize 
         gridCoordinate :: rest ->
             case Dict.get gridCoordinate platforms of
                 Nothing ->
-                    calculatePlayerAttributesFromCollision location velocity playerState playerSize rest platforms
+                    calculatePlayerAttributesFromCollision groundFriction wallFriction location velocity playerState playerSize rest platforms
 
                 Just _ ->
                     let
                         ( locationDisplacement, velocityDisplacement, newPlayerState ) =
-                            getCollisionDisplacementVector playerState location playerSize gridCoordinate ( 64, 64 ) platforms
+                            getCollisionDisplacementVector groundFriction wallFriction playerState location playerSize gridCoordinate ( 64, 64 ) platforms
 
                         newLocation =
                             V2.add location locationDisplacement
@@ -113,11 +114,11 @@ calculatePlayerAttributesFromCollision location velocity playerState playerSize 
                         newVelocity =
                             ( velocityX * getX velocityDisplacement, velocityY * getY velocityDisplacement )
                     in
-                        calculatePlayerAttributesFromCollision newLocation newVelocity newPlayerState playerSize rest platforms
+                        calculatePlayerAttributesFromCollision groundFriction wallFriction newLocation newVelocity newPlayerState playerSize rest platforms
 
 
-getCollisionDisplacementVector : PlayerState -> Vector -> IntVector -> IntVector -> IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
-getCollisionDisplacementVector playerState boxOneXY boxOneWH boxTwoXY boxTwoWH platforms =
+getCollisionDisplacementVector : Float -> Float -> PlayerState -> Vector -> IntVector -> IntVector -> IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
+getCollisionDisplacementVector groundFriction wallFriction playerState boxOneXY boxOneWH boxTwoXY boxTwoWH platforms =
     let
         ( boxOneHalfWidth, boxOneHalfHeight ) =
             V2.divideBy 2 (vectorIntToFloat boxOneWH)
@@ -151,6 +152,12 @@ getCollisionDisplacementVector playerState boxOneXY boxOneWH boxTwoXY boxTwoWH p
 
         noDisplacement =
             ( ( 0, 0 ), ( 1, 1 ), playerState )
+
+        noFriction =
+            1
+
+        fullStop =
+            0
     in
         case amountOverlappingVertically <= amountOverlappingHorizontally of
             True ->
@@ -158,7 +165,7 @@ getCollisionDisplacementVector playerState boxOneXY boxOneWH boxTwoXY boxTwoWH p
                     True ->
                         case canDisplaceUp boxTwoXY platforms of
                             True ->
-                                ( ( 0, amountOverlappingVertically ), ( 0.98, 0 ), OnTheGround )
+                                ( ( 0, amountOverlappingVertically ), ( groundFriction, fullStop ), OnTheGround )
 
                             False ->
                                 noDisplacement
@@ -166,7 +173,7 @@ getCollisionDisplacementVector playerState boxOneXY boxOneWH boxTwoXY boxTwoWH p
                     False ->
                         case canDisplaceDown boxTwoXY platforms of
                             True ->
-                                ( ( 0, -amountOverlappingVertically ), ( 1, 0 ), playerState )
+                                ( ( 0, -amountOverlappingVertically ), ( noFriction, fullStop ), playerState )
 
                             False ->
                                 noDisplacement
@@ -176,7 +183,7 @@ getCollisionDisplacementVector playerState boxOneXY boxOneWH boxTwoXY boxTwoWH p
                     True ->
                         case canDisplaceRight boxTwoXY platforms of
                             True ->
-                                ( ( amountOverlappingHorizontally, 0 ), ( 0, 0.1 ), SlidingOnWall )
+                                ( ( amountOverlappingHorizontally, 0 ), ( fullStop, wallFriction ), SlidingOnWall )
 
                             False ->
                                 noDisplacement
@@ -184,7 +191,7 @@ getCollisionDisplacementVector playerState boxOneXY boxOneWH boxTwoXY boxTwoWH p
                     False ->
                         case canDisplaceLeft boxTwoXY platforms of
                             True ->
-                                ( ( -amountOverlappingHorizontally, 0 ), ( 0, 0.1 ), SlidingOnWall )
+                                ( ( -amountOverlappingHorizontally, 0 ), ( fullStop, wallFriction ), SlidingOnWall )
 
                             False ->
                                 noDisplacement

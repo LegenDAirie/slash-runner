@@ -7,7 +7,7 @@ module Screens.NormalPlay
         , createLevel
         , updateNormalPlay
         , jsonToLevelData
-        , TempJumpProperties
+        , TempProperties
         )
 
 import Game.TwoD.Render as Render exposing (Renderable)
@@ -73,10 +73,12 @@ type alias NormalPlayState =
     }
 
 
-type alias TempJumpProperties =
+type alias TempProperties =
     { framesToApex : Float
     , maxJumpHeight : Float
     , minJumpHeight : Float
+    , groundFriction : Float
+    , wallFriction : Float
     }
 
 
@@ -174,8 +176,8 @@ calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJu
     sqrt <| abs ((initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight)))
 
 
-updateNormalPlay : Controller -> NormalPlayState -> TempJumpProperties -> NormalPlayState
-updateNormalPlay controller state tempJumpProperties =
+updateNormalPlay : Controller -> NormalPlayState -> TempProperties -> NormalPlayState
+updateNormalPlay controller state tempProperties =
     -- leave this function nice and huge, no need to abstract out to updateplayer, updateenemey or anything
     -- ideally one collision function will take in a player and enemy and return new versions of each
     -- it's ok if Elm code gets long! yay!
@@ -184,12 +186,8 @@ updateNormalPlay controller state tempJumpProperties =
             state
 
         gravitationalAcceleration =
-            calculateYGravityFromJumpProperties tempJumpProperties.maxJumpHeight tempJumpProperties.framesToApex
+            calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
                 |> (\y -> ( 0, -y ))
-
-        jumpVelocity =
-            calculateInitialJumpVelocityFromJumpProperties tempJumpProperties.maxJumpHeight (getY gravitationalAcceleration)
-                |> (\y -> ( getX playerVelocityAfterAcceleration, y ))
 
         movementAcceleration =
             getDPadAcceleration controller.dPad
@@ -203,7 +201,10 @@ updateNormalPlay controller state tempJumpProperties =
 
         playerVelocityAfterAcceleration =
             V2.add player.velocity finalPlayerAcceleration
-                |> capPlayerVelocity
+
+        jumpVelocity =
+            calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight (getY gravitationalAcceleration)
+                |> (\y -> ( getX playerVelocityAfterAcceleration, y ))
 
         ( playerVelocityAfterJump, playerStateAfterJump ) =
             case controller.jump of
@@ -224,7 +225,7 @@ updateNormalPlay controller state tempJumpProperties =
                 Released ->
                     let
                         earlyJumpTerminationVelocity =
-                            calculateEarlyJumpTerminationVelocity (getY jumpVelocity) (getY gravitationalAcceleration) tempJumpProperties.maxJumpHeight tempJumpProperties.minJumpHeight
+                            calculateEarlyJumpTerminationVelocity (getY jumpVelocity) (getY gravitationalAcceleration) tempProperties.maxJumpHeight tempProperties.minJumpHeight
 
                         newVelocity =
                             if (getY playerVelocityAfterAcceleration > earlyJumpTerminationVelocity) then
@@ -247,8 +248,11 @@ updateNormalPlay controller state tempJumpProperties =
         collidingTileGridCoords =
             getCollidingTiles (vectorFloatToInt playerLocationAfterMovement) player.size platforms
 
+        groundFriction =
+            calculateGroundFrictionFromControllerState tempProperties.groundFriction controller.dPad
+
         ( playerLocationAfterCollision, playerVelocityAfterCollision, playerStateAfterCollision ) =
-            calculatePlayerAttributesFromCollision playerLocationAfterMovement playerVelocityAfterCap Jumping player.size collidingTileGridCoords platforms
+            calculatePlayerAttributesFromCollision groundFriction tempProperties.wallFriction playerLocationAfterMovement playerVelocityAfterCap playerStateAfterJump player.size collidingTileGridCoords platforms
 
         updatedPlayer =
             { player
@@ -261,6 +265,41 @@ updateNormalPlay controller state tempJumpProperties =
             | camera = Camera.follow 0.5 0.17 (V2.sub state.player.location ( -100, -100 )) state.camera
             , player = updatedPlayer
         }
+
+
+calculateGroundFrictionFromControllerState : Float -> DPad -> Float
+calculateGroundFrictionFromControllerState groundFriction dPad =
+    let
+        noFriction =
+            1
+    in
+        case dPad of
+            Up ->
+                groundFriction
+
+            Down ->
+                groundFriction
+
+            NoDirection ->
+                groundFriction
+
+            UpRight ->
+                noFriction
+
+            Right ->
+                noFriction
+
+            DownRight ->
+                noFriction
+
+            DownLeft ->
+                noFriction
+
+            Left ->
+                noFriction
+
+            UpLeft ->
+                noFriction
 
 
 renderNormalPlay : NormalPlayState -> List Renderable

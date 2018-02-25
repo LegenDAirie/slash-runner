@@ -48,7 +48,7 @@ import Screens.NormalPlay
         , renderNormalPlay
         , NormalPlayState
         , jsonToLevelData
-        , TempJumpProperties
+        , TempProperties
         )
 import CreateLevel
     exposing
@@ -76,7 +76,7 @@ type alias Model =
     , keyboard : Keyboard.Extra.State
     , controller : Controller
     , gameScreen : GameScreen
-    , temporaryJumpProperties : TempJumpProperties
+    , temporaryProperties : TempProperties
     }
 
 
@@ -95,10 +95,12 @@ type Msg
     | KeyboardMsg Keyboard.Extra.Msg
     | ReceiveLevelData LevelData
     | MouseMove Vector
+    | SetIsCursorActive Bool
     | TweekJumpDuration Float
     | TweekMaxJumpHeight Float
     | TweekMinJumpHeight Float
-    | SetIsCursorActive Bool
+    | TweekGroundFriction Float
+    | TweekWallFriction Float
 
 
 initialModel : Model
@@ -107,7 +109,7 @@ initialModel =
     , keyboard = Keyboard.Extra.initialState
     , controller = initialControllerState
     , gameScreen = CreateLevel initialLevelCreateState
-    , temporaryJumpProperties = TempJumpProperties 28 256 16
+    , temporaryProperties = TempProperties 28 256 16 0.95 0
     }
 
 
@@ -136,22 +138,54 @@ update msg model =
             model ! []
 
         TweekJumpDuration framesToApex ->
-            { model
-                | temporaryJumpProperties = TempJumpProperties framesToApex model.temporaryJumpProperties.maxJumpHeight model.temporaryJumpProperties.minJumpHeight
-            }
-                ! []
+            let
+                { maxJumpHeight, minJumpHeight, groundFriction, wallFriction } =
+                    model.temporaryProperties
+            in
+                { model
+                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                }
+                    ! []
 
         TweekMaxJumpHeight maxJumpHeight ->
-            { model
-                | temporaryJumpProperties = TempJumpProperties model.temporaryJumpProperties.framesToApex maxJumpHeight model.temporaryJumpProperties.minJumpHeight
-            }
-                ! []
+            let
+                { framesToApex, minJumpHeight, groundFriction, wallFriction } =
+                    model.temporaryProperties
+            in
+                { model
+                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                }
+                    ! []
 
         TweekMinJumpHeight minJumpHeight ->
-            { model
-                | temporaryJumpProperties = TempJumpProperties model.temporaryJumpProperties.framesToApex model.temporaryJumpProperties.maxJumpHeight minJumpHeight
-            }
-                ! []
+            let
+                { framesToApex, maxJumpHeight, groundFriction, wallFriction } =
+                    model.temporaryProperties
+            in
+                { model
+                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                }
+                    ! []
+
+        TweekGroundFriction groundFriction ->
+            let
+                { framesToApex, maxJumpHeight, minJumpHeight, wallFriction } =
+                    model.temporaryProperties
+            in
+                { model
+                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                }
+                    ! []
+
+        TweekWallFriction wallFriction ->
+            let
+                { framesToApex, maxJumpHeight, minJumpHeight, groundFriction } =
+                    model.temporaryProperties
+            in
+                { model
+                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                }
+                    ! []
 
         SetWindowSize size ->
             let
@@ -293,7 +327,7 @@ update msg model =
                                     updateNormalPlay
                                         updatedController
                                         gameState
-                                        model.temporaryJumpProperties
+                                        model.temporaryProperties
                         }
                             ! []
 
@@ -329,7 +363,7 @@ update msg model =
                                         }
 
                                     False ->
-                                        updateNormalPlay updatedController playStateAfterPausedUpdate model.temporaryJumpProperties
+                                        updateNormalPlay updatedController playStateAfterPausedUpdate model.temporaryProperties
 
                             updatedLevelCreateState =
                                 { newLevelCreateState
@@ -414,7 +448,7 @@ view model =
                         , Html.Attributes.max "128"
                         , Html.Attributes.min "1"
                         , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryJumpProperties.framesToApex)
+                        , Html.Attributes.value (toString model.temporaryProperties.framesToApex)
                         , onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
@@ -424,10 +458,10 @@ view model =
                     , input
                         [ type_ "number"
                         , Html.Attributes.max "512"
-                        , Html.Attributes.min (toString model.temporaryJumpProperties.minJumpHeight)
+                        , Html.Attributes.min (toString model.temporaryProperties.minJumpHeight)
                         , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryJumpProperties.maxJumpHeight)
-                        , onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.temporaryJumpProperties.minJumpHeight 512 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        , Html.Attributes.value (toString model.temporaryProperties.maxJumpHeight)
+                        , onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.temporaryProperties.minJumpHeight 512 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]
@@ -435,11 +469,35 @@ view model =
                     [ text "Min Jumping Height"
                     , input
                         [ type_ "number"
-                        , Html.Attributes.max (toString model.temporaryJumpProperties.maxJumpHeight)
+                        , Html.Attributes.max (toString model.temporaryProperties.maxJumpHeight)
                         , Html.Attributes.min "16"
                         , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryJumpProperties.minJumpHeight)
-                        , onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.temporaryJumpProperties.maxJumpHeight <| Result.withDefault 0 (String.toFloat stringNumber))
+                        , Html.Attributes.value (toString model.temporaryProperties.minJumpHeight)
+                        , onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.temporaryProperties.maxJumpHeight <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Floor Friction"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "0.99"
+                        , Html.Attributes.min "0.90"
+                        , Html.Attributes.step "0.01"
+                        , Html.Attributes.value (toString model.temporaryProperties.groundFriction)
+                        , onInput (\stringNumber -> TweekGroundFriction <| clamp 0.9 0.99 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Wall Friction"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "0.9"
+                        , Html.Attributes.min "0"
+                        , Html.Attributes.step "0.05"
+                        , Html.Attributes.value (toString model.temporaryProperties.wallFriction)
+                        , onInput (\stringNumber -> TweekWallFriction <| clamp 0 0.9 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]
