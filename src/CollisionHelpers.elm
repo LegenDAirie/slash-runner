@@ -24,7 +24,7 @@ import GameTypes
         )
 
 
-getCollidingTiles : IntVector -> IntVector -> Dict IntVector Platform -> List IntVector
+getCollidingTiles : Vector -> IntVector -> Dict IntVector Platform -> List IntVector
 getCollidingTiles playerLocation playerSize platforms =
     let
         ( playerX, playerY ) =
@@ -34,16 +34,16 @@ getCollidingTiles playerLocation playerSize platforms =
             playerSize
 
         playerLeftSide =
-            playerX
+            floor playerX
 
         playerRightSide =
-            playerX + playerWidth - 1
+            ceiling (playerX + toFloat playerWidth - 1)
 
         playerBottom =
-            playerY
+            floor playerY
 
         playerTop =
-            playerY + playerHeight - 1
+            ceiling (playerY + toFloat playerHeight - 1)
 
         playerTopLeft =
             ( playerLeftSide, playerTop )

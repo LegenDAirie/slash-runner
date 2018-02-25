@@ -22,6 +22,7 @@ import Json.Decode.Pipeline exposing (decode, required)
 import Dict exposing (Dict)
 import Coordinates exposing (gameSize, pixelToGridConversion, gridToPixelConversion)
 import Color
+import Set
 import GameTypes
     exposing
         ( Vector
@@ -246,7 +247,9 @@ updateNormalPlay controller state tempProperties =
             V2.add player.location playerVelocityAfterCap
 
         collidingTileGridCoords =
-            getCollidingTiles (vectorFloatToInt playerLocationAfterMovement) player.size platforms
+            getCollidingTiles playerLocationAfterMovement player.size platforms
+                |> Set.fromList
+                |> Set.toList
 
         groundFriction =
             calculateGroundFrictionFromControllerState tempProperties.groundFriction controller.dPad
