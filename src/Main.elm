@@ -117,7 +117,7 @@ init : ( Model, Cmd Msg )
 init =
     initialModel
         ! [ Task.perform SetWindowSize Window.size
-          , Cmd.map Resources <| Resources.loadTextures [ "../assets/tile-bricks-test.png" ]
+          , Cmd.map Resources <| Resources.loadTextures [ "./assets/player-background-glow.png" ]
           , fetchLevelData 1
           ]
 

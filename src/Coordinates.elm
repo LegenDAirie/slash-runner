@@ -7,9 +7,10 @@ module Coordinates
         , gridToPixelConversion
         , pixelToGridConversion
         , calculateCanvasSize
+        , locationToGridCoordinate
         )
 
-import GameTypes exposing (Vector, IntVector)
+import GameTypes exposing (Vector, IntVector, vectorFloatToInt)
 import Vector2 as V2 exposing (getX)
 import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
 
@@ -22,6 +23,14 @@ gameSize =
 gridSquareSize : IntVector
 gridSquareSize =
     ( 64, 64 )
+
+
+locationToGridCoordinate : Vector -> IntVector
+locationToGridCoordinate location =
+    location
+        |> pixelToGridConversion
+        |> gridToPixelConversion
+        |> vectorFloatToInt
 
 
 calculateCanvasSize : Vector -> Vector
@@ -59,11 +68,11 @@ convertMouseCoorToGameCoor camera mouseLocation =
     mouseLocation
         |> offSetOrigin
         |> offSetByCamera camera
-        |> flipY
+        |> vectorFlipY
 
 
-flipY : Vector -> Vector
-flipY ( x, y ) =
+vectorFlipY : Vector -> Vector
+vectorFlipY ( x, y ) =
     ( x, -y )
 
 
@@ -83,5 +92,5 @@ offSetByCamera : Camera -> Vector -> Vector
 offSetByCamera camera location =
     camera
         |> getPosition
-        |> flipY
+        |> vectorFlipY
         |> V2.add location

@@ -133,9 +133,6 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
                 Remove
             else
                 itemToPlace
-
-        _ =
-            Debug.log "newItemToPlace" newItemToPlace
     in
         { levelCreateState
             | itemToPlace = newItemToPlace

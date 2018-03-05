@@ -55,7 +55,8 @@ intVectorDecoder =
 type alias Player =
     { location : Vector
     , velocity : Vector
-    , size : IntVector
+    , spriteSize : IntVector
+    , hitBoxSize : IntVector
     , framesSinceLastChain : Int
     , playerState : PlayerState
     }

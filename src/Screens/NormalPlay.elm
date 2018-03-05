@@ -14,13 +14,13 @@ import Game.TwoD.Render as Render exposing (Renderable)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
-import Player exposing (renderPlayer)
+import Player exposing (renderPlayer, getPlayerLeftKickPoint, getPlayerRightKickPoint)
 import Enemy exposing (Enemy)
 import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
 import Dict exposing (Dict)
-import Coordinates exposing (gameSize, pixelToGridConversion, gridToPixelConversion)
+import Coordinates exposing (gameSize, pixelToGridConversion, gridToPixelConversion, locationToGridCoordinate)
 import Color
 import Set
 import GameTypes
@@ -29,6 +29,7 @@ import GameTypes
         , IntVector
         , Player
         , vectorFloatToInt
+        , vectorIntToFloat
         , PlayerState
             ( OnTheGround
             , Jumping
@@ -92,7 +93,7 @@ initialNormalPlayState =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = Player startingPoint ( 0, 0 ) ( 64, 64 ) 0 OnTheGround
+        { player = Player startingPoint ( 0, 0 ) ( 128, 128 ) ( 64, 64 ) 0 OnTheGround
         , permanentEnemies = []
         , enemies = []
         , platforms = Dict.empty
@@ -111,7 +112,7 @@ createLevel levelData =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = Player startingPoint ( 0, 0 ) ( 64, 64 ) 0 OnTheGround
+        { player = Player startingPoint ( 0, 0 ) ( 128, 128 ) ( 64, 64 ) 0 OnTheGround
         , platforms = levelData.platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
@@ -177,6 +178,19 @@ calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJu
     sqrt <| abs ((initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight)))
 
 
+getGravityAfterWallFriction : PlayerState -> Float -> Vector -> Vector
+getGravityAfterWallFriction playerState wallFriction gravity =
+    case playerState of
+        OnTheGround ->
+            gravity
+
+        Jumping ->
+            gravity
+
+        SlidingOnWall ->
+            ( getX gravity, wallFriction * getY gravity )
+
+
 updateNormalPlay : Controller -> NormalPlayState -> TempProperties -> NormalPlayState
 updateNormalPlay controller state tempProperties =
     -- leave this function nice and huge, no need to abstract out to updateplayer, updateenemey or anything
@@ -186,9 +200,19 @@ updateNormalPlay controller state tempProperties =
         { player, platforms } =
             state
 
-        gravitationalAcceleration =
+        baseGravity =
             calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
                 |> (\y -> ( 0, -y ))
+
+        gravitationalAcceleration =
+            baseGravity
+                |> getGravityAfterWallFriction player.playerState tempProperties.wallFriction
+
+        playerVelocityAfterSlidingOnWall =
+            if player.playerState == SlidingOnWall then
+                ( getX player.velocity, tempProperties.wallFriction * getY player.velocity )
+            else
+                player.velocity
 
         movementAcceleration =
             getDPadAcceleration controller.dPad
@@ -201,11 +225,37 @@ updateNormalPlay controller state tempProperties =
                 ]
 
         playerVelocityAfterAcceleration =
-            V2.add player.velocity finalPlayerAcceleration
+            V2.add playerVelocityAfterSlidingOnWall finalPlayerAcceleration
 
         jumpVelocity =
-            calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight (getY gravitationalAcceleration)
+            calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight (getY baseGravity)
                 |> (\y -> ( getX playerVelocityAfterAcceleration, y ))
+
+        wallToTheRight =
+            player
+                |> getPlayerRightKickPoint
+                |> locationToGridCoordinate
+                |> flip Dict.member platforms
+
+        wallToTheLeft =
+            player
+                |> getPlayerLeftKickPoint
+                |> locationToGridCoordinate
+                |> flip Dict.member platforms
+
+        nearWallJumpVelocity =
+            case ( wallToTheLeft, wallToTheRight ) of
+                ( True, True ) ->
+                    playerVelocityAfterAcceleration
+
+                ( False, False ) ->
+                    playerVelocityAfterAcceleration
+
+                ( True, False ) ->
+                    ( (getY jumpVelocity) / 2, getY jumpVelocity )
+
+                ( False, True ) ->
+                    ( -(getY jumpVelocity) / 2, getY jumpVelocity )
 
         ( playerVelocityAfterJump, playerStateAfterJump ) =
             case controller.jump of
@@ -215,10 +265,17 @@ updateNormalPlay controller state tempProperties =
                             ( jumpVelocity, Jumping )
 
                         SlidingOnWall ->
-                            ( jumpVelocity, Jumping )
+                            ( nearWallJumpVelocity, Jumping )
 
                         Jumping ->
-                            ( playerVelocityAfterAcceleration, Jumping )
+                            let
+                                inFreeFall =
+                                    getY playerVelocityAfterAcceleration <= -15
+
+                                jumpYVelocity =
+                                    jumpUpOrAway controller.dPad inFreeFall (getY playerVelocityAfterAcceleration) (getY nearWallJumpVelocity)
+                            in
+                                ( ( getX nearWallJumpVelocity, jumpYVelocity ), Jumping )
 
                 Held ->
                     ( playerVelocityAfterAcceleration, player.playerState )
@@ -226,7 +283,7 @@ updateNormalPlay controller state tempProperties =
                 Released ->
                     let
                         earlyJumpTerminationVelocity =
-                            calculateEarlyJumpTerminationVelocity (getY jumpVelocity) (getY gravitationalAcceleration) tempProperties.maxJumpHeight tempProperties.minJumpHeight
+                            calculateEarlyJumpTerminationVelocity (getY jumpVelocity) (getY baseGravity) tempProperties.maxJumpHeight tempProperties.minJumpHeight
 
                         newVelocity =
                             if (getY playerVelocityAfterAcceleration > earlyJumpTerminationVelocity) then
@@ -247,7 +304,7 @@ updateNormalPlay controller state tempProperties =
             V2.add player.location playerVelocityAfterCap
 
         collidingTileGridCoords =
-            getCollidingTiles playerLocationAfterMovement player.size platforms
+            getCollidingTiles playerLocationAfterMovement player.hitBoxSize platforms
                 |> Set.fromList
                 |> Set.toList
 
@@ -255,7 +312,12 @@ updateNormalPlay controller state tempProperties =
             calculateGroundFrictionFromControllerState tempProperties.groundFriction controller.dPad
 
         ( playerLocationAfterCollision, playerVelocityAfterCollision, playerStateAfterCollision ) =
-            calculatePlayerAttributesFromCollision groundFriction tempProperties.wallFriction playerLocationAfterMovement playerVelocityAfterCap playerStateAfterJump player.size collidingTileGridCoords platforms
+            case List.any (\coordinate -> Dict.member coordinate platforms) collidingTileGridCoords of
+                True ->
+                    calculatePlayerAttributesFromCollision groundFriction tempProperties.wallFriction playerLocationAfterMovement playerVelocityAfterCap playerStateAfterJump player.hitBoxSize collidingTileGridCoords platforms
+
+                False ->
+                    ( playerLocationAfterMovement, playerVelocityAfterCap, Jumping )
 
         updatedPlayer =
             { player
@@ -268,6 +330,42 @@ updateNormalPlay controller state tempProperties =
             | camera = Camera.follow 0.5 0.17 (V2.sub state.player.location ( -100, -100 )) state.camera
             , player = updatedPlayer
         }
+
+
+jumpUpOrAway : DPad -> Bool -> Float -> Float -> Float
+jumpUpOrAway dPad inFreeFall currentVelY jumpVelY =
+    case inFreeFall of
+        True ->
+            case dPad of
+                Up ->
+                    jumpVelY
+
+                UpRight ->
+                    jumpVelY
+
+                Right ->
+                    currentVelY
+
+                DownRight ->
+                    currentVelY
+
+                Down ->
+                    currentVelY
+
+                DownLeft ->
+                    currentVelY
+
+                Left ->
+                    currentVelY
+
+                UpLeft ->
+                    jumpVelY
+
+                NoDirection ->
+                    currentVelY
+
+        False ->
+            jumpVelY
 
 
 calculateGroundFrictionFromControllerState : Float -> DPad -> Float
@@ -309,7 +407,7 @@ renderNormalPlay : NormalPlayState -> List Renderable
 renderNormalPlay state =
     List.concat
         [ (List.map (\( gridCoordinate, platform ) -> renderPlatform Color.grey gridCoordinate) (Dict.toList state.platforms))
-        , [ renderPlayer state.resources state.player ]
+        , renderPlayer state.resources state.player
         ]
 
 

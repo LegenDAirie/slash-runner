@@ -6,8 +6,14 @@ module CollisionHelpers
 
 import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
-import Coordinates exposing (pixelToGridConversion, gridToPixelConversion, gridSquareSize)
 import Vector2 as V2 exposing (getX, getY)
+import Coordinates
+    exposing
+        ( pixelToGridConversion
+        , gridToPixelConversion
+        , gridSquareSize
+        , locationToGridCoordinate
+        )
 import GameTypes
     exposing
         ( Vector
@@ -57,35 +63,14 @@ getCollidingTiles playerLocation playerSize platforms =
         playerBottomRight =
             ( playerRightSide, playerBottom )
 
-        topLeftTileCoord =
-            playerTopLeft
-                |> vectorIntToFloat
-                |> pixelToGridConversion
-                |> gridToPixelConversion
-                |> vectorFloatToInt
-
-        topRightTileCoord =
-            playerTopRight
-                |> vectorIntToFloat
-                |> pixelToGridConversion
-                |> gridToPixelConversion
-                |> vectorFloatToInt
-
-        bottomLeftTileCoord =
-            playerBottomLeft
-                |> vectorIntToFloat
-                |> pixelToGridConversion
-                |> gridToPixelConversion
-                |> vectorFloatToInt
-
-        bottomRightTileCoord =
-            playerBottomRight
-                |> vectorIntToFloat
-                |> pixelToGridConversion
-                |> gridToPixelConversion
-                |> vectorFloatToInt
+        players4Corners =
+            [ playerTopLeft
+            , playerTopRight
+            , playerBottomLeft
+            , playerBottomRight
+            ]
     in
-        [ topLeftTileCoord, topRightTileCoord, bottomLeftTileCoord, bottomRightTileCoord ]
+        List.map (\location -> locationToGridCoordinate <| vectorIntToFloat location) players4Corners
 
 
 calculatePlayerAttributesFromCollision : Float -> Float -> Vector -> Vector -> PlayerState -> IntVector -> List IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
@@ -183,7 +168,7 @@ getCollisionDisplacementVector groundFriction wallFriction playerState boxOneXY 
                     True ->
                         case canDisplaceRight boxTwoXY platforms of
                             True ->
-                                ( ( amountOverlappingHorizontally, 0 ), ( fullStop, wallFriction ), SlidingOnWall )
+                                ( ( amountOverlappingHorizontally, 0 ), ( fullStop, noFriction ), SlidingOnWall )
 
                             False ->
                                 noDisplacement
@@ -191,7 +176,7 @@ getCollisionDisplacementVector groundFriction wallFriction playerState boxOneXY 
                     False ->
                         case canDisplaceLeft boxTwoXY platforms of
                             True ->
-                                ( ( -amountOverlappingHorizontally, 0 ), ( fullStop, wallFriction ), SlidingOnWall )
+                                ( ( -amountOverlappingHorizontally, 0 ), ( fullStop, noFriction ), SlidingOnWall )
 
                             False ->
                                 noDisplacement
