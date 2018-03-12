@@ -8,7 +8,12 @@ module GameTypes
         , vectorIntToFloat
         , vectorFloatToInt
         , intVectorAdd
-        , PlayerState(OnTheGround, Jumping, SlidingOnWall)
+        , PersistantPlayerState(Dead, Dashing)
+        , PlayerStateThisFrame
+            ( SlidingOnWall
+            , OnTheGround
+            , JumpingFalling
+            )
         )
 
 import Json.Decode exposing (Decoder)
@@ -53,16 +58,23 @@ intVectorDecoder =
 
 
 type alias Player =
-    { location : Vector
-    , velocity : Vector
+    { x : Float
+    , y : Float
+    , vx : Float
+    , vy : Float
     , spriteSize : IntVector
     , hitBoxSize : IntVector
-    , framesSinceLastChain : Int
-    , playerState : PlayerState
+    , playerState : Maybe PersistantPlayerState
     }
 
 
-type PlayerState
-    = OnTheGround
-    | Jumping
-    | SlidingOnWall
+type PersistantPlayerState
+    = Dead
+    | Dashing
+
+
+type PlayerStateThisFrame
+    = SlidingOnWall
+    | OnTheGround
+    | JumpingFalling
+    | PersistantState PersistantPlayerState

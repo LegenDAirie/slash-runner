@@ -1,12 +1,12 @@
 module CollisionHelpers
     exposing
-        ( getCollidingTiles
-        , calculatePlayerAttributesFromCollision
+        ( getOverlappingGridSquareCoord
+        , getDisplacement
+        , CollisionDirection(CollisionNegativeDirection, CollisionPositiveDirection)
         )
 
 import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
-import Vector2 as V2 exposing (getX, getY)
 import Coordinates
     exposing
         ( pixelToGridConversion
@@ -19,167 +19,89 @@ import GameTypes
         ( Vector
         , IntVector
         , Player
-        , PlayerState
-            ( OnTheGround
-            , Jumping
-            , SlidingOnWall
-            )
         , vectorFloatToInt
         , vectorIntToFloat
         , intVectorAdd
         )
 
 
-getCollidingTiles : Vector -> IntVector -> Dict IntVector Platform -> List IntVector
-getCollidingTiles playerLocation playerSize platforms =
+getOverlappingGridSquareCoord : Vector -> IntVector -> Dict IntVector Platform -> List IntVector
+getOverlappingGridSquareCoord location size platforms =
+    ------ only works for squares
     let
-        ( playerX, playerY ) =
-            playerLocation
+        ( x, y ) =
+            location
 
-        ( playerWidth, playerHeight ) =
-            playerSize
+        ( width, height ) =
+            size
 
-        playerLeftSide =
-            floor playerX
+        leftSide =
+            floor x
 
-        playerRightSide =
-            ceiling (playerX + toFloat playerWidth - 1)
+        rightSide =
+            ceiling (x + toFloat width - 1)
 
-        playerBottom =
-            floor playerY
+        bottom =
+            floor y
 
-        playerTop =
-            ceiling (playerY + toFloat playerHeight - 1)
+        top =
+            ceiling (y + toFloat height - 1)
 
-        playerTopLeft =
-            ( playerLeftSide, playerTop )
+        topLeft =
+            ( leftSide, top )
 
-        playerTopRight =
-            ( playerRightSide, playerTop )
+        topRight =
+            ( rightSide, top )
 
-        playerBottomLeft =
-            ( playerLeftSide, playerBottom )
+        bottomLeft =
+            ( leftSide, bottom )
 
-        playerBottomRight =
-            ( playerRightSide, playerBottom )
+        bottomRight =
+            ( rightSide, bottom )
 
-        players4Corners =
-            [ playerTopLeft
-            , playerTopRight
-            , playerBottomLeft
-            , playerBottomRight
+        box4Corners =
+            [ topLeft
+            , topRight
+            , bottomLeft
+            , bottomRight
             ]
     in
-        List.map (\location -> locationToGridCoordinate <| vectorIntToFloat location) players4Corners
+        List.map (\location -> locationToGridCoordinate <| vectorIntToFloat location) box4Corners
 
 
-calculatePlayerAttributesFromCollision : Float -> Float -> Vector -> Vector -> PlayerState -> IntVector -> List IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
-calculatePlayerAttributesFromCollision groundFriction wallFriction location velocity playerState playerSize gridCoordinates platforms =
-    ------------ This function is craaaaazy looking だが this will get cleaned up when friction is desided apon--------------
-    case gridCoordinates of
-        [] ->
-            ( location, velocity, playerState )
-
-        gridCoordinate :: rest ->
-            case Dict.get gridCoordinate platforms of
-                Nothing ->
-                    calculatePlayerAttributesFromCollision groundFriction wallFriction location velocity playerState playerSize rest platforms
-
-                Just _ ->
-                    let
-                        ( locationDisplacement, velocityDisplacement, newPlayerState ) =
-                            getCollisionDisplacementVector groundFriction wallFriction playerState location playerSize gridCoordinate ( 64, 64 ) platforms
-
-                        newLocation =
-                            V2.add location locationDisplacement
-
-                        ( velocityX, velocityY ) =
-                            velocity
-
-                        newVelocity =
-                            ( velocityX * getX velocityDisplacement, velocityY * getY velocityDisplacement )
-                    in
-                        calculatePlayerAttributesFromCollision groundFriction wallFriction newLocation newVelocity newPlayerState playerSize rest platforms
+type CollisionDirection
+    = CollisionPositiveDirection Float
+    | CollisionNegativeDirection Float
 
 
-getCollisionDisplacementVector : Float -> Float -> PlayerState -> Vector -> IntVector -> IntVector -> IntVector -> Dict IntVector Platform -> ( Vector, Vector, PlayerState )
-getCollisionDisplacementVector groundFriction wallFriction playerState boxOneXY boxOneWH boxTwoXY boxTwoWH platforms =
+getDisplacement : Int -> Float -> Int -> Float -> CollisionDirection
+getDisplacement widthOne positionOne widthTwo positionTwo =
     let
-        ( boxOneHalfWidth, boxOneHalfHeight ) =
-            V2.divideBy 2 (vectorIntToFloat boxOneWH)
+        halfWidthOne =
+            toFloat widthOne / 2
 
-        ( boxTwoHalfWidth, boxTwoHalfHeight ) =
-            V2.divideBy 2 (vectorIntToFloat boxTwoWH)
+        halfWidthTwo =
+            toFloat widthTwo / 2
 
-        verticalDistanceBetweenCenters =
-            abs (getY boxOneXY - toFloat (getY boxTwoXY))
+        minDistanceBetweenCenters =
+            halfWidthOne + halfWidthTwo
 
-        minnimumVerticalDistanceBetweenCenters =
-            (boxOneHalfHeight + boxTwoHalfHeight)
+        distanceBetweenCenters =
+            abs (positionOne - positionTwo)
 
-        horizontalDistanceBetweenCenters =
-            abs (getX boxOneXY - toFloat (getX boxTwoXY))
-
-        minnimumHorizontalDistanceBetweenCenters =
-            (boxOneHalfWidth + boxTwoHalfWidth)
-
-        boxOneIsAboveBoxTwo =
-            getY boxOneXY > toFloat (getY boxTwoXY)
-
-        amountOverlappingVertically =
-            max (minnimumVerticalDistanceBetweenCenters - verticalDistanceBetweenCenters) 0
-
-        boxOneIsRightOfBoxTwo =
-            getX boxOneXY > toFloat (getX boxTwoXY)
-
-        amountOverlappingHorizontally =
-            max (minnimumHorizontalDistanceBetweenCenters - horizontalDistanceBetweenCenters) 0
-
-        noDisplacement =
-            ( ( 0, 0 ), ( 1, 1 ), playerState )
-
-        noFriction =
-            1
-
-        fullStop =
-            0
+        overlap =
+            max (minDistanceBetweenCenters - distanceBetweenCenters) 0
     in
-        case amountOverlappingVertically <= amountOverlappingHorizontally of
+        case positionOne > positionTwo of
             True ->
-                case boxOneIsAboveBoxTwo of
-                    True ->
-                        case canDisplaceUp boxTwoXY platforms of
-                            True ->
-                                ( ( 0, amountOverlappingVertically ), ( groundFriction, fullStop ), OnTheGround )
-
-                            False ->
-                                noDisplacement
-
-                    False ->
-                        case canDisplaceDown boxTwoXY platforms of
-                            True ->
-                                ( ( 0, -amountOverlappingVertically ), ( noFriction, fullStop ), playerState )
-
-                            False ->
-                                noDisplacement
+                CollisionNegativeDirection overlap
 
             False ->
-                case boxOneIsRightOfBoxTwo of
-                    True ->
-                        case canDisplaceRight boxTwoXY platforms of
-                            True ->
-                                ( ( amountOverlappingHorizontally, 0 ), ( fullStop, noFriction ), SlidingOnWall )
+                CollisionPositiveDirection overlap
 
-                            False ->
-                                noDisplacement
 
-                    False ->
-                        case canDisplaceLeft boxTwoXY platforms of
-                            True ->
-                                ( ( -amountOverlappingHorizontally, 0 ), ( fullStop, noFriction ), SlidingOnWall )
 
-                            False ->
-                                noDisplacement
+-------------------- abstract this somehow plz --------------------------------------------------------------------
 
 
 canDisplaceLeft : IntVector -> Dict IntVector Platform -> Bool

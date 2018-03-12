@@ -5,7 +5,6 @@ module CreateLevel
         , updatePlayStateAfterKeyPress
         , updatePlayStateAfterMouseClick
         , renderLevelCreateScreen
-        , getLocationToFollowVelocity
         )
 
 import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay)
@@ -21,20 +20,6 @@ import Color
 import Coordinates exposing (gridSquareSize)
 import Vector2 as V2
 import Dict
-import Controller
-    exposing
-        ( DPad
-            ( Up
-            , UpRight
-            , Right
-            , DownRight
-            , Down
-            , DownLeft
-            , Left
-            , UpLeft
-            , NoDirection
-            )
-        )
 
 
 type alias LevelCreateState =
@@ -97,8 +82,10 @@ updatePlayStateAfterKeyPress keyboardState levelCreateState =
                 let
                     newPlayer =
                         { player
-                            | location = ( 0, 0 )
-                            , velocity = ( 0, 0 )
+                            | x = 0
+                            , y = 0
+                            , vx = 0
+                            , vy = 0
                         }
 
                     newCamera =
@@ -272,37 +259,6 @@ updatePlayStateAfterMouseClick windowSize cursorLocation cursorActive keyboardSt
             }
     in
         ( newLevelCreateState, encodedLevelData )
-
-
-getLocationToFollowVelocity : DPad -> Vector
-getLocationToFollowVelocity dPad =
-    case dPad of
-        Up ->
-            ( 0, 20 )
-
-        UpRight ->
-            ( 20, 20 )
-
-        Right ->
-            ( 20, 0 )
-
-        DownRight ->
-            ( 20, -20 )
-
-        Down ->
-            ( 0, -20 )
-
-        DownLeft ->
-            ( -20, -20 )
-
-        Left ->
-            ( -20, 0 )
-
-        UpLeft ->
-            ( -20, 20 )
-
-        NoDirection ->
-            ( 0, 0 )
 
 
 renderLevelCreateScreen : Vector -> LevelCreateState -> List Renderable

@@ -5,23 +5,9 @@ module Controller
         , initialControllerState
         , calculateControllerStateFromGamePad
         , GamePad
-        , ButtonState
-            ( Pressed
-            , Held
-            , Released
-            , Inactive
-            )
-        , DPad
-            ( Up
-            , UpRight
-            , Right
-            , DownRight
-            , Down
-            , DownLeft
-            , Left
-            , UpLeft
-            , NoDirection
-            )
+        , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
+        , DPadVertical(DPadUp, DPadDown, NoVerticalDPad)
+        , ButtonState(Pressed, Held, Released, Inactive)
         )
 
 import Keyboard.Extra
@@ -84,28 +70,37 @@ calculateButtonState isPressed currentButtonState =
 
 
 type alias Controller =
-    { dPad : DPad
+    { dPadHorizontal : DPadHorizontal
+    , dPadVertical : DPadVertical
     , jump : ButtonState
     , dash : ButtonState
     , start : ButtonState
     }
 
 
-type DPad
-    = Up
-    | UpRight
-    | Right
-    | DownRight
-    | Down
-    | DownLeft
-    | Left
-    | UpLeft
-    | NoDirection
+type alias DPad dPad =
+    { dPad
+        | dPadHorizontal : DPadHorizontal
+        , dPadVertical : DPadVertical
+    }
+
+
+type DPadHorizontal
+    = DPadLeft
+    | DPadRight
+    | NoHorizontalDPad
+
+
+type DPadVertical
+    = DPadUp
+    | DPadDown
+    | NoVerticalDPad
 
 
 initialControllerState : Controller
 initialControllerState =
-    { dPad = NoDirection
+    { dPadHorizontal = NoHorizontalDPad
+    , dPadVertical = NoVerticalDPad
     , jump = Inactive
     , dash = Inactive
     , start = Inactive
@@ -130,37 +125,38 @@ calculateControllerStateFromKeyboardState keyboardState controllerState =
         wasd =
             Keyboard.Extra.wasdDirection keyboardState
 
-        direction =
+        ( horizontalDirection, verticalDirection ) =
             case wasd of
                 Keyboard.Extra.North ->
-                    Up
+                    ( NoHorizontalDPad, DPadUp )
 
                 Keyboard.Extra.NorthEast ->
-                    UpRight
+                    ( DPadRight, DPadUp )
 
                 Keyboard.Extra.East ->
-                    Right
+                    ( DPadRight, NoVerticalDPad )
 
                 Keyboard.Extra.SouthEast ->
-                    DownRight
+                    ( DPadRight, DPadDown )
 
                 Keyboard.Extra.South ->
-                    Down
+                    ( NoHorizontalDPad, DPadDown )
 
                 Keyboard.Extra.SouthWest ->
-                    DownLeft
+                    ( DPadLeft, DPadDown )
 
                 Keyboard.Extra.West ->
-                    Left
+                    ( DPadLeft, NoVerticalDPad )
 
                 Keyboard.Extra.NorthWest ->
-                    UpLeft
+                    ( DPadLeft, DPadUp )
 
                 Keyboard.Extra.NoDirection ->
-                    NoDirection
+                    ( NoHorizontalDPad, NoVerticalDPad )
     in
         { controllerState
-            | dPad = direction
+            | dPadHorizontal = horizontalDirection
+            , dPadVertical = verticalDirection
             , jump = calculateButtonState jumpPressed controllerState.jump
             , dash = calculateButtonState dashPressed controllerState.dash
             , start = calculateButtonState startPressed controllerState.start
@@ -170,30 +166,35 @@ calculateControllerStateFromKeyboardState keyboardState controllerState =
 calculateControllerStateFromGamePad : GamePad -> Controller -> Controller
 calculateControllerStateFromGamePad gamePad controllerState =
     let
-        direction =
+        ( horizontalDirection, verticalDirection ) =
             if gamePad.up then
                 if gamePad.right then
-                    UpRight
+                    ( DPadRight, DPadUp )
                 else if gamePad.left then
-                    UpLeft
+                    ( DPadLeft, DPadUp )
                 else
-                    Up
+                    ( NoHorizontalDPad, DPadUp )
             else if gamePad.down then
                 if gamePad.right then
-                    DownRight
+                    ( DPadRight, DPadDown )
                 else if gamePad.left then
-                    DownLeft
+                    ( DPadLeft, DPadDown )
                 else
-                    Down
+                    ( NoHorizontalDPad, DPadDown )
             else if gamePad.left then
-                Left
+                ( DPadLeft, NoVerticalDPad )
             else if gamePad.right then
-                Right
+                ( DPadRight, NoVerticalDPad )
             else
-                NoDirection
+                ( NoHorizontalDPad, NoVerticalDPad )
     in
         { controllerState
-            | dPad = direction
+            | dPadHorizontal = horizontalDirection
+            , dPadVertical = verticalDirection
             , jump = calculateButtonState gamePad.jump controllerState.jump
             , dash = calculateButtonState gamePad.dash controllerState.dash
         }
+
+
+
+------------------------- controller helpers -------------------------------------

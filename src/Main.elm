@@ -22,22 +22,13 @@ import Controller
         , calculateControllerStateFromKeyboardState
         , initialControllerState
         , calculateControllerStateFromGamePad
+        , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
+        , DPadVertical(DPadUp, DPadDown, NoVerticalDPad)
         , ButtonState
             ( Pressed
             , Held
             , Released
             , Inactive
-            )
-        , DPad
-            ( Up
-            , UpRight
-            , Right
-            , DownRight
-            , Down
-            , DownLeft
-            , Left
-            , UpLeft
-            , NoDirection
             )
         )
 import Screens.NormalPlay
@@ -57,7 +48,6 @@ import CreateLevel
         , updatePlayStateAfterKeyPress
         , updatePlayStateAfterMouseClick
         , renderLevelCreateScreen
-        , getLocationToFollowVelocity
         )
 
 
@@ -350,10 +340,33 @@ update msg model =
                             updatedLocationForCameraToFollow =
                                 case playStateAfterPausedUpdate.paused of
                                     True ->
-                                        V2.add newLevelCreateState.locationForCameraToFollow (getLocationToFollowVelocity updatedController.dPad)
+                                        let
+                                            vx =
+                                                case updatedController.dPadHorizontal of
+                                                    DPadRight ->
+                                                        20
+
+                                                    DPadLeft ->
+                                                        -20
+
+                                                    NoHorizontalDPad ->
+                                                        0
+
+                                            vy =
+                                                case updatedController.dPadVertical of
+                                                    DPadUp ->
+                                                        20
+
+                                                    DPadDown ->
+                                                        -20
+
+                                                    NoVerticalDPad ->
+                                                        0
+                                        in
+                                            V2.add newLevelCreateState.locationForCameraToFollow ( vx, vy )
 
                                     False ->
-                                        playStateAfterPausedUpdate.player.location
+                                        ( playStateAfterPausedUpdate.player.x, playStateAfterPausedUpdate.player.y )
 
                             updatedPlayState =
                                 case playStateAfterPausedUpdate.paused of

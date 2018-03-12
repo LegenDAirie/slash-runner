@@ -10,17 +10,17 @@ import GameTypes exposing (Player, Vector, vectorIntToFloat)
 getPlayerLeftKickPoint : Player -> Vector
 getPlayerLeftKickPoint player =
     let
-        { hitBoxSize, spriteSize, location } =
+        { hitBoxSize, spriteSize, x, y } =
             player
 
         spriteHitBoxSizeDif =
             getX spriteSize - getX hitBoxSize
 
         spriteBoxLeftSide =
-            getX location - toFloat spriteHitBoxSizeDif / 2
+            x - toFloat spriteHitBoxSizeDif / 2
 
         kickPointY =
-            ((toFloat <| getY player.hitBoxSize) / 2) + getY player.location
+            ((toFloat <| getY player.hitBoxSize) / 2) + y
     in
         ( spriteBoxLeftSide, kickPointY )
 
@@ -28,17 +28,17 @@ getPlayerLeftKickPoint player =
 getPlayerRightKickPoint : Player -> Vector
 getPlayerRightKickPoint player =
     let
-        { hitBoxSize, spriteSize, location } =
+        { hitBoxSize, spriteSize } =
             player
 
         spriteHitBoxSizeDif =
             getX spriteSize - getX hitBoxSize
 
         spriteBoxRightSide =
-            toFloat spriteHitBoxSizeDif / 2 + (toFloat <| getX player.hitBoxSize) + getX player.location
+            toFloat spriteHitBoxSizeDif / 2 + (toFloat <| getX player.hitBoxSize) + player.x
 
         kickPointY =
-            ((toFloat <| getY player.hitBoxSize) / 2) + getY player.location
+            ((toFloat <| getY player.hitBoxSize) / 2) + player.y
     in
         ( spriteBoxRightSide, kickPointY )
 
@@ -46,18 +46,21 @@ getPlayerRightKickPoint player =
 renderPlayer : Resources -> Player -> List Renderable
 renderPlayer resources player =
     let
+        { x, y } =
+            player
+
         hitBox =
             Render.shape
                 Render.rectangle
                 { color = Color.blue
-                , position = player.location
+                , position = ( x, y )
                 , size = vectorIntToFloat player.hitBoxSize
                 }
 
         fullSprite =
             Render.sprite
                 { texture = Resources.getTexture "./assets/player-background-glow.png" resources
-                , position = V2.sub player.location ( 32, 32 )
+                , position = ( x - 32, y - 32 )
                 , size = vectorIntToFloat player.spriteSize
                 }
     in
