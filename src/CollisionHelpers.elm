@@ -21,7 +21,6 @@ import GameTypes
         , Player
         , vectorFloatToInt
         , vectorIntToFloat
-        , intVectorAdd
         )
 
 
@@ -36,16 +35,16 @@ getOverlappingGridSquareCoord location size platforms =
             size
 
         leftSide =
-            floor x
+            round x
 
         rightSide =
-            ceiling (x + toFloat width - 1)
+            round (x + toFloat width - 1)
 
         bottom =
-            floor y
+            round y
 
         top =
-            ceiling (y + toFloat height - 1)
+            round (y + toFloat height - 1)
 
         topLeft =
             ( leftSide, top )
@@ -75,16 +74,16 @@ type CollisionDirection
 
 
 getDisplacement : Int -> Float -> Int -> Float -> CollisionDirection
-getDisplacement widthOne positionOne widthTwo positionTwo =
+getDisplacement sizeOne positionOne sizeTwo positionTwo =
     let
-        halfWidthOne =
-            toFloat widthOne / 2
+        halfSizeOne =
+            toFloat sizeOne / 2
 
-        halfWidthTwo =
-            toFloat widthTwo / 2
+        halfSizeTwo =
+            toFloat sizeTwo / 2
 
         minDistanceBetweenCenters =
-            halfWidthOne + halfWidthTwo
+            halfSizeOne + halfSizeTwo
 
         distanceBetweenCenters =
             abs (positionOne - positionTwo)
@@ -98,55 +97,3 @@ getDisplacement widthOne positionOne widthTwo positionTwo =
 
             False ->
                 CollisionPositiveDirection overlap
-
-
-
--------------------- abstract this somehow plz --------------------------------------------------------------------
-
-
-canDisplaceLeft : IntVector -> Dict IntVector Platform -> Bool
-canDisplaceLeft platformLocation platforms =
-    let
-        ( width, height ) =
-            gridSquareSize
-
-        leftNeighbor =
-            intVectorAdd platformLocation ( -width, 0 )
-    in
-        not (Dict.member leftNeighbor platforms)
-
-
-canDisplaceRight : IntVector -> Dict IntVector Platform -> Bool
-canDisplaceRight platformLocation platforms =
-    let
-        ( width, height ) =
-            gridSquareSize
-
-        rightNeighbor =
-            intVectorAdd platformLocation ( width, 0 )
-    in
-        not (Dict.member rightNeighbor platforms)
-
-
-canDisplaceUp : IntVector -> Dict IntVector Platform -> Bool
-canDisplaceUp platformLocation platforms =
-    let
-        ( width, height ) =
-            gridSquareSize
-
-        aboveNeighbor =
-            intVectorAdd platformLocation ( 0, height )
-    in
-        not (Dict.member aboveNeighbor platforms)
-
-
-canDisplaceDown : IntVector -> Dict IntVector Platform -> Bool
-canDisplaceDown platformLocation platforms =
-    let
-        ( width, height ) =
-            gridSquareSize
-
-        belowNeighbor =
-            intVectorAdd platformLocation ( 0, -height )
-    in
-        not (Dict.member belowNeighbor platforms)

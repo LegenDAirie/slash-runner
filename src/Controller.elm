@@ -194,7 +194,3 @@ calculateControllerStateFromGamePad gamePad controllerState =
             , jump = calculateButtonState gamePad.jump controllerState.jump
             , dash = calculateButtonState gamePad.dash controllerState.dash
         }
-
-
-
-------------------------- controller helpers -------------------------------------

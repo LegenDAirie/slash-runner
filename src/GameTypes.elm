@@ -7,13 +7,7 @@ module GameTypes
         , intVectorDecoder
         , vectorIntToFloat
         , vectorFloatToInt
-        , intVectorAdd
-        , PersistantPlayerState(Dead, Dashing)
-        , PlayerStateThisFrame
-            ( SlidingOnWall
-            , OnTheGround
-            , JumpingFalling
-            )
+        , PersistantPlayerState(Dead, Dashing, OnTheGround)
         )
 
 import Json.Decode exposing (Decoder)
@@ -26,11 +20,6 @@ type alias Vector =
 
 type alias IntVector =
     ( Int, Int )
-
-
-intVectorAdd : IntVector -> IntVector -> IntVector
-intVectorAdd ( x1, y1 ) ( x2, y2 ) =
-    ( x1 + x2, y1 + y2 )
 
 
 vectorFloatToInt : Vector -> IntVector
@@ -71,10 +60,4 @@ type alias Player =
 type PersistantPlayerState
     = Dead
     | Dashing
-
-
-type PlayerStateThisFrame
-    = SlidingOnWall
     | OnTheGround
-    | JumpingFalling
-    | PersistantState PersistantPlayerState

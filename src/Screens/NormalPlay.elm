@@ -30,12 +30,7 @@ import GameTypes
         , Player
         , vectorFloatToInt
         , vectorIntToFloat
-        , PersistantPlayerState(Dead, Dashing)
-        , PlayerStateThisFrame
-            ( SlidingOnWall
-            , OnTheGround
-            , JumpingFalling
-            )
+        , PersistantPlayerState(Dead, Dashing, OnTheGround)
         )
 import Controller
     exposing
@@ -86,7 +81,7 @@ initialNormalPlayState =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = Player -300 0 0 0 ( 128, 128 ) ( 64, 64 ) Nothing
+        { player = Player 0 0 0 0 ( 128, 128 ) ( 64, 64 ) Nothing
         , permanentEnemies = []
         , enemies = []
         , platforms = Dict.empty
@@ -105,7 +100,7 @@ createLevel levelData =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = Player -300 0 0 0 ( 128, 128 ) ( 64, 64 ) Nothing
+        { player = Player 0 0 0 0 ( 128, 128 ) ( 64, 64 ) Nothing
         , platforms = levelData.platforms
         , camera = Camera.fixedWidth gameWidth startingPoint
         , resources = Resources.init
@@ -151,23 +146,6 @@ updateNormalPlay controller state tempProperties =
     -- ideally one collision function will take in a player and enemy and return new versions of each
     -- it's ok if Elm code gets long! yay!
     let
-        ---- dont apply ground friction if left or right is pressed
-        ---- calc dpad forces
-        ------ update player x
-        ---- add forces to xVel
-        ---- apply horizontal jump if needed
-        ---- add xVel to xLocation
-        ---- check for collision
-        ---- displace player out of collision
-        ---- is player sliding on wall?
-        ---- calc gravity
-        ------ update player y
-        ---- add forces to yVel
-        ---- apply vertical jump if needed
-        ---- add yVel to yLocation
-        ---- check for collision
-        ---- displace player out of collision
-        ----- calc new player state if not handled by everything else
         { player, platforms } =
             state
 
@@ -184,19 +162,7 @@ updateNormalPlay controller state tempProperties =
         fullStop =
             0
 
-        ---- dont apply ground friction if left or right is pressed
-        groundFriction =
-            case controller.dPadHorizontal of
-                DPadRight ->
-                    noFriction
-
-                DPadLeft ->
-                    noFriction
-
-                NoHorizontalDPad ->
-                    tempProperties.groundFriction
-
-        ---- calc dpad forces
+        -- ---- calc dpad forces
         dPadForce =
             case controller.dPadHorizontal of
                 DPadRight ->
@@ -226,11 +192,24 @@ updateNormalPlay controller state tempProperties =
                 |> locationToGridCoordinate
                 |> flip Dict.member platforms
 
-        inStateAbleToJumpOffWall =
-            True
+        inJumpablePlayerState =
+            case player.playerState of
+                Just state ->
+                    case state of
+                        Dashing ->
+                            True
+
+                        OnTheGround ->
+                            True
+
+                        Dead ->
+                            False
+
+                Nothing ->
+                    False
 
         isPlayerJumpingOffWall =
-            if inStateAbleToJumpOffWall && controller.jump == Pressed then
+            if controller.jump == Pressed && not (player.playerState == Just OnTheGround) then
                 case ( wallToTheLeft, wallToTheRight ) of
                     ( True, True ) ->
                         Nothing
@@ -283,15 +262,16 @@ updateNormalPlay controller state tempProperties =
             overlappingGridSquareCoords
                 |> List.filter (\coord -> Dict.member coord platforms)
                 |> List.map (\( x, y ) -> getHorizontalDisplacement <| toFloat x)
+                |> List.head
 
         --- displace out of collision
         --- update velocity accordingly
         ( playerXAfterDisplacement, playerVXAfterDisplacement ) =
             case horizontalDisplacements of
-                [] ->
+                Nothing ->
                     ( playerXLocationFirstUpdate, playerXVelCapped )
 
-                collision :: rest ->
+                Just collision ->
                     case collision of
                         CollisionNegativeDirection overlap ->
                             ( playerXLocationFirstUpdate + overlap, fullStop )
@@ -305,18 +285,18 @@ updateNormalPlay controller state tempProperties =
 
         isPlayerSlidingOnWall =
             case horizontalDisplacements of
-                [] ->
+                Nothing ->
                     False
 
-                collision :: rest ->
+                Just collision ->
                     case collision of
-                        CollisionNegativeDirection overlap ->
+                        CollisionNegativeDirection _ ->
                             if controller.dPadHorizontal == DPadLeft then
                                 True
                             else
                                 False
 
-                        CollisionPositiveDirection overlap ->
+                        CollisionPositiveDirection _ ->
                             if controller.dPadHorizontal == DPadRight then
                                 True
                             else
@@ -330,10 +310,21 @@ updateNormalPlay controller state tempProperties =
                 False ->
                     baseGravity + player.vy
 
+        isPlayerJumping =
+            case isPlayerJumpingOffWall of
+                Nothing ->
+                    inJumpablePlayerState
+
+                Just _ ->
+                    True
+
         playerYVelFirstUpdate =
             case controller.jump of
                 Pressed ->
-                    baseJumpVelocityY
+                    if isPlayerJumping && playerYVelAfterGravity >= -25 then
+                        baseJumpVelocityY
+                    else
+                        playerYVelAfterGravity
 
                 Held ->
                     playerYVelAfterGravity
@@ -351,7 +342,7 @@ updateNormalPlay controller state tempProperties =
             capPlayerVelocity playerYVelFirstUpdate
 
         playerYLocationFirstUpdate =
-            player.x + playerYVelCapped
+            player.y + playerYVelCapped
 
         overlappingGridSquareCoordsAgain =
             getOverlappingGridSquareCoord ( playerXAfterDisplacement, playerYLocationFirstUpdate ) player.hitBoxSize platforms
@@ -360,36 +351,50 @@ updateNormalPlay controller state tempProperties =
 
         getVerticalDisplacement : Float -> CollisionDirection
         getVerticalDisplacement =
-            getDisplacement (getX player.hitBoxSize) playerYLocationFirstUpdate (getX platformSize)
+            getDisplacement (getY player.hitBoxSize) playerYLocationFirstUpdate (getY platformSize)
 
         verticalDisplacements =
             overlappingGridSquareCoordsAgain
                 |> List.filter (\coord -> Dict.member coord platforms)
                 |> List.map (\( x, y ) -> getVerticalDisplacement <| toFloat y)
+                |> List.head
 
-        ( playerYAfterDisplacement, playerVYAfterDisplacement ) =
+        ( playerYAfterDisplacement, playerVYAfterDisplacement, groundCollisionHappend ) =
             case verticalDisplacements of
-                [] ->
-                    ( playerYLocationFirstUpdate, playerYVelCapped )
+                Nothing ->
+                    ( playerYLocationFirstUpdate, playerYVelCapped, False )
 
-                collision :: rest ->
+                Just collision ->
                     case collision of
                         CollisionNegativeDirection overlap ->
-                            ( playerYLocationFirstUpdate + overlap, noFriction )
+                            ( playerYLocationFirstUpdate + overlap, fullStop, True )
 
                         CollisionPositiveDirection overlap ->
-                            ( playerYLocationFirstUpdate - overlap, fullStop )
+                            ( playerYLocationFirstUpdate - overlap, fullStop, True )
+
+        playerVXAfterGroundFriction =
+            if groundCollisionHappend && controller.dPadHorizontal == NoHorizontalDPad then
+                playerVXAfterDisplacement * tempProperties.groundFriction
+            else
+                playerVXAfterDisplacement
+
+        newPlayerState =
+            if groundCollisionHappend then
+                Just OnTheGround
+            else
+                Nothing
 
         updatedPlayer =
             { player
                 | x = playerXAfterDisplacement
                 , y = playerYAfterDisplacement
-                , vx = playerVXAfterDisplacement
+                , vx = playerVXAfterGroundFriction
                 , vy = playerVYAfterDisplacement
+                , playerState = newPlayerState
             }
     in
         { state
-            | camera = Camera.follow 0.5 0.17 (V2.sub ( playerXAfterDisplacement, playerYAfterDisplacement ) ( -100, -100 )) state.camera
+            | camera = Camera.follow 0.5 0.17 (V2.sub ( updatedPlayer.x, updatedPlayer.y ) ( -100, -100 )) state.camera
             , player = updatedPlayer
         }
 
