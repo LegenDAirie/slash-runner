@@ -8,6 +8,7 @@ module Screens.NormalPlay
         , updateNormalPlay
         , jsonToLevelData
         , TempProperties
+        , initialTempProperties
         )
 
 import Game.TwoD.Render as Render exposing (Renderable)
@@ -63,13 +64,41 @@ type alias NormalPlayState =
     }
 
 
+
+------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------
+-- These are here for play testing and deciding what feels best. Once the game feel has
+-- been decided these will be removed and replaced by constants
+
+
 type alias TempProperties =
     { framesToApex : Float
     , maxJumpHeight : Float
     , minJumpHeight : Float
-    , groundFriction : Float
     , wallFriction : Float
+    , maxWalkingSpeed : Float
+    , maxRunningSpeed : Float
+    , dPadAcceleration : Float
     }
+
+
+initialTempProperties : TempProperties
+initialTempProperties =
+    { framesToApex = 28
+    , maxJumpHeight = 256
+    , minJumpHeight = 16
+    , wallFriction = 0
+    , maxWalkingSpeed = 10
+    , maxRunningSpeed = 30
+    , dPadAcceleration = 0.5
+    }
+
+
+
+------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 
 initialNormalPlayState : NormalPlayState
@@ -115,9 +144,9 @@ type alias LevelData =
     }
 
 
-capPlayerVelocity : Float -> Float
-capPlayerVelocity velocity =
-    clamp -50 50 velocity
+capPlayerVelocity : Float -> Float -> Float
+capPlayerVelocity topSpeed velocity =
+    clamp -topSpeed topSpeed velocity
 
 
 calculateYGravityFromJumpProperties : Float -> Float -> Float
@@ -140,14 +169,27 @@ type Direction
     | Right
 
 
+calculateFriction : Float -> Float -> Float
+calculateFriction acceleration maxSpeed =
+    -((acceleration - maxSpeed) / maxSpeed)
+
+
 updateNormalPlay : Controller -> NormalPlayState -> TempProperties -> NormalPlayState
 updateNormalPlay controller state tempProperties =
     -- leave this function nice and huge, no need to abstract out to updateplayer, updateenemey or anything
-    -- ideally one collision function will take in a player and enemy and return new versions of each
     -- it's ok if Elm code gets long! yay!
     let
         { player, platforms } =
             state
+
+        noFriction =
+            1
+
+        fullStop =
+            0
+
+        maxFallSpeed =
+            15
 
         ------------------------------------------------------------------------
         ------------------------------------ Forces ----------------------------
@@ -156,20 +198,25 @@ updateNormalPlay controller state tempProperties =
             calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
                 |> negate
 
-        noFriction =
-            1
-
-        fullStop =
-            0
+        groundFriction =
+            if controller.dPadHorizontal == NoHorizontalDPad then
+                -- Player is coming to a stop
+                0.93
+            else if controller.dash == Held then
+                -- Player is running
+                calculateFriction tempProperties.dPadAcceleration tempProperties.maxRunningSpeed
+            else
+                -- Player is walking
+                calculateFriction tempProperties.dPadAcceleration tempProperties.maxWalkingSpeed
 
         -- ---- calc dpad forces
         dPadForce =
             case controller.dPadHorizontal of
                 DPadRight ->
-                    0.3
+                    tempProperties.dPadAcceleration
 
                 DPadLeft ->
-                    -0.3
+                    -tempProperties.dPadAcceleration
 
                 NoHorizontalDPad ->
                     0
@@ -242,11 +289,11 @@ updateNormalPlay controller state tempProperties =
                 Nothing ->
                     player.vx + dPadForce
 
-        playerXVelCapped =
-            capPlayerVelocity playerXVelFirstUpdate
+        playerXVelAfterFriction =
+            playerXVelFirstUpdate * groundFriction
 
         playerXLocationFirstUpdate =
-            player.x + playerXVelCapped
+            player.x + playerXVelAfterFriction
 
         --- check for collision
         overlappingGridSquareCoords =
@@ -269,7 +316,7 @@ updateNormalPlay controller state tempProperties =
         ( playerXAfterDisplacement, playerVXAfterDisplacement ) =
             case horizontalDisplacements of
                 Nothing ->
-                    ( playerXLocationFirstUpdate, playerXVelCapped )
+                    ( playerXLocationFirstUpdate, playerXVelAfterFriction )
 
                 Just collision ->
                     case collision of
@@ -339,7 +386,7 @@ updateNormalPlay controller state tempProperties =
                     playerYVelAfterGravity
 
         playerYVelCapped =
-            capPlayerVelocity playerYVelFirstUpdate
+            capPlayerVelocity maxFallSpeed playerYVelFirstUpdate
 
         playerYLocationFirstUpdate =
             player.y + playerYVelCapped
@@ -372,12 +419,6 @@ updateNormalPlay controller state tempProperties =
                         CollisionPositiveDirection overlap ->
                             ( playerYLocationFirstUpdate - overlap, fullStop, True )
 
-        playerVXAfterGroundFriction =
-            if groundCollisionHappend && controller.dPadHorizontal == NoHorizontalDPad then
-                playerVXAfterDisplacement * tempProperties.groundFriction
-            else
-                playerVXAfterDisplacement
-
         newPlayerState =
             if groundCollisionHappend then
                 Just OnTheGround
@@ -388,7 +429,7 @@ updateNormalPlay controller state tempProperties =
             { player
                 | x = playerXAfterDisplacement
                 , y = playerYAfterDisplacement
-                , vx = playerVXAfterGroundFriction
+                , vx = playerVXAfterDisplacement
                 , vy = playerVYAfterDisplacement
                 , playerState = newPlayerState
             }

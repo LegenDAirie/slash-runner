@@ -40,6 +40,7 @@ import Screens.NormalPlay
         , NormalPlayState
         , jsonToLevelData
         , TempProperties
+        , initialTempProperties
         )
 import CreateLevel
     exposing
@@ -89,8 +90,10 @@ type Msg
     | TweekJumpDuration Float
     | TweekMaxJumpHeight Float
     | TweekMinJumpHeight Float
-    | TweekGroundFriction Float
     | TweekWallFriction Float
+    | TweekMaxWalkingSpeed Float
+    | TweekMaxRunningSpeed Float
+    | TweekDPadAcceleration Float
 
 
 initialModel : Model
@@ -99,7 +102,7 @@ initialModel =
     , keyboard = Keyboard.Extra.initialState
     , controller = initialControllerState
     , gameScreen = CreateLevel initialLevelCreateState
-    , temporaryProperties = TempProperties 28 256 16 0.95 0
+    , temporaryProperties = initialTempProperties
     }
 
 
@@ -129,51 +132,92 @@ update msg model =
 
         TweekJumpDuration framesToApex ->
             let
-                { maxJumpHeight, minJumpHeight, groundFriction, wallFriction } =
-                    model.temporaryProperties
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | framesToApex = framesToApex }
             in
                 { model
-                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                    | temporaryProperties = newTempProps
                 }
                     ! []
 
         TweekMaxJumpHeight maxJumpHeight ->
             let
-                { framesToApex, minJumpHeight, groundFriction, wallFriction } =
-                    model.temporaryProperties
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | maxJumpHeight = maxJumpHeight }
             in
                 { model
-                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                    | temporaryProperties = newTempProps
                 }
                     ! []
 
         TweekMinJumpHeight minJumpHeight ->
             let
-                { framesToApex, maxJumpHeight, groundFriction, wallFriction } =
-                    model.temporaryProperties
-            in
-                { model
-                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
-                }
-                    ! []
+                { temporaryProperties } =
+                    model
 
-        TweekGroundFriction groundFriction ->
-            let
-                { framesToApex, maxJumpHeight, minJumpHeight, wallFriction } =
-                    model.temporaryProperties
+                newTempProps =
+                    { temporaryProperties | minJumpHeight = minJumpHeight }
             in
                 { model
-                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                    | temporaryProperties = newTempProps
                 }
                     ! []
 
         TweekWallFriction wallFriction ->
             let
-                { framesToApex, maxJumpHeight, minJumpHeight, groundFriction } =
-                    model.temporaryProperties
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | wallFriction = wallFriction }
             in
                 { model
-                    | temporaryProperties = TempProperties framesToApex maxJumpHeight minJumpHeight groundFriction wallFriction
+                    | temporaryProperties = newTempProps
+                }
+                    ! []
+
+        TweekMaxWalkingSpeed maxWalkingSpeed ->
+            let
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | maxWalkingSpeed = maxWalkingSpeed }
+            in
+                { model
+                    | temporaryProperties = newTempProps
+                }
+                    ! []
+
+        TweekMaxRunningSpeed maxRunningSpeed ->
+            let
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | maxRunningSpeed = maxRunningSpeed }
+            in
+                { model
+                    | temporaryProperties = newTempProps
+                }
+                    ! []
+
+        TweekDPadAcceleration dPadAcceleration ->
+            let
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | dPadAcceleration = dPadAcceleration }
+            in
+                { model
+                    | temporaryProperties = newTempProps
                 }
                     ! []
 
@@ -491,18 +535,6 @@ view model =
                         []
                     ]
                 , div []
-                    [ text "Floor Friction"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "0.99"
-                        , Html.Attributes.min "0.90"
-                        , Html.Attributes.step "0.01"
-                        , Html.Attributes.value (toString model.temporaryProperties.groundFriction)
-                        , onInput (\stringNumber -> TweekGroundFriction <| clamp 0.9 0.99 <| Result.withDefault 0 (String.toFloat stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
                     [ text "Wall Friction"
                     , input
                         [ type_ "number"
@@ -511,6 +543,42 @@ view model =
                         , Html.Attributes.step "0.05"
                         , Html.Attributes.value (toString model.temporaryProperties.wallFriction)
                         , onInput (\stringNumber -> TweekWallFriction <| clamp 0 0.9 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Max Walking Speed"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "25"
+                        , Html.Attributes.min "5"
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.temporaryProperties.maxWalkingSpeed)
+                        , onInput (\stringNumber -> TweekMaxWalkingSpeed <| clamp 5 25 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Max Running Speed"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "50"
+                        , Html.Attributes.min <| toString model.temporaryProperties.maxWalkingSpeed
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.temporaryProperties.maxRunningSpeed)
+                        , onInput (\stringNumber -> TweekMaxRunningSpeed <| clamp model.temporaryProperties.maxWalkingSpeed 50 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "DPad Acceleration"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "3"
+                        , Html.Attributes.min "0.1"
+                        , Html.Attributes.step "0.1"
+                        , Html.Attributes.value (toString model.temporaryProperties.dPadAcceleration)
+                        , onInput (\stringNumber -> TweekDPadAcceleration <| clamp 0.1 3 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]

@@ -78,13 +78,6 @@ type alias Controller =
     }
 
 
-type alias DPad dPad =
-    { dPad
-        | dPadHorizontal : DPadHorizontal
-        , dPadVertical : DPadVertical
-    }
-
-
 type DPadHorizontal
     = DPadLeft
     | DPadRight
