@@ -225,7 +225,7 @@ updateNormalPlay controller state tempProperties =
             calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight baseGravity
 
         wallJumpVelocityX =
-            baseJumpVelocityY / 2
+            baseJumpVelocityY
 
         wallToTheRight =
             player
