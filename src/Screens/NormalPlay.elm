@@ -68,8 +68,6 @@ type alias NormalPlayState =
 ------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------
--- These are here for play testing and deciding what feels best. Once the game feel has
--- been decided these will be removed and replaced by constants
 
 
 type alias TempProperties =
@@ -144,9 +142,12 @@ type alias LevelData =
     }
 
 
-capPlayerVelocity : Float -> Float -> Float
-capPlayerVelocity topSpeed velocity =
-    clamp -topSpeed topSpeed velocity
+
+--------------------------------------------------------------------------------
+------------------------temporary functions ------------------------------------
+--------------------------------------------------------------------------------
+-- These are here for play testing and deciding what feels best. Once the game feel has
+-- been decided these will be removed and replaced by constants
 
 
 calculateYGravityFromJumpProperties : Float -> Float -> Float
@@ -164,14 +165,35 @@ calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJu
     sqrt <| abs ((initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight)))
 
 
+calculateFriction : Float -> Float -> Float
+calculateFriction acceleration maxSpeed =
+    -((acceleration - maxSpeed) / maxSpeed)
+
+
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+--
+--------------------------------------------------------------------------------
+---------------------------Helper functions-------------------------------------
+--------------------------------------------------------------------------------
+
+
 type Direction
     = Left
     | Right
 
 
-calculateFriction : Float -> Float -> Float
-calculateFriction acceleration maxSpeed =
-    -((acceleration - maxSpeed) / maxSpeed)
+capPlayerVelocity : Float -> Float -> Float
+capPlayerVelocity topSpeed velocity =
+    clamp -topSpeed topSpeed velocity
+
+
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 
 updateNormalPlay : Controller -> NormalPlayState -> TempProperties -> NormalPlayState
@@ -276,6 +298,15 @@ updateNormalPlay controller state tempProperties =
         --------------------------------- Update Player ------------------------
         ------------------------------------------------------------------------
         ----- Player X
+        getDirection number =
+            if number < 0 then
+                -1
+            else
+                1
+
+        hasPlayerStartedADash =
+            player.playerState == Just OnTheGround && controller.dash == Pressed
+
         playerXVelFirstUpdate =
             case isPlayerJumpingOffWall of
                 Just direction ->
@@ -287,7 +318,18 @@ updateNormalPlay controller state tempProperties =
                             -wallJumpVelocityX
 
                 Nothing ->
-                    player.vx + dPadForce
+                    if hasPlayerStartedADash then
+                        case controller.dPadHorizontal of
+                            DPadLeft ->
+                                -tempProperties.maxRunningSpeed
+
+                            DPadRight ->
+                                tempProperties.maxRunningSpeed
+
+                            NoHorizontalDPad ->
+                                getDirection player.vx * tempProperties.maxWalkingSpeed
+                    else
+                        player.vx + dPadForce
 
         playerXVelAfterFriction =
             playerXVelFirstUpdate * groundFriction
