@@ -8,7 +8,6 @@ module GamePlatform
         )
 
 import GameTypes exposing (Vector, IntVector, intVectorDecoder, vectorIntToFloat)
-import Coordinates exposing (gridSquareSize)
 import Game.TwoD.Render as Render exposing (Renderable)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
@@ -27,7 +26,7 @@ type PlatformType
 
 platformSize : IntVector
 platformSize =
-    gridSquareSize
+    ( 64, 64 )
 
 
 renderPlatform : Color -> IntVector -> Renderable

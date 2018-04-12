@@ -51,8 +51,6 @@ type alias Player =
     , y : Float
     , vx : Float
     , vy : Float
-    , spriteSize : IntVector
-    , hitBoxSize : IntVector
     , playerState : Maybe PersistantPlayerState
     }
 

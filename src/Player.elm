@@ -1,44 +1,48 @@
-module Player exposing (renderPlayer, getPlayerLeftKickPoint, getPlayerRightKickPoint)
+module Player exposing (renderPlayer, getPlayerLeftKickPoint, getPlayerRightKickPoint, playerSpriteSize, playerHitBoxSize)
 
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
 import Color
-import GameTypes exposing (Player, Vector, vectorIntToFloat)
+import GameTypes exposing (Player, Vector, vectorIntToFloat, IntVector)
 
 
-getPlayerLeftKickPoint : Player -> Vector
-getPlayerLeftKickPoint player =
+playerSpriteSize : IntVector
+playerSpriteSize =
+    ( 128, 128 )
+
+
+playerHitBoxSize : IntVector
+playerHitBoxSize =
+    ( 64, 64 )
+
+
+getPlayerLeftKickPoint : Vector -> Vector
+getPlayerLeftKickPoint ( x, y ) =
     let
-        { hitBoxSize, spriteSize, x, y } =
-            player
-
         spriteHitBoxSizeDif =
-            getX spriteSize - getX hitBoxSize
+            getX playerSpriteSize - getX playerHitBoxSize
 
         spriteBoxLeftSide =
             x - toFloat spriteHitBoxSizeDif / 2
 
         kickPointY =
-            ((toFloat <| getY player.hitBoxSize) / 2) + y
+            ((toFloat <| getY playerHitBoxSize) / 2) + y
     in
         ( spriteBoxLeftSide, kickPointY )
 
 
-getPlayerRightKickPoint : Player -> Vector
-getPlayerRightKickPoint player =
+getPlayerRightKickPoint : Vector -> Vector
+getPlayerRightKickPoint ( x, y ) =
     let
-        { hitBoxSize, spriteSize } =
-            player
-
         spriteHitBoxSizeDif =
-            getX spriteSize - getX hitBoxSize
+            getX playerSpriteSize - getX playerHitBoxSize
 
         spriteBoxRightSide =
-            toFloat spriteHitBoxSizeDif / 2 + (toFloat <| getX player.hitBoxSize) + player.x
+            toFloat spriteHitBoxSizeDif / 2 + (toFloat <| getX playerHitBoxSize) + x
 
         kickPointY =
-            ((toFloat <| getY player.hitBoxSize) / 2) + player.y
+            ((toFloat <| getY playerHitBoxSize) / 2) + y
     in
         ( spriteBoxRightSide, kickPointY )
 
@@ -54,14 +58,14 @@ renderPlayer resources player =
                 Render.rectangle
                 { color = Color.blue
                 , position = ( x, y )
-                , size = vectorIntToFloat player.hitBoxSize
+                , size = vectorIntToFloat playerHitBoxSize
                 }
 
         fullSprite =
             Render.sprite
                 { texture = Resources.getTexture "./assets/player-background-glow.png" resources
                 , position = ( x - 32, y - 32 )
-                , size = vectorIntToFloat player.spriteSize
+                , size = vectorIntToFloat playerSpriteSize
                 }
     in
         [ fullSprite
