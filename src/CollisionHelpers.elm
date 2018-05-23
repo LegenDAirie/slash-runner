@@ -7,21 +7,8 @@ module CollisionHelpers
 
 import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
-import Coordinates
-    exposing
-        ( pixelToGridConversion
-        , gridToPixelConversion
-        , gridSquareSize
-        , locationToGridCoordinate
-        )
-import GameTypes
-    exposing
-        ( Vector
-        , IntVector
-        , Player
-        , vectorFloatToInt
-        , vectorIntToFloat
-        )
+import Coordinates exposing (locationToGridCoordinate)
+import GameTypes exposing (IntVector, vectorIntToFloat)
 
 
 getGridCoordinatesPlayerIsOverlapping : Float -> Float -> IntVector -> Dict IntVector Platform -> List IntVector

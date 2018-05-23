@@ -15,7 +15,7 @@ import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
 import Color
 import Dict exposing (Dict)
-import Coordinates exposing (gameSize, pixelToGridConversion, gridToPixelConversion, locationToGridCoordinate)
+import Coordinates exposing (locationToGridCoordinate)
 import GamePlatform exposing (Platform, platformSize)
 import CollisionHelpers
     exposing
@@ -37,12 +37,9 @@ import Controller
         ( Controller
         , ButtonState
             ( Pressed
-            , Held
             , Released
-            , Inactive
             )
         , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
-        , DPadVertical(DPadUp, DPadDown, NoVerticalDPad)
         , isButtonDown
         )
 
