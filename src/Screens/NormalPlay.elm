@@ -9,37 +9,24 @@ module Screens.NormalPlay
         , jsonToLevelData
         )
 
+-- Libraries
+
 import Game.TwoD.Render as Render exposing (Renderable)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.Resources as Resources exposing (Resources)
-import Enemy exposing (Enemy)
-import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder, platformSize)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
 import Dict exposing (Dict)
-import Coordinates exposing (gameSize, pixelToGridConversion, gridToPixelConversion, locationToGridCoordinate)
 import Color
-import GameTypes
-    exposing
-        ( Vector
-        , IntVector
-        , Player
-        , TempProperties
-        , vectorFloatToInt
-        , vectorIntToFloat
-        )
-import Controller
-    exposing
-        ( Controller
-        , ButtonState
-            ( Pressed
-            , Held
-            , Released
-            , Inactive
-            )
-        , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
-        , DPadVertical(DPadUp, DPadDown, NoVerticalDPad)
-        )
+
+
+-- My Modules
+
+import Enemy exposing (Enemy)
+import Coordinates exposing (gameSize)
+import Controller exposing (Controller)
+import GameTypes exposing (IntVector, Player, TempProperties)
+import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
 import Player
     exposing
         ( renderPlayer
@@ -62,15 +49,6 @@ type alias NormalPlayState =
     , resources : Resources
     , paused : Bool
     }
-
-
-
-------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------------------
 
 
 initialNormalPlayState : NormalPlayState
@@ -112,57 +90,7 @@ createLevel levelData =
 
 
 type alias LevelData =
-    { platforms : Dict IntVector Platform
-    }
-
-
-
---------------------------------------------------------------------------------
-------------------------temporary functions ------------------------------------
---------------------------------------------------------------------------------
--- These are here for play testing and deciding what feels best. Once the game feel has
--- been decided these will be removed and replaced by constants
-
-
-calculateYGravityFromJumpProperties : Float -> Float -> Float
-calculateYGravityFromJumpProperties maxJumpHeight framesToApex =
-    (2 * maxJumpHeight) / (framesToApex * framesToApex)
-
-
-calculateInitialJumpVelocityFromJumpProperties : Float -> Float -> Float
-calculateInitialJumpVelocityFromJumpProperties maxJumpHeight gravity =
-    sqrt <| abs (2 * gravity * maxJumpHeight)
-
-
-calculateEarlyJumpTerminationVelocity : Float -> Float -> Float -> Float -> Float
-calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJumpHeight =
-    sqrt <| abs ((initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight)))
-
-
-calculateFriction : Float -> Float -> Float
-calculateFriction acceleration maxSpeed =
-    -((acceleration - maxSpeed) / maxSpeed)
-
-
-
-------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
-------------------------------------------------------------------------------------------------
---
---------------------------------------------------------------------------------
----------------------------Helper functions-------------------------------------
---------------------------------------------------------------------------------
-
-
-capPlayerVelocity : Float -> Float -> Float
-capPlayerVelocity topSpeed velocity =
-    clamp -topSpeed topSpeed velocity
-
-
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
+    { platforms : Dict IntVector Platform }
 
 
 updateNormalPlay : Controller -> NormalPlayState -> TempProperties -> NormalPlayState
