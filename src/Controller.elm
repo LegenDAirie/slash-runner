@@ -8,6 +8,7 @@ module Controller
         , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
         , DPadVertical(DPadUp, DPadDown, NoVerticalDPad)
         , ButtonState(Pressed, Held, Released, Inactive)
+        , isButtonDown
         )
 
 import Keyboard.Extra
@@ -31,8 +32,8 @@ type ButtonState
     | Inactive
 
 
-calculateButtonState : Bool -> ButtonState -> ButtonState
-calculateButtonState isPressed currentButtonState =
+updateButtonState : Bool -> ButtonState -> ButtonState
+updateButtonState isPressed currentButtonState =
     case isPressed of
         True ->
             case currentButtonState of
@@ -64,6 +65,28 @@ calculateButtonState isPressed currentButtonState =
 
 
 
+----------------------------------
+-- Helpers
+----------------------------------
+
+
+isButtonDown : ButtonState -> Bool
+isButtonDown buttonState =
+    case buttonState of
+        Pressed ->
+            True
+
+        Held ->
+            True
+
+        Released ->
+            False
+
+        Inactive ->
+            False
+
+
+
 --------------------------------------------------------------------------------
 --Controller
 --------------------------------------------------------------------------------
@@ -72,9 +95,9 @@ calculateButtonState isPressed currentButtonState =
 type alias Controller =
     { dPadHorizontal : DPadHorizontal
     , dPadVertical : DPadVertical
-    , jump : ButtonState
-    , dash : ButtonState
-    , start : ButtonState
+    , jumpButton : ButtonState
+    , dashButton : ButtonState
+    , startButton : ButtonState
     }
 
 
@@ -94,9 +117,9 @@ initialControllerState : Controller
 initialControllerState =
     { dPadHorizontal = NoHorizontalDPad
     , dPadVertical = NoVerticalDPad
-    , jump = Inactive
-    , dash = Inactive
-    , start = Inactive
+    , jumpButton = Inactive
+    , dashButton = Inactive
+    , startButton = Inactive
     }
 
 
@@ -150,9 +173,9 @@ calculateControllerStateFromKeyboardState keyboardState controllerState =
         { controllerState
             | dPadHorizontal = horizontalDirection
             , dPadVertical = verticalDirection
-            , jump = calculateButtonState jumpPressed controllerState.jump
-            , dash = calculateButtonState dashPressed controllerState.dash
-            , start = calculateButtonState startPressed controllerState.start
+            , jumpButton = updateButtonState jumpPressed controllerState.jumpButton
+            , dashButton = updateButtonState dashPressed controllerState.dashButton
+            , startButton = updateButtonState startPressed controllerState.startButton
         }
 
 
@@ -184,6 +207,6 @@ calculateControllerStateFromGamePad gamePad controllerState =
         { controllerState
             | dPadHorizontal = horizontalDirection
             , dPadVertical = verticalDirection
-            , jump = calculateButtonState gamePad.jump controllerState.jump
-            , dash = calculateButtonState gamePad.dash controllerState.dash
+            , jumpButton = updateButtonState gamePad.jump controllerState.jumpButton
+            , dashButton = updateButtonState gamePad.dash controllerState.dashButton
         }

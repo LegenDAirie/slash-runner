@@ -261,8 +261,8 @@ updatePlayStateAfterMouseClick windowSize cursorLocation cursorActive keyboardSt
         ( newLevelCreateState, encodedLevelData )
 
 
-renderLevelCreateScreen : Vector -> LevelCreateState -> List Renderable
-renderLevelCreateScreen windowSize levelCreateState =
+renderLevelCreateScreen : Vector -> LevelCreateState -> ( Int, Int ) -> List Renderable
+renderLevelCreateScreen windowSize levelCreateState ( dash, recover ) =
     let
         { itemToPlace, cursorLocation, playState } =
             levelCreateState
@@ -272,7 +272,7 @@ renderLevelCreateScreen windowSize levelCreateState =
     in
         List.concat
             [ [ renderCursorBlock itemToPlace (vectorIntToFloat newMouseLocation) ]
-            , renderNormalPlay playState
+            , renderNormalPlay playState ( dash, recover )
             ]
 
 

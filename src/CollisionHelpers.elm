@@ -1,7 +1,7 @@
 module CollisionHelpers
     exposing
-        ( getOverlappingGridSquareCoords
-        , getDisplacement
+        ( getGridCoordinatesPlayerIsOverlapping
+        , getCollisionWithDisplacement
         , CollisionDirection(CollisionNegativeDirection, CollisionPositiveDirection)
         )
 
@@ -24,13 +24,10 @@ import GameTypes
         )
 
 
-getOverlappingGridSquareCoords : Vector -> IntVector -> Dict IntVector Platform -> List IntVector
-getOverlappingGridSquareCoords location size platforms =
+getGridCoordinatesPlayerIsOverlapping : Float -> Float -> IntVector -> Dict IntVector Platform -> List IntVector
+getGridCoordinatesPlayerIsOverlapping x y size platforms =
     ------ only works for squares
     let
-        ( x, y ) =
-            location
-
         ( width, height ) =
             size
 
@@ -73,8 +70,8 @@ type CollisionDirection
     | CollisionNegativeDirection Float
 
 
-getDisplacement : Int -> Float -> Int -> Float -> CollisionDirection
-getDisplacement sizeOne positionOne sizeTwo positionTwo =
+getCollisionWithDisplacement : Int -> Float -> Int -> Float -> CollisionDirection
+getCollisionWithDisplacement sizeOne positionOne sizeTwo positionTwo =
     let
         halfSizeOne =
             toFloat sizeOne / 2

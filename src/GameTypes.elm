@@ -7,7 +7,8 @@ module GameTypes
         , intVectorDecoder
         , vectorIntToFloat
         , vectorFloatToInt
-        , PersistantPlayerState(Dead, Dashing, OnTheGround)
+        , PlayerState(Dashing, OnTheGround, RecoveringFromDash, InTheAir)
+        , TempProperties
         )
 
 import Json.Decode exposing (Decoder)
@@ -51,11 +52,32 @@ type alias Player =
     , y : Float
     , vx : Float
     , vy : Float
-    , playerState : Maybe PersistantPlayerState
+    , playerState : PlayerState
     }
 
 
-type PersistantPlayerState
-    = Dead
-    | Dashing
-    | OnTheGround
+type PlayerState
+    = Dashing Int
+    | RecoveringFromDash Int
+    | OnTheGround Int
+    | InTheAir Int
+
+
+
+-------------------------------------
+-- stupid temp TempProperties
+-----------------------------
+
+
+type alias TempProperties =
+    { framesToApex : Int
+    , maxJumpHeight : Float
+    , minJumpHeight : Float
+    , wallFriction : Float
+    , maxWalkingSpeed : Float
+    , maxRunningSpeed : Float
+    , dPadAcceleration : Float
+    , dashDuration : Int
+    , dashRecoveryDuration : Int
+    , buttonPressWindow : Int
+    }

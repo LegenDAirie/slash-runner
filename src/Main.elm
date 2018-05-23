@@ -13,7 +13,7 @@ import Task
 import MouseEvents exposing (MouseEvent, onMouseMove, onClick, relPos, onMouseDown, onMouseUp)
 import Keyboard.Extra
 import Json.Decode
-import GameTypes exposing (Vector, vectorIntToFloat)
+import GameTypes exposing (Vector, TempProperties, vectorIntToFloat)
 import Coordinates exposing (gameSize, calculateCanvasSize)
 import Controller
     exposing
@@ -39,8 +39,6 @@ import Screens.NormalPlay
         , renderNormalPlay
         , NormalPlayState
         , jsonToLevelData
-        , TempProperties
-        , initialTempProperties
         )
 import CreateLevel
     exposing
@@ -87,13 +85,31 @@ type Msg
     | ReceiveLevelData LevelData
     | MouseMove Vector
     | SetIsCursorActive Bool
-    | TweekJumpDuration Float
+    | TweekJumpDuration Int
     | TweekMaxJumpHeight Float
     | TweekMinJumpHeight Float
     | TweekWallFriction Float
     | TweekMaxWalkingSpeed Float
     | TweekMaxRunningSpeed Float
     | TweekDPadAcceleration Float
+    | TweekDashDuration Int
+    | TweekDashRecoveryDuration Int
+    | TweekButtonPressWindow Int
+
+
+initialTempProperties : TempProperties
+initialTempProperties =
+    { framesToApex = 28
+    , maxJumpHeight = 256
+    , minJumpHeight = 16
+    , wallFriction = 0
+    , maxWalkingSpeed = 10
+    , maxRunningSpeed = 30
+    , dPadAcceleration = 0.5
+    , dashDuration = 41
+    , dashRecoveryDuration = 41
+    , buttonPressWindow = 10
+    }
 
 
 initialModel : Model
@@ -215,6 +231,45 @@ update msg model =
 
                 newTempProps =
                     { temporaryProperties | dPadAcceleration = dPadAcceleration }
+            in
+                { model
+                    | temporaryProperties = newTempProps
+                }
+                    ! []
+
+        TweekDashDuration dashDuration ->
+            let
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | dashDuration = dashDuration }
+            in
+                { model
+                    | temporaryProperties = newTempProps
+                }
+                    ! []
+
+        TweekDashRecoveryDuration dashRecoveryDuration ->
+            let
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | dashRecoveryDuration = dashRecoveryDuration }
+            in
+                { model
+                    | temporaryProperties = newTempProps
+                }
+                    ! []
+
+        TweekButtonPressWindow buttonPressWindow ->
+            let
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | buttonPressWindow = buttonPressWindow }
             in
                 { model
                     | temporaryProperties = newTempProps
@@ -374,7 +429,7 @@ update msg model =
                                 newLevelCreateState
 
                             playStateAfterPausedUpdate =
-                                if updatedController.start == Pressed then
+                                if updatedController.startButton == Pressed then
                                     { playState
                                         | paused = not playState.paused
                                     }
@@ -464,10 +519,10 @@ view model =
                     ( Camera.fixedWidth (getX gameSize) ( 0, 0 ), [] )
 
                 NormalPlay state ->
-                    ( state.camera, renderNormalPlay state )
+                    ( state.camera, renderNormalPlay state ( model.temporaryProperties.dashDuration, model.temporaryProperties.buttonPressWindow ) )
 
                 CreateLevel levelCreateState ->
-                    ( levelCreateState.playState.camera, renderLevelCreateScreen model.windowSize levelCreateState )
+                    ( levelCreateState.playState.camera, renderLevelCreateScreen model.windowSize levelCreateState ( model.temporaryProperties.dashDuration, model.temporaryProperties.buttonPressWindow ) )
 
         canvasSize =
             calculateCanvasSize model.windowSize
@@ -506,7 +561,7 @@ view model =
                         , Html.Attributes.min "1"
                         , Html.Attributes.step "1"
                         , Html.Attributes.value (toString model.temporaryProperties.framesToApex)
-                        , onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        , onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Result.withDefault 0 (String.toInt stringNumber))
                         ]
                         []
                     ]
@@ -579,6 +634,42 @@ view model =
                         , Html.Attributes.step "0.1"
                         , Html.Attributes.value (toString model.temporaryProperties.dPadAcceleration)
                         , onInput (\stringNumber -> TweekDPadAcceleration <| clamp 0.1 3 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Dash Duration in frames"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "50"
+                        , Html.Attributes.min "25"
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.temporaryProperties.dashDuration)
+                        , onInput (\stringNumber -> TweekDashDuration <| clamp 25 50 <| Result.withDefault 0 (String.toInt stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Dash Recover Duration in frames"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "50"
+                        , Html.Attributes.min "25"
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.temporaryProperties.dashRecoveryDuration)
+                        , onInput (\stringNumber -> TweekDashRecoveryDuration <| clamp 25 50 <| Result.withDefault 0 (String.toInt stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Dash button press window duration"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "18"
+                        , Html.Attributes.min "8"
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.temporaryProperties.buttonPressWindow)
+                        , onInput (\stringNumber -> TweekButtonPressWindow <| clamp 8 18 <| Result.withDefault 0 (String.toInt stringNumber))
                         ]
                         []
                     ]

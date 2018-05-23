@@ -1,10 +1,66 @@
-module Player exposing (renderPlayer, getPlayerLeftKickPoint, getPlayerRightKickPoint, playerSpriteSize, playerHitBoxSize)
+module Player
+    exposing
+        ( renderPlayer
+        , initialPlayer
+        , calculateAction
+        , actionUpdate
+        , updateRoutineX
+        , collisionX
+        , updateRoutineY
+        , collisionY
+        )
 
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
 import Game.Resources as Resources exposing (Resources)
 import Vector2 as V2 exposing (getX, getY)
 import Color
-import GameTypes exposing (Player, Vector, vectorIntToFloat, IntVector)
+import Dict exposing (Dict)
+import Coordinates exposing (gameSize, pixelToGridConversion, gridToPixelConversion, locationToGridCoordinate)
+import GamePlatform exposing (Platform, platformSize)
+import CollisionHelpers
+    exposing
+        ( getGridCoordinatesPlayerIsOverlapping
+        , getCollisionWithDisplacement
+        , CollisionDirection(CollisionNegativeDirection, CollisionPositiveDirection)
+        )
+import GameTypes
+    exposing
+        ( Player
+        , Vector
+        , vectorIntToFloat
+        , IntVector
+        , PlayerState(OnTheGround, Dashing, RecoveringFromDash, InTheAir)
+        , TempProperties
+        )
+import Controller
+    exposing
+        ( Controller
+        , ButtonState
+            ( Pressed
+            , Held
+            , Released
+            , Inactive
+            )
+        , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
+        , DPadVertical(DPadUp, DPadDown, NoVerticalDPad)
+        , isButtonDown
+        )
+
+
+initialPlayer : Player
+initialPlayer =
+    { x = 0
+    , y = 0
+    , vx = 0
+    , vy = 0
+    , playerState = InTheAir 0
+    }
+
+
+
+-------------------------------
+-- constants
+-------------------------------
 
 
 playerSpriteSize : IntVector
@@ -15,6 +71,46 @@ playerSpriteSize =
 playerHitBoxSize : IntVector
 playerHitBoxSize =
     ( 64, 64 )
+
+
+
+--- Friction
+
+
+noFriction : Float
+noFriction =
+    1
+
+
+lightFriction : Float
+lightFriction =
+    0.98
+
+
+mediumFriction : Float
+mediumFriction =
+    0.97
+
+
+heavyFriction : Float
+heavyFriction =
+    0.95
+
+
+maxFriction : Float
+maxFriction =
+    0.93
+
+
+fullStop : Float
+fullStop =
+    0
+
+
+
+-------------------------------
+-- player helper functions
+-------------------------------
 
 
 getPlayerLeftKickPoint : Vector -> Vector
@@ -47,16 +143,424 @@ getPlayerRightKickPoint ( x, y ) =
         ( spriteBoxRightSide, kickPointY )
 
 
-renderPlayer : Resources -> Player -> List Renderable
-renderPlayer resources player =
+wallsNearPlayer : Dict IntVector Platform -> Player -> WallsNearPlayer
+wallsNearPlayer platforms player =
     let
-        { x, y } =
+        wallToTheRight =
+            ( player.x, player.y )
+                |> getPlayerRightKickPoint
+                |> locationToGridCoordinate
+                |> flip Dict.member platforms
+
+        wallToTheLeft =
+            ( player.x, player.y )
+                |> getPlayerLeftKickPoint
+                |> locationToGridCoordinate
+                |> flip Dict.member platforms
+    in
+        case ( wallToTheLeft, wallToTheRight ) of
+            ( True, True ) ->
+                WallOnLeftAndRight
+
+            ( False, False ) ->
+                NoWalls
+
+            ( True, False ) ->
+                WallOnLeft
+
+            ( False, True ) ->
+                WallOnRight
+
+
+getDirectionFromVelocity : Float -> Direction
+getDirectionFromVelocity velocity =
+    if velocity < 0 then
+        Left
+    else
+        Right
+
+
+addAccelerationToXVelocity : Player -> Float -> Player
+addAccelerationToXVelocity player acceleration =
+    { player
+        | vx = player.vx + acceleration
+    }
+
+
+addAccelerationToYVelocity : Float -> Player -> Player
+addAccelerationToYVelocity acceleration player =
+    { player
+        | vy = player.vy + acceleration
+    }
+
+
+
+-------------------------------
+-- forces helper functions
+-------------------------------
+
+
+calculateYGravityFromJumpProperties : Float -> Int -> Float
+calculateYGravityFromJumpProperties maxJumpHeight framesToApex =
+    (2 * maxJumpHeight) / toFloat (framesToApex * framesToApex)
+
+
+calculateInitialJumpVelocityFromJumpProperties : Float -> Float -> Float
+calculateInitialJumpVelocityFromJumpProperties maxJumpHeight gravity =
+    sqrt <| abs (2 * gravity * maxJumpHeight)
+
+
+calculateEarlyJumpTerminationVelocity : Float -> Float -> Float -> Float -> Float
+calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJumpHeight =
+    sqrt <| abs ((initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight)))
+
+
+getDPadForce : DPadHorizontal -> Float -> Float
+getDPadForce dPadHorizontal dPadAcceleration =
+    case dPadHorizontal of
+        DPadRight ->
+            dPadAcceleration
+
+        DPadLeft ->
+            -dPadAcceleration
+
+        NoHorizontalDPad ->
+            0
+
+
+applyHorizontalFriction : Float -> Player -> Player
+applyHorizontalFriction friction player =
+    { player | vx = player.vx * friction }
+
+
+applyVerticalFriction : Float -> Player -> Player
+applyVerticalFriction friction player =
+    { player | vy = player.vy * friction }
+
+
+calculateHorizontalFriction : DPadHorizontal -> ButtonState -> PlayerState -> Float -> Float
+calculateHorizontalFriction dPadHorizontal dashButton playerState xVelocity =
+    case playerState of
+        RecoveringFromDash _ ->
+            noFriction
+
+        _ ->
+            if pressingInDirectionOfVelocity dPadHorizontal xVelocity && isButtonDown dashButton then
+                lightFriction
+            else if pressingInDirectionOfVelocity dPadHorizontal xVelocity then
+                mediumFriction
+            else if pressingInOppositeDirectionOfVelocity dPadHorizontal xVelocity then
+                maxFriction
+            else
+                heavyFriction
+
+
+pressingInDirectionOfVelocity : DPadHorizontal -> Float -> Bool
+pressingInDirectionOfVelocity dPadHorizontal playerVelocity =
+    dPadHorizontal
+        == DPadLeft
+        && (getDirectionFromVelocity playerVelocity)
+        == Left
+        || dPadHorizontal
+        == DPadRight
+        && (getDirectionFromVelocity playerVelocity)
+        == Right
+
+
+pressingInOppositeDirectionOfVelocity : DPadHorizontal -> Float -> Bool
+pressingInOppositeDirectionOfVelocity dPadHorizontal playerVelocity =
+    dPadHorizontal
+        == DPadLeft
+        && (getDirectionFromVelocity playerVelocity)
+        == Right
+        || dPadHorizontal
+        == DPadRight
+        && (getDirectionFromVelocity playerVelocity)
+        == Left
+
+
+calculateVerticalFriction : Float -> DPadHorizontal -> Maybe Direction -> Float
+calculateVerticalFriction wallSlideFriction dPadHorizontal collisionDirection =
+    case collisionDirection of
+        Nothing ->
+            noFriction
+
+        Just direction ->
+            if pressingInDirectionOfDirection dPadHorizontal direction then
+                wallSlideFriction
+            else
+                noFriction
+
+
+pressingInDirectionOfDirection : DPadHorizontal -> Direction -> Bool
+pressingInDirectionOfDirection dPadHorizontal direction =
+    dPadHorizontal
+        == DPadLeft
+        && direction
+        == Left
+        || dPadHorizontal
+        == DPadRight
+        && direction
+        == Right
+
+
+displacePlayerHorizontally : Player -> Maybe CollisionDirection -> ( Maybe Direction, Player )
+displacePlayerHorizontally player collision =
+    case collision of
+        Nothing ->
+            ( Nothing, player )
+
+        Just collision ->
+            case collision of
+                CollisionNegativeDirection overlap ->
+                    ( Just Left
+                    , { player
+                        | x = player.x + overlap
+                        , vx = fullStop
+                      }
+                    )
+
+                CollisionPositiveDirection overlap ->
+                    ( Just Right
+                    , { player
+                        | x = player.x - overlap
+                        , vx = fullStop
+                      }
+                    )
+
+
+displacePlayerVerically : Player -> Maybe CollisionDirection -> Player
+displacePlayerVerically player collision =
+    case collision of
+        Nothing ->
             player
+
+        Just collision ->
+            case collision of
+                CollisionNegativeDirection overlap ->
+                    { player
+                        | y = player.y + overlap
+                        , vy = fullStop
+                        , playerState = OnTheGround 0
+                    }
+
+                CollisionPositiveDirection overlap ->
+                    { player
+                        | y = player.y - overlap
+                        , vy = fullStop
+                    }
+
+
+
+-------------------------------
+-- update
+-------------------------------
+
+
+type WallsNearPlayer
+    = WallOnLeftAndRight
+    | NoWalls
+    | WallOnLeft
+    | WallOnRight
+
+
+type Direction
+    = Left
+    | Right
+
+
+type PlayerAction
+    = Jump
+    | WallJump Direction
+    | EndJump
+    | StartDash Direction
+    | StartDashRecover
+    | NoAction
+
+
+calculateAction : TempProperties -> Controller -> Dict IntVector Platform -> Player -> PlayerAction
+calculateAction tempProperties controller platforms player =
+    -- don't need to pass in the whole player and only needs the jump and dash button states
+    case player.playerState of
+        Dashing frameNumber ->
+            if controller.jumpButton == Pressed then
+                Jump
+            else if controller.dashButton == Pressed && frameNumber > tempProperties.dashDuration then
+                StartDashRecover
+            else
+                NoAction
+
+        RecoveringFromDash frameNumber ->
+            if controller.dashButton == Pressed && frameNumber > tempProperties.dashRecoveryDuration then
+                StartDash <| getDirectionFromVelocity player.vx
+            else
+                NoAction
+
+        OnTheGround _ ->
+            if controller.jumpButton == Pressed then
+                Jump
+            else if controller.dashButton == Pressed then
+                StartDash <| getDirectionFromVelocity player.vx
+            else
+                NoAction
+
+        InTheAir _ ->
+            if controller.jumpButton == Pressed then
+                case wallsNearPlayer platforms player of
+                    NoWalls ->
+                        NoAction
+
+                    WallOnLeftAndRight ->
+                        NoAction
+
+                    WallOnLeft ->
+                        WallJump Right
+
+                    WallOnRight ->
+                        WallJump Left
+            else if controller.jumpButton == Released then
+                EndJump
+            else
+                NoAction
+
+
+actionUpdate : TempProperties -> Player -> PlayerAction -> Player
+actionUpdate tempProperties player action =
+    case action of
+        Jump ->
+            let
+                jumpVelocityY =
+                    calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
+                        |> negate
+                        |> calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight
+            in
+                { player
+                    | playerState = InTheAir 0
+                    , vy = jumpVelocityY
+                }
+
+        WallJump direction ->
+            let
+                jumpVelocityY =
+                    calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
+                        |> negate
+                        |> calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight
+
+                jumpVelocityX =
+                    case direction of
+                        Left ->
+                            -jumpVelocityY
+
+                        Right ->
+                            jumpVelocityY
+            in
+                { player
+                    | vx = jumpVelocityX
+                    , vy = jumpVelocityY
+                }
+
+        EndJump ->
+            let
+                baseGravity =
+                    calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
+                        |> negate
+
+                baseJumpVelocityY =
+                    calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight baseGravity
+
+                earlyJumpTerminationVelocity =
+                    calculateEarlyJumpTerminationVelocity baseJumpVelocityY baseGravity tempProperties.maxJumpHeight tempProperties.minJumpHeight
+            in
+                { player | vy = earlyJumpTerminationVelocity }
+
+        StartDash dashDirection ->
+            let
+                initialDashingVelocity =
+                    case dashDirection of
+                        Left ->
+                            -tempProperties.maxRunningSpeed
+
+                        Right ->
+                            tempProperties.maxRunningSpeed
+            in
+                { player
+                    | playerState = Dashing 0
+                    , vx = initialDashingVelocity
+                }
+
+        StartDashRecover ->
+            { player | playerState = RecoveringFromDash 0 }
+
+        NoAction ->
+            player
+
+
+updateRoutineX : TempProperties -> Controller -> Player -> Player
+updateRoutineX tempProperties controller player =
+    -- don't need the whole controller
+    let
+        friction =
+            calculateHorizontalFriction controller.dPadHorizontal controller.dashButton player.playerState player.vx
+    in
+        getDPadForce controller.dPadHorizontal tempProperties.dPadAcceleration
+            |> addAccelerationToXVelocity player
+            |> applyHorizontalFriction friction
+            |> (\player -> { player | x = player.x + player.vx })
+
+
+updateRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
+updateRoutineY tempProperties controller ( collision, player ) =
+    -- don't need the whole controller
+    let
+        gravity =
+            calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
+                |> negate
+
+        friction =
+            calculateVerticalFriction tempProperties.wallFriction controller.dPadHorizontal collision
+    in
+        addAccelerationToYVelocity gravity player
+            |> applyVerticalFriction friction
+            |> (\player -> { player | y = player.y + player.vy })
+
+
+collisionX : Dict IntVector Platform -> Player -> ( Maybe Direction, Player )
+collisionX platforms player =
+    getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
+        |> List.filter (\coord -> Dict.member coord platforms)
+        |> List.map (\( x, _ ) -> getCollisionWithDisplacement (getX playerHitBoxSize) player.x (getX platformSize) (toFloat x))
+        |> List.head
+        |> displacePlayerHorizontally player
+
+
+collisionY : Dict IntVector Platform -> Player -> Player
+collisionY platforms player =
+    getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
+        |> List.filter (\coord -> Dict.member coord platforms)
+        |> List.map (\( x, _ ) -> getCollisionWithDisplacement (getX playerHitBoxSize) player.x (getX platformSize) (toFloat x))
+        |> List.head
+        |> displacePlayerVerically player
+
+
+
+-------------------------------
+-- render
+-------------------------------
+
+
+renderPlayer : Resources -> Player -> ( Int, Int ) -> List Renderable
+renderPlayer resources player ( dash, recover ) =
+    let
+        { x, y, playerState } =
+            player
+
+        playerColor =
+            Color.blue
 
         hitBox =
             Render.shape
                 Render.rectangle
-                { color = Color.blue
+                { color = playerColor
                 , position = ( x, y )
                 , size = vectorIntToFloat playerHitBoxSize
                 }
