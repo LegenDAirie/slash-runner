@@ -545,7 +545,7 @@ collisionY : Dict IntVector Platform -> Player -> Player
 collisionY platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
-        |> List.map (\( x, _ ) -> getCollisionWithDisplacement (getX playerHitBoxSize) player.x (getX platformSize) (toFloat x))
+        |> List.map (\( _, y ) -> getCollisionWithDisplacement (getY playerHitBoxSize) player.y (getY platformSize) (toFloat y))
         |> List.head
         |> displacePlayerVerically player
 
