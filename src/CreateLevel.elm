@@ -2,28 +2,40 @@ module CreateLevel
     exposing
         ( LevelCreateState
         , initialLevelCreateState
-        , updatePlayStateAfterKeyPress
-        , updatePlayStateAfterMouseClick
+        , updatePlayStateFromMouseState
         , renderLevelCreateScreen
+        , getCreateStateUpdateAction
+        , updateCreateLevelState
         )
 
-import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay)
-import Game.TwoD.Render as Render exposing (Renderable)
-import Game.TwoD.Camera as Camera
-import Keyboard.Extra
-import GameTypes exposing (Vector, vectorIntToFloat)
-import MouseHelpers exposing (mouseToGridInPixels)
-import Enemy exposing (Enemy, EnemyMovement(NoMovement, LinePath, Walk), LineMovementSpec)
-import CustomEncoders exposing (levelDataEncodeHandler)
-import GamePlatform exposing (Platform, platformSize, PlatformType(Normal, Dangerous))
+-- System
+
 import Color
-import Coordinates exposing (gridSquareSize)
-import Vector2 as V2
 import Dict
 
 
+-- Libraries
+
+import Game.TwoD.Render as Render exposing (Renderable)
+import Keyboard.Extra
+import Vector2 as V2
+import Keyboard.Extra
+
+
+-- my modules
+
+import Screens.NormalPlay exposing (NormalPlayState, updateNormalPlay, initialNormalPlayState, renderNormalPlay, resetPlayState)
+import Coordinates exposing (gridSquareSize)
+import CustomEncoders exposing (levelDataEncodeHandler)
+import GamePlatform exposing (Platform, platformSize, PlatformType(Normal, Dangerous))
+import GameTypes exposing (Vector, TempProperties, vectorIntToFloat)
+import MouseHelpers exposing (mouseToGridInPixels)
+import Enemy exposing (Enemy, EnemyMovement(NoMovement, LinePath, Walk), LineMovementSpec)
+import Controller exposing (Controller)
+
+
 type alias LevelCreateState =
-    { itemToPlace : ItemToBePlace
+    { itemToPlace : ItemToBePlaced
     , cursorLocation : Vector
     , cursorActive : Bool
     , locationForCameraToFollow : Vector
@@ -41,7 +53,7 @@ initialLevelCreateState =
     }
 
 
-type ItemToBePlace
+type ItemToBePlaced
     = PlaceNothing
     | ANormalPlatform
     | ADangerousPlatform
@@ -51,89 +63,91 @@ type ItemToBePlace
     | Remove
 
 
-updatePlayStateAfterKeyPress : Keyboard.Extra.State -> LevelCreateState -> LevelCreateState
-updatePlayStateAfterKeyPress keyboardState levelCreateState =
+type CreateLevelAction
+    = ResetAllTheThings
+    | RemoveAllTheThings
+    | UpdateCursorItem ItemToBePlaced
+    | NoAction
+
+
+
+-- | SameLevelData
+
+
+getCreateStateUpdateAction : NormalPlayState -> List Keyboard.Extra.Key -> CreateLevelAction
+getCreateStateUpdateAction playState pressedKeys =
+    if playState.paused then
+        if List.member Keyboard.Extra.Number0 pressedKeys then
+            UpdateCursorItem PlaceNothing
+        else if List.member Keyboard.Extra.Number1 pressedKeys then
+            UpdateCursorItem ANormalPlatform
+        else if List.member Keyboard.Extra.Number2 pressedKeys then
+            UpdateCursorItem AStaticEnemy
+        else if List.member Keyboard.Extra.Number3 pressedKeys then
+            UpdateCursorItem ADangerousPlatform
+        else if List.member Keyboard.Extra.Number4 pressedKeys then
+            UpdateCursorItem AnEnemyOnTrack
+        else if List.member Keyboard.Extra.Number5 pressedKeys then
+            UpdateCursorItem AWalkingEnemy
+        else if List.member Keyboard.Extra.Number9 pressedKeys then
+            UpdateCursorItem Remove
+        else if List.member Keyboard.Extra.CharR pressedKeys then
+            ResetAllTheThings
+        else if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
+            RemoveAllTheThings
+        else
+            NoAction
+    else
+        NoAction
+
+
+updateCreateLevelState : Controller -> Vector -> Keyboard.Extra.State -> TempProperties -> LevelCreateState -> ( LevelCreateState, Maybe String )
+updateCreateLevelState controller windowSize keyboard tempProperties levelCreateState =
+    -- everything in this function could just be in main but I am waiting till
+    -- I get the update logic working again and then implement extensible record types
     let
-        { itemToPlace, playState } =
-            levelCreateState
+        ( newCreateLevelState, possibleEncodedLevelData ) =
+            getCreateStateUpdateAction levelCreateState.playState (Keyboard.Extra.pressedDown keyboard)
+                |> actionUpdate levelCreateState
+                |> updatePlayStateFromMouseState windowSize keyboard
+    in
+        ( { newCreateLevelState
+            | playState = updateNormalPlay controller tempProperties newCreateLevelState.playState
+          }
+        , possibleEncodedLevelData
+        )
 
-        pressedKeys =
-            Keyboard.Extra.pressedDown keyboardState
 
-        newEnemies =
-            if List.member Keyboard.Extra.CharR pressedKeys then
-                playState.permanentEnemies
-            else if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
-                []
-            else
-                playState.enemies
-
-        newPlatforms =
-            if List.member Keyboard.Extra.CharH pressedKeys && List.member Keyboard.Extra.CharG pressedKeys then
-                Dict.empty
-            else
-                playState.platforms
-
-        { player, camera } =
-            playState
-
-        ( newPlayer, newCamera ) =
-            if List.member Keyboard.Extra.CharR pressedKeys then
-                let
-                    newPlayer =
-                        { player
-                            | x = 0
-                            , y = 0
-                            , vx = 0
-                            , vy = 0
-                        }
-
-                    newCamera =
-                        Camera.moveTo ( 64, 64 ) playState.camera
-                in
-                    ( newPlayer, newCamera )
-            else
-                ( playState.player, playState.camera )
-
-        newNormalPlayState =
-            { playState
-                | enemies = newEnemies
-                , platforms = newPlatforms
-                , player = newPlayer
-                , camera = newCamera
+actionUpdate : LevelCreateState -> CreateLevelAction -> LevelCreateState
+actionUpdate levelCreateState action =
+    case action of
+        ResetAllTheThings ->
+            { levelCreateState
+                | playState = resetPlayState levelCreateState.playState
             }
 
-        newItemToPlace =
-            if List.member Keyboard.Extra.Number0 pressedKeys then
-                PlaceNothing
-            else if List.member Keyboard.Extra.Number1 pressedKeys then
-                ANormalPlatform
-            else if List.member Keyboard.Extra.Number2 pressedKeys then
-                AStaticEnemy
-            else if List.member Keyboard.Extra.Number3 pressedKeys then
-                ADangerousPlatform
-            else if List.member Keyboard.Extra.Number4 pressedKeys then
-                AnEnemyOnTrack
-            else if List.member Keyboard.Extra.Number5 pressedKeys then
-                AWalkingEnemy
-            else if List.member Keyboard.Extra.Number9 pressedKeys then
-                Remove
-            else
-                itemToPlace
-    in
-        { levelCreateState
-            | itemToPlace = newItemToPlace
-            , playState = newNormalPlayState
-        }
+        RemoveAllTheThings ->
+            { levelCreateState
+                | playState = initialNormalPlayState
+            }
+
+        UpdateCursorItem itemToBePlaced ->
+            { levelCreateState
+                | itemToPlace = itemToBePlaced
+            }
+
+        NoAction ->
+            levelCreateState
 
 
-updatePlayStateAfterMouseClick : Vector -> Vector -> Bool -> Keyboard.Extra.State -> LevelCreateState -> ( LevelCreateState, Maybe String )
-updatePlayStateAfterMouseClick windowSize cursorLocation cursorActive keyboardState levelCreateState =
+updatePlayStateFromMouseState : Vector -> Keyboard.Extra.State -> LevelCreateState -> ( LevelCreateState, Maybe String )
+updatePlayStateFromMouseState windowSize keyboardState levelCreateState =
+    -- holy shit I have no fucking idea what I was thinking with this one...
     let
         ( width, height ) =
             platformSize
 
-        { itemToPlace, playState } =
+        { itemToPlace, playState, cursorLocation, cursorActive } =
             levelCreateState
 
         newPosition =
@@ -276,7 +290,7 @@ renderLevelCreateScreen windowSize levelCreateState ( dash, recover ) =
             ]
 
 
-renderCursorBlock : ItemToBePlace -> Vector -> Renderable
+renderCursorBlock : ItemToBePlaced -> Vector -> Renderable
 renderCursorBlock itemToBePlace location =
     let
         mouseColor =

@@ -7,6 +7,7 @@ module Screens.NormalPlay
         , createLevel
         , updateNormalPlay
         , jsonToLevelData
+        , resetPlayState
         )
 
 -- Libraries
@@ -24,7 +25,7 @@ import Color
 
 import Enemy exposing (Enemy)
 import Coordinates exposing (gameSize)
-import Controller exposing (Controller)
+import Controller exposing (Controller, ButtonState(Pressed))
 import GameTypes exposing (IntVector, Player, TempProperties)
 import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
 import Player
@@ -37,6 +38,7 @@ import Player
         , collisionX
         , updateRoutineY
         , collisionY
+        , updatePlayer
         )
 
 
@@ -70,6 +72,10 @@ initialNormalPlayState =
         }
 
 
+
+-- Helpers
+
+
 createLevel : LevelData -> NormalPlayState
 createLevel levelData =
     let
@@ -89,25 +95,43 @@ createLevel levelData =
         }
 
 
+resetPlayState : NormalPlayState -> NormalPlayState
+resetPlayState normalPlayState =
+    { normalPlayState
+        | player = initialPlayer
+        , camera = Camera.fixedWidth (Tuple.first gameSize) ( initialPlayer.x, initialPlayer.y )
+        , enemies = normalPlayState.permanentEnemies
+        , paused = True
+    }
+
+
 type alias LevelData =
     { platforms : Dict IntVector Platform }
 
 
-updateNormalPlay : Controller -> NormalPlayState -> TempProperties -> NormalPlayState
-updateNormalPlay controller state tempProperties =
-    let
-        { player, platforms } =
-            state
+updatePausedState : ButtonState -> NormalPlayState -> NormalPlayState
+updatePausedState startButton state =
+    if startButton == Pressed then
+        { state | paused = not state.paused }
+    else
+        state
 
-        newPlayer =
-            calculateAction tempProperties controller platforms player
-                |> actionUpdate tempProperties player
-                |> updateRoutineX tempProperties controller
-                |> collisionX platforms
-                |> updateRoutineY tempProperties controller
-                |> collisionY platforms
-    in
-        { state | player = newPlayer }
+
+updateNormalPlay : Controller -> TempProperties -> NormalPlayState -> NormalPlayState
+updateNormalPlay controller tempProperties state =
+    updatePausedState controller.startButton state
+        |> updatePlayState controller tempProperties
+
+
+updatePlayState : Controller -> TempProperties -> NormalPlayState -> NormalPlayState
+updatePlayState controller tempProperties state =
+    if state.paused then
+        state
+    else
+        { state
+            | player = updatePlayer controller tempProperties state.platforms state.player
+        }
+            |> (\state -> { state | camera = Camera.follow 0.5 0.17 ( state.player.x, state.player.y ) state.camera })
 
 
 renderNormalPlay : NormalPlayState -> ( Int, Int ) -> List Renderable

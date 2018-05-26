@@ -8,6 +8,7 @@ module Player
         , collisionX
         , updateRoutineY
         , collisionY
+        , updatePlayer
         )
 
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
@@ -373,6 +374,16 @@ type PlayerAction
     | StartDash Direction
     | StartDashRecover
     | NoAction
+
+
+updatePlayer : Controller -> TempProperties -> Dict IntVector Platform -> Player -> Player
+updatePlayer controller tempProperties platforms player =
+    calculateAction tempProperties controller platforms player
+        |> actionUpdate tempProperties player
+        |> updateRoutineX tempProperties controller
+        |> collisionX platforms
+        |> updateRoutineY tempProperties controller
+        |> collisionY platforms
 
 
 calculateAction : TempProperties -> Controller -> Dict IntVector Platform -> Player -> PlayerAction

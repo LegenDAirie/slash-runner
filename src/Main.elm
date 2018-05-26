@@ -1,18 +1,28 @@
 port module Main exposing (main)
 
+-- system
+
+import Task
 import Html exposing (program, Html, div, h3, text, input)
 import Html.Attributes exposing (style, max, min, step, value, type_)
 import Html.Events exposing (onInput)
-import Vector2 as V2 exposing (getX, getY)
+import Json.Decode
+
+
+-- Libraries
+
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD as Game
+import Vector2 as V2 exposing (getX, getY)
 import Game.TwoD.Camera as Camera
 import AnimationFrame
 import Window
-import Task
 import MouseEvents exposing (MouseEvent, onMouseMove, onClick, relPos, onMouseDown, onMouseUp)
 import Keyboard.Extra
-import Json.Decode
+
+
+-- My Modules
+
 import GameTypes exposing (Vector, TempProperties, vectorIntToFloat)
 import Coordinates exposing (gameSize, calculateCanvasSize)
 import Controller
@@ -34,19 +44,21 @@ import Controller
 import Screens.NormalPlay
     exposing
         ( LevelData
+        , NormalPlayState
+        , initialNormalPlayState
         , createLevel
         , updateNormalPlay
         , renderNormalPlay
-        , NormalPlayState
         , jsonToLevelData
         )
 import CreateLevel
     exposing
         ( LevelCreateState
         , initialLevelCreateState
-        , updatePlayStateAfterKeyPress
-        , updatePlayStateAfterMouseClick
+        , updatePlayStateFromMouseState
         , renderLevelCreateScreen
+        , getCreateStateUpdateAction
+        , updateCreateLevelState
         )
 
 
@@ -415,76 +427,15 @@ update msg model =
                                 NormalPlay <|
                                     updateNormalPlay
                                         updatedController
-                                        gameState
                                         model.temporaryProperties
+                                        gameState
                         }
                             ! []
 
                     CreateLevel levelCreateState ->
                         let
-                            newLevelCreateState =
-                                updatePlayStateAfterKeyPress model.keyboard levelCreateState
-
-                            { playState } =
-                                newLevelCreateState
-
-                            playStateAfterPausedUpdate =
-                                if updatedController.startButton == Pressed then
-                                    { playState
-                                        | paused = not playState.paused
-                                    }
-                                else
-                                    playState
-
-                            updatedLocationForCameraToFollow =
-                                case playStateAfterPausedUpdate.paused of
-                                    True ->
-                                        let
-                                            vx =
-                                                case updatedController.dPadHorizontal of
-                                                    DPadRight ->
-                                                        20
-
-                                                    DPadLeft ->
-                                                        -20
-
-                                                    NoHorizontalDPad ->
-                                                        0
-
-                                            vy =
-                                                case updatedController.dPadVertical of
-                                                    DPadUp ->
-                                                        20
-
-                                                    DPadDown ->
-                                                        -20
-
-                                                    NoVerticalDPad ->
-                                                        0
-                                        in
-                                            V2.add newLevelCreateState.locationForCameraToFollow ( vx, vy )
-
-                                    False ->
-                                        ( playStateAfterPausedUpdate.player.x, playStateAfterPausedUpdate.player.y )
-
-                            updatedPlayState =
-                                case playStateAfterPausedUpdate.paused of
-                                    True ->
-                                        { playStateAfterPausedUpdate
-                                            | camera = Camera.follow 0.5 0.17 (V2.sub updatedLocationForCameraToFollow ( -100, -100 )) playStateAfterPausedUpdate.camera
-                                        }
-
-                                    False ->
-                                        updateNormalPlay updatedController playStateAfterPausedUpdate model.temporaryProperties
-
-                            updatedLevelCreateState =
-                                { newLevelCreateState
-                                    | playState = updatedPlayState
-                                    , locationForCameraToFollow = updatedLocationForCameraToFollow
-                                }
-
-                            ( finalLevelCreateState, encodedLevelData ) =
-                                updatePlayStateAfterMouseClick model.windowSize updatedLevelCreateState.cursorLocation updatedLevelCreateState.cursorActive model.keyboard updatedLevelCreateState
+                            ( newLevelCreateState, encodedLevelData ) =
+                                updateCreateLevelState updatedController model.windowSize model.keyboard model.temporaryProperties levelCreateState
 
                             cmd =
                                 case encodedLevelData of
@@ -496,7 +447,7 @@ update msg model =
                         in
                             { model
                                 | controller = updatedController
-                                , gameScreen = CreateLevel finalLevelCreateState
+                                , gameScreen = CreateLevel newLevelCreateState
                             }
                                 ! [ cmd ]
 
