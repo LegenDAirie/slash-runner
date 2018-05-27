@@ -208,6 +208,105 @@ getPlayerColor playerState =
             Color.blue
 
 
+pressingInDirectionOfDirection : DPadHorizontal -> Direction -> Bool
+pressingInDirectionOfDirection dPadHorizontal direction =
+    dPadHorizontal
+        == DPadLeft
+        && direction
+        == Left
+        || dPadHorizontal
+        == DPadRight
+        && direction
+        == Right
+
+
+pressingInDirectionOfVelocity : DPadHorizontal -> Float -> Bool
+pressingInDirectionOfVelocity dPadHorizontal playerVelocity =
+    dPadHorizontal
+        == DPadLeft
+        && (getDirectionFromVelocity playerVelocity)
+        == Left
+        || dPadHorizontal
+        == DPadRight
+        && (getDirectionFromVelocity playerVelocity)
+        == Right
+
+
+pressingInOppositeDirectionOfVelocity : DPadHorizontal -> Float -> Bool
+pressingInOppositeDirectionOfVelocity dPadHorizontal playerVelocity =
+    dPadHorizontal
+        == DPadLeft
+        && (getDirectionFromVelocity playerVelocity)
+        == Right
+        || dPadHorizontal
+        == DPadRight
+        && (getDirectionFromVelocity playerVelocity)
+        == Left
+
+
+displacePlayerHorizontally : Player -> Maybe CollisionDirection -> ( Maybe Direction, Player )
+displacePlayerHorizontally player collision =
+    case collision of
+        Nothing ->
+            ( Nothing, player )
+
+        Just collision ->
+            case collision of
+                CollisionNegativeDirection overlap ->
+                    ( Just Left
+                    , { player
+                        | x = player.x + overlap
+                        , vx = fullStop
+                      }
+                    )
+
+                CollisionPositiveDirection overlap ->
+                    ( Just Right
+                    , { player
+                        | x = player.x - overlap
+                        , vx = fullStop
+                      }
+                    )
+
+
+displacePlayerVerically : Player -> Maybe CollisionDirection -> Player
+displacePlayerVerically player collision =
+    case collision of
+        Nothing ->
+            player
+
+        Just collision ->
+            case collision of
+                CollisionNegativeDirection overlap ->
+                    { player
+                        | y = player.y + overlap
+                        , vy = fullStop
+                        , playerState = playerStateAfterCollisionWithGround player.playerState
+                    }
+
+                CollisionPositiveDirection overlap ->
+                    { player
+                        | y = player.y - overlap
+                        , vy = fullStop
+                    }
+
+
+playerStateAfterCollisionWithGround : PlayerState -> PlayerState
+playerStateAfterCollisionWithGround currentState =
+    case currentState of
+        Dashing frameNumber ->
+            Dashing frameNumber
+
+        RecoveringFromDash frameNumber ->
+            RecoveringFromDash frameNumber
+
+        OnTheGround frameNumber ->
+            OnTheGround frameNumber
+
+        InTheAir frameNumber ->
+            OnTheGround 0
+
+
 
 -------------------------------
 -- forces helper functions
@@ -269,30 +368,6 @@ calculateHorizontalFriction dPadHorizontal dashButton playerState xVelocity =
                 heavyFriction
 
 
-pressingInDirectionOfVelocity : DPadHorizontal -> Float -> Bool
-pressingInDirectionOfVelocity dPadHorizontal playerVelocity =
-    dPadHorizontal
-        == DPadLeft
-        && (getDirectionFromVelocity playerVelocity)
-        == Left
-        || dPadHorizontal
-        == DPadRight
-        && (getDirectionFromVelocity playerVelocity)
-        == Right
-
-
-pressingInOppositeDirectionOfVelocity : DPadHorizontal -> Float -> Bool
-pressingInOppositeDirectionOfVelocity dPadHorizontal playerVelocity =
-    dPadHorizontal
-        == DPadLeft
-        && (getDirectionFromVelocity playerVelocity)
-        == Right
-        || dPadHorizontal
-        == DPadRight
-        && (getDirectionFromVelocity playerVelocity)
-        == Left
-
-
 calculateVerticalFriction : Float -> DPadHorizontal -> Maybe Direction -> Float
 calculateVerticalFriction wallSlideFriction dPadHorizontal collisionDirection =
     case collisionDirection of
@@ -304,65 +379,6 @@ calculateVerticalFriction wallSlideFriction dPadHorizontal collisionDirection =
                 wallSlideFriction
             else
                 noFriction
-
-
-pressingInDirectionOfDirection : DPadHorizontal -> Direction -> Bool
-pressingInDirectionOfDirection dPadHorizontal direction =
-    dPadHorizontal
-        == DPadLeft
-        && direction
-        == Left
-        || dPadHorizontal
-        == DPadRight
-        && direction
-        == Right
-
-
-displacePlayerHorizontally : Player -> Maybe CollisionDirection -> ( Maybe Direction, Player )
-displacePlayerHorizontally player collision =
-    case collision of
-        Nothing ->
-            ( Nothing, player )
-
-        Just collision ->
-            case collision of
-                CollisionNegativeDirection overlap ->
-                    ( Just Left
-                    , { player
-                        | x = player.x + overlap
-                        , vx = fullStop
-                      }
-                    )
-
-                CollisionPositiveDirection overlap ->
-                    ( Just Right
-                    , { player
-                        | x = player.x - overlap
-                        , vx = fullStop
-                      }
-                    )
-
-
-displacePlayerVerically : Player -> Maybe CollisionDirection -> Player
-displacePlayerVerically player collision =
-    case collision of
-        Nothing ->
-            player
-
-        Just collision ->
-            case collision of
-                CollisionNegativeDirection overlap ->
-                    { player
-                        | y = player.y + overlap
-                        , vy = fullStop
-                        , playerState = OnTheGround 0
-                    }
-
-                CollisionPositiveDirection overlap ->
-                    { player
-                        | y = player.y - overlap
-                        , vy = fullStop
-                    }
 
 
 
