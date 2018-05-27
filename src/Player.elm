@@ -192,6 +192,22 @@ addAccelerationToYVelocity acceleration player =
     }
 
 
+getPlayerColor : PlayerState -> Color.Color
+getPlayerColor playerState =
+    case playerState of
+        Dashing _ ->
+            Color.yellow
+
+        RecoveringFromDash _ ->
+            Color.red
+
+        OnTheGround _ ->
+            Color.green
+
+        InTheAir _ ->
+            Color.blue
+
+
 
 -------------------------------
 -- forces helper functions
@@ -563,7 +579,7 @@ renderPlayer resources player ( dash, recover ) =
             player
 
         playerColor =
-            Color.blue
+            getPlayerColor player.playerState
 
         hitBox =
             Render.shape
