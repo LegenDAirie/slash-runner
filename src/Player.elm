@@ -2,12 +2,6 @@ module Player
     exposing
         ( renderPlayer
         , initialPlayer
-        , calculateAction
-        , actionUpdate
-        , updateRoutineX
-        , collisionX
-        , updateRoutineY
-        , collisionY
         , updatePlayer
         )
 
