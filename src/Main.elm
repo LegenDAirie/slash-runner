@@ -411,6 +411,7 @@ update msg model =
             in
                 { model
                     | gameScreen = newGameScreen
+                    , controller = newController
                 }
                     ! [ cmd ]
 
