@@ -404,12 +404,42 @@ type PlayerAction
 
 updatePlayer : Controller -> TempProperties -> Dict IntVector Platform -> Player -> Player
 updatePlayer controller tempProperties platforms player =
-    calculateAction tempProperties controller platforms player
-        |> actionUpdate tempProperties player
+    -- update frame timer before calculating the player action
+    updateFrameNumber player
+        |> activeUpdate controller tempProperties platforms
         |> updateRoutineX tempProperties controller
         |> collisionX platforms
         |> updateRoutineY tempProperties controller
         |> collisionY platforms
+
+
+updateFrameNumber : Player -> Player
+updateFrameNumber player =
+    { player
+        | playerState = updateframething player.playerState
+    }
+
+
+updateframething : PlayerState -> PlayerState
+updateframething playerState =
+    case playerState of
+        Dashing frameNumber ->
+            Dashing (frameNumber + 1)
+
+        RecoveringFromDash frameNumber ->
+            RecoveringFromDash (frameNumber + 1)
+
+        OnTheGround frameNumber ->
+            OnTheGround (frameNumber + 1)
+
+        InTheAir frameNumber ->
+            InTheAir (frameNumber + 1)
+
+
+activeUpdate : Controller -> TempProperties -> Dict IntVector Platform -> Player -> Player
+activeUpdate controller tempProperties platforms player =
+    calculateAction tempProperties controller platforms player
+        |> actionUpdate tempProperties player
 
 
 calculateAction : TempProperties -> Controller -> Dict IntVector Platform -> Player -> PlayerAction
