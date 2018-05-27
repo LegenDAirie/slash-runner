@@ -403,53 +403,57 @@ update msg model =
 
         Tick gamepadState ->
             let
-                updatedController =
-                    case gamepadState.gamepadConnected of
-                        True ->
-                            model.controller
-                                |> calculateControllerStateFromGamePad gamepadState
+                newController =
+                    updateController model.keyboard gamepadState model.controller
 
-                        False ->
-                            model.controller
-                                |> calculateControllerStateFromKeyboardState model.keyboard
+                ( newGameScreen, cmd ) =
+                    updateGameScreen model.temporaryProperties model.keyboard model.windowSize model.gameScreen newController
             in
-                case model.gameScreen of
-                    Uninitialized ->
-                        { model
-                            | controller = updatedController
-                        }
-                            ! []
+                { model
+                    | gameScreen = newGameScreen
+                }
+                    ! [ cmd ]
 
-                    NormalPlay gameState ->
-                        { model
-                            | controller = updatedController
-                            , gameScreen =
-                                NormalPlay <|
-                                    updateNormalPlay
-                                        updatedController
-                                        model.temporaryProperties
-                                        gameState
-                        }
-                            ! []
 
-                    CreateLevel levelCreateState ->
-                        let
-                            ( newLevelCreateState, encodedLevelData ) =
-                                updateCreateLevelState updatedController model.windowSize model.keyboard model.temporaryProperties levelCreateState
+updateController : Keyboard.Extra.State -> GamePad -> Controller -> Controller
+updateController keyboard gamePad controller =
+    case gamePad.gamepadConnected of
+        True ->
+            calculateControllerStateFromGamePad gamePad controller
 
-                            cmd =
-                                case encodedLevelData of
-                                    Just encodedLevel ->
-                                        writeLevelData encodedLevel
+        False ->
+            calculateControllerStateFromKeyboardState keyboard controller
 
-                                    Nothing ->
-                                        Cmd.none
-                        in
-                            { model
-                                | controller = updatedController
-                                , gameScreen = CreateLevel newLevelCreateState
-                            }
-                                ! [ cmd ]
+
+updateGameScreen : TempProperties -> Keyboard.Extra.State -> Vector -> GameScreen -> Controller -> ( GameScreen, Cmd Msg )
+updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
+    case gameScreen of
+        Uninitialized ->
+            ( Uninitialized, Cmd.none )
+
+        NormalPlay gameState ->
+            ( NormalPlay <|
+                updateNormalPlay
+                    controller
+                    temporaryProperties
+                    gameState
+            , Cmd.none
+            )
+
+        CreateLevel levelCreateState ->
+            let
+                ( newLevelCreateState, encodedLevelData ) =
+                    updateCreateLevelState controller windowSize keyboard temporaryProperties levelCreateState
+
+                cmd =
+                    case encodedLevelData of
+                        Just encodedLevel ->
+                            writeLevelData encodedLevel
+
+                        Nothing ->
+                            Cmd.none
+            in
+                ( CreateLevel newLevelCreateState, cmd )
 
 
 mouseMoveEventToMsg : MouseEvent -> Msg
