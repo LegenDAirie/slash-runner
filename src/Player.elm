@@ -66,6 +66,15 @@ playerHitBoxSize =
 
 
 
+--- Forces
+
+
+noForce : Float
+noForce =
+    0
+
+
+
 --- Friction
 
 
@@ -322,17 +331,22 @@ calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJu
     sqrt <| abs ((initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight)))
 
 
-getDPadForce : DPadHorizontal -> Float -> Float
-getDPadForce dPadHorizontal dPadAcceleration =
-    case dPadHorizontal of
-        DPadRight ->
-            dPadAcceleration
+getDPadForce : PlayerState -> DPadHorizontal -> Float -> Float
+getDPadForce playerState dPadHorizontal dPadAcceleration =
+    case playerState of
+        RecoveringFromDash _ ->
+            noForce
 
-        DPadLeft ->
-            -dPadAcceleration
+        _ ->
+            case dPadHorizontal of
+                DPadRight ->
+                    dPadAcceleration
 
-        NoHorizontalDPad ->
-            0
+                DPadLeft ->
+                    -dPadAcceleration
+
+                NoHorizontalDPad ->
+                    noForce
 
 
 applyHorizontalFriction : Float -> Player -> Player
@@ -615,7 +629,7 @@ runRoutineX tempProperties controller player =
         friction =
             calculateHorizontalFriction controller.dPadHorizontal controller.dashButton player.playerState player.vx
     in
-        getDPadForce controller.dPadHorizontal tempProperties.dPadAcceleration
+        getDPadForce player.playerState controller.dPadHorizontal tempProperties.dPadAcceleration
             |> addAccelerationToXVelocity player
             |> applyHorizontalFriction friction
             |> (\player -> { player | x = player.x + player.vx })
