@@ -584,7 +584,7 @@ actionUpdate tempProperties player action =
                 earlyJumpTerminationVelocity =
                     calculateEarlyJumpTerminationVelocity baseJumpVelocityY baseGravity tempProperties.maxJumpHeight tempProperties.minJumpHeight
             in
-                { player | vy = earlyJumpTerminationVelocity }
+                { player | vy = min earlyJumpTerminationVelocity player.vy }
 
         StartDash dashDirection ->
             let
