@@ -412,9 +412,9 @@ updatePlayer controller tempProperties platforms player =
     playerStateRoutine tempProperties player
         |> activeUpdate controller tempProperties platforms
         |> runRoutineX tempProperties controller
-        |> collisionX platforms
+        |> handleCollisionX platforms
         |> runRoutineY tempProperties controller
-        |> collisionY platforms
+        |> handleCollisionY platforms
 
 
 playerStateRoutine : TempProperties -> Player -> Player
@@ -631,8 +631,8 @@ runRoutineY tempProperties controller ( collision, player ) =
             |> (\player -> { player | y = player.y + player.vy })
 
 
-collisionX : Dict IntVector Platform -> Player -> ( Maybe Direction, Player )
-collisionX platforms player =
+handleCollisionX : Dict IntVector Platform -> Player -> ( Maybe Direction, Player )
+handleCollisionX platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
         |> List.map (\( x, _ ) -> getCollisionWithDisplacement (getX playerHitBoxSize) player.x (getX platformSize) (toFloat x))
@@ -640,8 +640,8 @@ collisionX platforms player =
         |> displacePlayerHorizontally player
 
 
-collisionY : Dict IntVector Platform -> Player -> Player
-collisionY platforms player =
+handleCollisionY : Dict IntVector Platform -> Player -> Player
+handleCollisionY platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
         |> List.map (\( _, y ) -> getCollisionWithDisplacement (getY playerHitBoxSize) player.y (getY platformSize) (toFloat y))
