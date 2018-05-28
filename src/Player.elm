@@ -402,26 +402,62 @@ type PlayerAction
     | NoAction
 
 
+type PlayerStateMsg
+    = IncrementFrame
+    | EndState
+
+
 updatePlayer : Controller -> TempProperties -> Dict IntVector Platform -> Player -> Player
 updatePlayer controller tempProperties platforms player =
-    -- update frame timer before calculating the player action
-    updateFrameNumber player
+    playerStateRoutine tempProperties player
         |> activeUpdate controller tempProperties platforms
-        |> updateRoutineX tempProperties controller
+        |> runRoutineX tempProperties controller
         |> collisionX platforms
-        |> updateRoutineY tempProperties controller
+        |> runRoutineY tempProperties controller
         |> collisionY platforms
 
 
-updateFrameNumber : Player -> Player
-updateFrameNumber player =
-    { player
-        | playerState = updateframething player.playerState
-    }
+playerStateRoutine : TempProperties -> Player -> Player
+playerStateRoutine tempProperties player =
+    calculatePlayerStateRoutineAction tempProperties player.playerState
+        |> runPlayerStateRoutine player.playerState
+        |> setPlayerState player
 
 
-updateframething : PlayerState -> PlayerState
-updateframething playerState =
+calculatePlayerStateRoutineAction : TempProperties -> PlayerState -> PlayerStateMsg
+calculatePlayerStateRoutineAction tempProperties playerState =
+    case playerState of
+        Dashing frameNumber ->
+            if frameNumber > tempProperties.dashDuration + tempProperties.buttonPressWindow then
+                EndState
+            else
+                IncrementFrame
+
+        RecoveringFromDash frameNumber ->
+            if frameNumber > tempProperties.dashRecoveryDuration + tempProperties.buttonPressWindow then
+                EndState
+            else
+                IncrementFrame
+
+        OnTheGround _ ->
+            IncrementFrame
+
+        InTheAir _ ->
+            IncrementFrame
+
+
+runPlayerStateRoutine : PlayerState -> PlayerStateMsg -> PlayerState
+runPlayerStateRoutine playerState playerStateMsg =
+    case playerStateMsg of
+        IncrementFrame ->
+            incrementFrameNumber playerState
+
+        EndState ->
+            InTheAir 0
+
+
+incrementFrameNumber : PlayerState -> PlayerState
+incrementFrameNumber playerState =
     case playerState of
         Dashing frameNumber ->
             Dashing (frameNumber + 1)
@@ -436,14 +472,21 @@ updateframething playerState =
             InTheAir (frameNumber + 1)
 
 
+setPlayerState : Player -> PlayerState -> Player
+setPlayerState player playerState =
+    { player
+        | playerState = playerState
+    }
+
+
 activeUpdate : Controller -> TempProperties -> Dict IntVector Platform -> Player -> Player
 activeUpdate controller tempProperties platforms player =
-    calculateAction tempProperties controller platforms player
+    calculatePlayerAction tempProperties controller platforms player
         |> actionUpdate tempProperties player
 
 
-calculateAction : TempProperties -> Controller -> Dict IntVector Platform -> Player -> PlayerAction
-calculateAction tempProperties controller platforms player =
+calculatePlayerAction : TempProperties -> Controller -> Dict IntVector Platform -> Player -> PlayerAction
+calculatePlayerAction tempProperties controller platforms player =
     -- don't need to pass in the whole player and only needs the jump and dash button states
     case player.playerState of
         Dashing frameNumber ->
@@ -559,8 +602,8 @@ actionUpdate tempProperties player action =
             player
 
 
-updateRoutineX : TempProperties -> Controller -> Player -> Player
-updateRoutineX tempProperties controller player =
+runRoutineX : TempProperties -> Controller -> Player -> Player
+runRoutineX tempProperties controller player =
     -- don't need the whole controller
     let
         friction =
@@ -572,8 +615,8 @@ updateRoutineX tempProperties controller player =
             |> (\player -> { player | x = player.x + player.vx })
 
 
-updateRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
-updateRoutineY tempProperties controller ( collision, player ) =
+runRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
+runRoutineY tempProperties controller ( collision, player ) =
     -- don't need the whole controller
     let
         gravity =
