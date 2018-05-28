@@ -336,7 +336,7 @@ calculateInitialJumpVelocityFromJumpProperties maxJumpHeight gravity =
 
 calculateEarlyJumpTerminationVelocity : Float -> Float -> Float -> Float -> Float
 calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJumpHeight =
-    sqrt <| abs ((initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight)))
+    sqrt <| abs <| (initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight))
 
 
 getDPadForce : PlayerState -> DPadHorizontal -> Float -> Float
