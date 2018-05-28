@@ -195,20 +195,28 @@ addAccelerationToYVelocity acceleration player =
     }
 
 
-getPlayerColor : PlayerState -> Color.Color
-getPlayerColor playerState =
+getPlayerColor : PlayerState -> Int -> Color.Color
+getPlayerColor playerState dashDuration =
     case playerState of
-        Dashing _ ->
-            Color.yellow
+        Dashing frameNumber ->
+            getDashingColor frameNumber dashDuration
 
         RecoveringFromDash _ ->
-            Color.red
+            Color.purple
 
         OnTheGround _ ->
             Color.green
 
         InTheAir _ ->
             Color.blue
+
+
+getDashingColor : Int -> Int -> Color.Color
+getDashingColor frameNumber dashDuration =
+    if frameNumber < dashDuration then
+        Color.yellow
+    else
+        Color.red
 
 
 pressingInDirectionOfDirection : DPadHorizontal -> Direction -> Bool
@@ -675,14 +683,14 @@ handleCollisionY platforms player =
 -------------------------------
 
 
-renderPlayer : Resources -> Player -> ( Int, Int ) -> List Renderable
-renderPlayer resources player ( dash, recover ) =
+renderPlayer : Resources -> Player -> Int -> List Renderable
+renderPlayer resources player dashDuration =
     let
         { x, y, playerState } =
             player
 
         playerColor =
-            getPlayerColor player.playerState
+            getPlayerColor player.playerState dashDuration
 
         hitBox =
             Render.shape
