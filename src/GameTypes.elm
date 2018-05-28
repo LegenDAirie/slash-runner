@@ -78,6 +78,7 @@ type alias TempProperties =
     , maxRunningSpeed : Float
     , dPadAcceleration : Float
     , dashDuration : Int
+    , slowToStopDuration : Int
     , dashRecoveryDuration : Int
     , buttonPressWindow : Int
     }

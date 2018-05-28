@@ -428,13 +428,13 @@ calculatePlayerStateRoutineAction : TempProperties -> PlayerState -> PlayerState
 calculatePlayerStateRoutineAction tempProperties playerState =
     case playerState of
         Dashing frameNumber ->
-            if frameNumber > tempProperties.dashDuration + tempProperties.buttonPressWindow then
+            if frameNumber > tempProperties.dashDuration + tempProperties.slowToStopDuration then
                 EndState
             else
                 IncrementFrame
 
         RecoveringFromDash frameNumber ->
-            if frameNumber > tempProperties.dashRecoveryDuration + tempProperties.buttonPressWindow then
+            if frameNumber > tempProperties.dashRecoveryDuration then
                 EndState
             else
                 IncrementFrame
@@ -485,6 +485,12 @@ activeUpdate controller tempProperties platforms player =
         |> actionUpdate tempProperties player
 
 
+inDashRecoverWindow : Int -> Int -> Int -> Bool
+inDashRecoverWindow frameNumber dashDuration buttonPressWindow =
+    -- primitives suck!
+    frameNumber > dashDuration - buttonPressWindow && frameNumber < dashDuration
+
+
 calculatePlayerAction : TempProperties -> Controller -> Dict IntVector Platform -> Player -> PlayerAction
 calculatePlayerAction tempProperties controller platforms player =
     -- don't need to pass in the whole player and only needs the jump and dash button states
@@ -492,13 +498,13 @@ calculatePlayerAction tempProperties controller platforms player =
         Dashing frameNumber ->
             if controller.jumpButton == Pressed then
                 Jump
-            else if controller.dashButton == Pressed && frameNumber > tempProperties.dashDuration then
+            else if controller.dashButton == Pressed && inDashRecoverWindow frameNumber tempProperties.dashDuration tempProperties.buttonPressWindow then
                 StartDashRecover
             else
                 NoAction
 
         RecoveringFromDash frameNumber ->
-            if controller.dashButton == Pressed && frameNumber > tempProperties.dashRecoveryDuration then
+            if controller.dashButton == Pressed && frameNumber > tempProperties.dashRecoveryDuration - tempProperties.buttonPressWindow then
                 StartDash <| getDirectionFromVelocity player.vx
             else
                 NoAction

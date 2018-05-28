@@ -105,6 +105,7 @@ type Msg
     | TweekMaxRunningSpeed Float
     | TweekDPadAcceleration Float
     | TweekDashDuration Int
+    | TweekSlowToStopDuration Int
     | TweekDashRecoveryDuration Int
     | TweekButtonPressWindow Int
 
@@ -119,6 +120,7 @@ initialTempProperties =
     , maxRunningSpeed = 30
     , dPadAcceleration = 0.5
     , dashDuration = 41
+    , slowToStopDuration = 20
     , dashRecoveryDuration = 41
     , buttonPressWindow = 10
     }
@@ -256,6 +258,19 @@ update msg model =
 
                 newTempProps =
                     { temporaryProperties | dashDuration = dashDuration }
+            in
+                { model
+                    | temporaryProperties = newTempProps
+                }
+                    ! []
+
+        TweekSlowToStopDuration slowToStopDuration ->
+            let
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | slowToStopDuration = slowToStopDuration }
             in
                 { model
                     | temporaryProperties = newTempProps
@@ -602,6 +617,18 @@ view model =
                         , Html.Attributes.step "1"
                         , Html.Attributes.value (toString model.temporaryProperties.dashDuration)
                         , onInput (\stringNumber -> TweekDashDuration <| clamp 25 50 <| Result.withDefault 0 (String.toInt stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Slow to stop Duration in frames"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "40"
+                        , Html.Attributes.min "10"
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.temporaryProperties.slowToStopDuration)
+                        , onInput (\stringNumber -> TweekSlowToStopDuration <| clamp 10 40 <| Result.withDefault 0 (String.toInt stringNumber))
                         ]
                         []
                     ]
