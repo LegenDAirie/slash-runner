@@ -564,11 +564,11 @@ view model =
                     [ text "Wall Friction"
                     , input
                         [ type_ "number"
-                        , Html.Attributes.max "0.9"
+                        , Html.Attributes.max "2"
                         , Html.Attributes.min "0"
-                        , Html.Attributes.step "0.05"
+                        , Html.Attributes.step "0.1"
                         , Html.Attributes.value (toString model.temporaryProperties.wallFriction)
-                        , onInput (\stringNumber -> TweekWallFriction <| clamp 0 0.9 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        , onInput (\stringNumber -> TweekWallFriction <| clamp 0 2 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]

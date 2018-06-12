@@ -198,8 +198,8 @@ addToXVelocity player acceleration =
     }
 
 
-addAccelerationToYVelocity : Float -> Player -> Player
-addAccelerationToYVelocity acceleration player =
+addAccelerationToYVelocity : Player -> Float -> Player
+addAccelerationToYVelocity player acceleration =
     { player
         | vy = player.vy + acceleration
     }
@@ -336,7 +336,7 @@ playerStateAfterCollisionWithGround currentState =
 
 calculateYGravityFromJumpProperties : Float -> Int -> Float
 calculateYGravityFromJumpProperties maxJumpHeight framesToApex =
-    (2 * maxJumpHeight) / toFloat (framesToApex * framesToApex)
+    negate ((2 * maxJumpHeight) / toFloat (framesToApex * framesToApex))
 
 
 calculateInitialJumpVelocityFromJumpProperties : Float -> Float -> Float
@@ -367,8 +367,8 @@ getDPadForce playerState dPadHorizontal dPadAcceleration =
                     noForce
 
 
-applyHorizontalFriction : Controller -> Player -> Player
-applyHorizontalFriction controller player =
+handleHorizontalFriction : Controller -> Player -> Player
+handleHorizontalFriction controller player =
     calculateFrictionStrength controller.dPadHorizontal controller.dashButton player.vx player.playerState
         |> calculateForceDirection player.vx
         |> applyFrictionToVelocity player.vx
@@ -376,13 +376,13 @@ applyHorizontalFriction controller player =
 
 
 applyFrictionToVelocity : Float -> Float -> Float
-applyFrictionToVelocity xVelocity friction =
-    case isFrictionStrongerThanVelocity xVelocity friction of
+applyFrictionToVelocity velocity friction =
+    case isFrictionStrongerThanVelocity velocity friction of
         True ->
             fullStop
 
         False ->
-            xVelocity + friction
+            velocity + friction
 
 
 isFrictionStrongerThanVelocity : Float -> Float -> Bool
@@ -407,9 +407,12 @@ flipDirection direction =
             Right
 
 
-applyVerticalFriction : Float -> Player -> Player
-applyVerticalFriction friction player =
-    { player | vy = player.vy * friction }
+handleVerticalFriction : Float -> DPadHorizontal -> Maybe Direction -> Player -> Player
+handleVerticalFriction wallFriction horizontalDPad collisionDirection player =
+    calculateVerticalFriction wallFriction horizontalDPad collisionDirection
+        |> calculateForceDirection player.vy
+        |> applyFrictionToVelocity player.vy
+        |> (\newVelocity -> { player | vy = newVelocity })
 
 
 calculateFrictionStrength : DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float
@@ -611,7 +614,6 @@ actionUpdate tempProperties player action =
             let
                 jumpVelocityY =
                     calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
-                        |> negate
                         |> calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight
             in
                 { player
@@ -623,7 +625,6 @@ actionUpdate tempProperties player action =
             let
                 jumpVelocityY =
                     calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
-                        |> negate
                         |> calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight
 
                 jumpVelocityX =
@@ -643,7 +644,6 @@ actionUpdate tempProperties player action =
             let
                 baseGravity =
                     calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
-                        |> negate
 
                 baseJumpVelocityY =
                     calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight baseGravity
@@ -679,24 +679,16 @@ runRoutineX : TempProperties -> Controller -> Player -> Player
 runRoutineX tempProperties controller player =
     getDPadForce player.playerState controller.dPadHorizontal tempProperties.dPadAcceleration
         |> addToXVelocity player
-        |> applyHorizontalFriction controller
+        |> handleHorizontalFriction controller
         |> (\player -> { player | x = player.x + player.vx })
 
 
 runRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
 runRoutineY tempProperties controller ( collision, player ) =
-    -- don't need the whole controller
-    let
-        gravity =
-            calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
-                |> negate
-
-        friction =
-            calculateVerticalFriction tempProperties.wallFriction controller.dPadHorizontal collision
-    in
-        addAccelerationToYVelocity gravity player
-            |> applyVerticalFriction friction
-            |> (\player -> { player | y = player.y + player.vy })
+    calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
+        |> addAccelerationToYVelocity player
+        |> handleVerticalFriction tempProperties.wallFriction controller.dPadHorizontal collision
+        |> (\player -> { player | y = player.y + player.vy })
 
 
 handleCollisionX : Dict IntVector Platform -> Player -> ( Maybe Direction, Player )
