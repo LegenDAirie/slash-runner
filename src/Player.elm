@@ -80,27 +80,27 @@ noForce =
 
 noFriction : Float
 noFriction =
-    1
+    0
 
 
 lightFriction : Float
 lightFriction =
-    0.98
+    0.1
 
 
 mediumFriction : Float
 mediumFriction =
-    0.97
+    0.2
 
 
 heavyFriction : Float
 heavyFriction =
-    0.95
+    0.3
 
 
 maxFriction : Float
 maxFriction =
-    0.93
+    0.4
 
 
 fullStop : Float
@@ -181,8 +181,18 @@ getDirectionFromVelocity velocity =
         Right
 
 
-addAccelerationToXVelocity : Player -> Float -> Player
-addAccelerationToXVelocity player acceleration =
+applyDirectionToForce : Float -> Direction -> Float
+applyDirectionToForce force direction =
+    case direction of
+        Left ->
+            -force
+
+        Right ->
+            force
+
+
+addToXVelocity : Player -> Float -> Player
+addToXVelocity player acceleration =
     { player
         | vx = player.vx + acceleration
     }
@@ -357,9 +367,44 @@ getDPadForce playerState dPadHorizontal dPadAcceleration =
                     noForce
 
 
-applyHorizontalFriction : Float -> Player -> Player
-applyHorizontalFriction friction player =
-    { player | vx = player.vx * friction }
+applyHorizontalFriction : Controller -> Player -> Player
+applyHorizontalFriction controller player =
+    calculateFrictionStrength controller.dPadHorizontal controller.dashButton player.vx player.playerState
+        |> calculateForceDirection player.vx
+        |> applyFrictionToVelocity player.vx
+        |> (\newVelocity -> { player | vx = newVelocity })
+
+
+applyFrictionToVelocity : Float -> Float -> Float
+applyFrictionToVelocity xVelocity friction =
+    case isFrictionStrongerThanVelocity xVelocity friction of
+        True ->
+            fullStop
+
+        False ->
+            xVelocity + friction
+
+
+isFrictionStrongerThanVelocity : Float -> Float -> Bool
+isFrictionStrongerThanVelocity velocity friction =
+    abs velocity <= abs friction
+
+
+calculateForceDirection : Float -> Float -> Float
+calculateForceDirection velocity force =
+    getDirectionFromVelocity velocity
+        |> flipDirection
+        |> applyDirectionToForce force
+
+
+flipDirection : Direction -> Direction
+flipDirection direction =
+    case direction of
+        Right ->
+            Left
+
+        Left ->
+            Right
 
 
 applyVerticalFriction : Float -> Player -> Player
@@ -367,18 +412,18 @@ applyVerticalFriction friction player =
     { player | vy = player.vy * friction }
 
 
-calculateHorizontalFriction : DPadHorizontal -> ButtonState -> PlayerState -> Float -> Float
-calculateHorizontalFriction dPadHorizontal dashButton playerState xVelocity =
+calculateFrictionStrength : DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float
+calculateFrictionStrength horizontalDPadButton dashButton velocity playerState =
     case playerState of
         RecoveringFromDash _ ->
             noFriction
 
         _ ->
-            if pressingInDirectionOfVelocity dPadHorizontal xVelocity && isButtonDown dashButton then
+            if pressingInDirectionOfVelocity horizontalDPadButton velocity && isButtonDown dashButton then
                 lightFriction
-            else if pressingInDirectionOfVelocity dPadHorizontal xVelocity then
+            else if pressingInDirectionOfVelocity horizontalDPadButton velocity then
                 mediumFriction
-            else if pressingInOppositeDirectionOfVelocity dPadHorizontal xVelocity then
+            else if pressingInOppositeDirectionOfVelocity horizontalDPadButton velocity then
                 maxFriction
             else
                 heavyFriction
@@ -632,15 +677,10 @@ actionUpdate tempProperties player action =
 
 runRoutineX : TempProperties -> Controller -> Player -> Player
 runRoutineX tempProperties controller player =
-    -- don't need the whole controller
-    let
-        friction =
-            calculateHorizontalFriction controller.dPadHorizontal controller.dashButton player.playerState player.vx
-    in
-        getDPadForce player.playerState controller.dPadHorizontal tempProperties.dPadAcceleration
-            |> addAccelerationToXVelocity player
-            |> applyHorizontalFriction friction
-            |> (\player -> { player | x = player.x + player.vx })
+    getDPadForce player.playerState controller.dPadHorizontal tempProperties.dPadAcceleration
+        |> addToXVelocity player
+        |> applyHorizontalFriction controller
+        |> (\player -> { player | x = player.x + player.vx })
 
 
 runRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
