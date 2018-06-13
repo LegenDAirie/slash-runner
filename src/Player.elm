@@ -358,6 +358,9 @@ getDPadForce playerState dPadHorizontal dPadAcceleration =
         RecoveringFromDash _ ->
             noForce
 
+        SlowingToStop _ ->
+            noForce
+
         _ ->
             case dPadHorizontal of
                 DPadRight ->
@@ -501,13 +504,13 @@ updatePlayer controller tempProperties platforms player =
 
 playerStateRoutine : TempProperties -> Player -> Player
 playerStateRoutine tempProperties player =
-    calculatePlayerStateRoutineAction tempProperties player.playerState
+    calculatePlayerStateRoutineAction tempProperties player.playerState player.vx
         |> runPlayerStateRoutine player.playerState
         |> setPlayerState player
 
 
-calculatePlayerStateRoutineAction : TempProperties -> PlayerState -> PlayerStateMsg
-calculatePlayerStateRoutineAction tempProperties playerState =
+calculatePlayerStateRoutineAction : TempProperties -> PlayerState -> Float -> PlayerStateMsg
+calculatePlayerStateRoutineAction tempProperties playerState playerXVelocity =
     case playerState of
         Dashing frameNumber ->
             if frameNumber > tempProperties.dashDuration then
@@ -522,7 +525,7 @@ calculatePlayerStateRoutineAction tempProperties playerState =
                 IncrementFrame
 
         SlowingToStop frameNumber ->
-            if frameNumber > tempProperties.slowToStopDuration then
+            if playerXVelocity == 0 then
                 EndState
             else
                 IncrementFrame
