@@ -375,7 +375,7 @@ getDPadForce playerState dPadHorizontal dPadAcceleration =
 
 handleHorizontalFriction : Controller -> Player -> Player
 handleHorizontalFriction controller player =
-    getFrictionStrength controller.dPadHorizontal controller.dashButton player.vx player.playerState
+    getHorizontalFrictionStrength controller.dPadHorizontal controller.dashButton player.vx player.playerState
         |> calculateTotalFriction player.vx
         |> calculateForceDirection player.vx
         |> applyFrictionToVelocity player.vx
@@ -421,14 +421,15 @@ flipDirection direction =
 
 handleVerticalFriction : Float -> DPadHorizontal -> Maybe Direction -> Player -> Player
 handleVerticalFriction wallFriction horizontalDPad collisionDirection player =
-    calculateVerticalFriction wallFriction horizontalDPad collisionDirection
+    getVerticalFrictionStrength wallFriction horizontalDPad collisionDirection
+        |> calculateTotalFriction player.vy
         |> calculateForceDirection player.vy
         |> applyFrictionToVelocity player.vy
         |> (\newVelocity -> { player | vy = newVelocity })
 
 
-getFrictionStrength : DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float
-getFrictionStrength horizontalDPadButton dashButton velocity playerState =
+getHorizontalFrictionStrength : DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float
+getHorizontalFrictionStrength horizontalDPadButton dashButton velocity playerState =
     case playerState of
         RecoveringFromDash _ ->
             dragCoefficentZero
@@ -447,17 +448,17 @@ getFrictionStrength horizontalDPadButton dashButton velocity playerState =
                 heavyDragCoefficent
 
 
-calculateVerticalFriction : Float -> DPadHorizontal -> Maybe Direction -> Float
-calculateVerticalFriction wallSlideFriction dPadHorizontal collisionDirection =
+getVerticalFrictionStrength : Float -> DPadHorizontal -> Maybe Direction -> Float
+getVerticalFrictionStrength wallSlideFriction dPadHorizontal collisionDirection =
     case collisionDirection of
         Nothing ->
-            dragCoefficentZero
+            lightDragCoefficent
 
         Just direction ->
             if pressingInDirectionOfDirection dPadHorizontal direction then
-                wallSlideFriction
+                maxDragCoefficent
             else
-                dragCoefficentZero
+                lightDragCoefficent
 
 
 
