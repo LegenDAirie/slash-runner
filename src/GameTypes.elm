@@ -7,7 +7,7 @@ module GameTypes
         , intVectorDecoder
         , vectorIntToFloat
         , vectorFloatToInt
-        , PlayerState(Dashing, OnTheGround, RecoveringFromDash, InTheAir)
+        , PlayerState(Dashing, OnTheGround, RecoveringFromDash, SlowingToStop, InTheAir)
         , TempProperties
         )
 
@@ -59,6 +59,7 @@ type alias Player =
 type PlayerState
     = Dashing Int
     | RecoveringFromDash Int
+    | SlowingToStop Int
     | OnTheGround Int
     | InTheAir Int
 

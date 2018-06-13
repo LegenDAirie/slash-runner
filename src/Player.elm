@@ -24,7 +24,7 @@ import GameTypes
         , Vector
         , vectorIntToFloat
         , IntVector
-        , PlayerState(OnTheGround, Dashing, RecoveringFromDash, InTheAir)
+        , PlayerState(OnTheGround, Dashing, RecoveringFromDash, SlowingToStop, InTheAir)
         , TempProperties
         )
 import Controller
@@ -78,29 +78,34 @@ noForce =
 --- Friction
 
 
-noFriction : Float
-noFriction =
-    0
-
-
-lightFriction : Float
-lightFriction =
+baseFrictionCoefficent : Float
+baseFrictionCoefficent =
     0.1
 
 
-mediumFriction : Float
-mediumFriction =
-    0.2
+dragCoefficentZero : Float
+dragCoefficentZero =
+    0
 
 
-heavyFriction : Float
-heavyFriction =
-    0.3
+lightDragCoefficent : Float
+lightDragCoefficent =
+    0.001
 
 
-maxFriction : Float
-maxFriction =
-    0.4
+mediumDragCoefficent : Float
+mediumDragCoefficent =
+    0.002
+
+
+heavyDragCoefficent : Float
+heavyDragCoefficent =
+    0.003
+
+
+maxDragCoefficent : Float
+maxDragCoefficent =
+    0.004
 
 
 fullStop : Float
@@ -209,24 +214,19 @@ getPlayerColor : PlayerState -> Int -> Color.Color
 getPlayerColor playerState dashDuration =
     case playerState of
         Dashing frameNumber ->
-            getDashingColor frameNumber dashDuration
+            Color.yellow
 
         RecoveringFromDash _ ->
             Color.purple
+
+        SlowingToStop _ ->
+            Color.red
 
         OnTheGround _ ->
             Color.green
 
         InTheAir _ ->
             Color.blue
-
-
-getDashingColor : Int -> Int -> Color.Color
-getDashingColor frameNumber dashDuration =
-    if frameNumber < dashDuration then
-        Color.yellow
-    else
-        Color.red
 
 
 pressingInDirectionOfDirection : DPadHorizontal -> Direction -> Bool
@@ -321,6 +321,9 @@ playerStateAfterCollisionWithGround currentState =
         RecoveringFromDash frameNumber ->
             RecoveringFromDash frameNumber
 
+        SlowingToStop frameNumber ->
+            SlowingToStop frameNumber
+
         OnTheGround frameNumber ->
             OnTheGround frameNumber
 
@@ -369,10 +372,16 @@ getDPadForce playerState dPadHorizontal dPadAcceleration =
 
 handleHorizontalFriction : Controller -> Player -> Player
 handleHorizontalFriction controller player =
-    calculateFrictionStrength controller.dPadHorizontal controller.dashButton player.vx player.playerState
+    getFrictionStrength controller.dPadHorizontal controller.dashButton player.vx player.playerState
+        |> calculateTotalFriction player.vx
         |> calculateForceDirection player.vx
         |> applyFrictionToVelocity player.vx
         |> (\newVelocity -> { player | vx = newVelocity })
+
+
+calculateTotalFriction : Float -> Float -> Float
+calculateTotalFriction velocity frictionCoefficent =
+    baseFrictionCoefficent + ((abs velocity * abs velocity) * frictionCoefficent)
 
 
 applyFrictionToVelocity : Float -> Float -> Float
@@ -415,34 +424,37 @@ handleVerticalFriction wallFriction horizontalDPad collisionDirection player =
         |> (\newVelocity -> { player | vy = newVelocity })
 
 
-calculateFrictionStrength : DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float
-calculateFrictionStrength horizontalDPadButton dashButton velocity playerState =
+getFrictionStrength : DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float
+getFrictionStrength horizontalDPadButton dashButton velocity playerState =
     case playerState of
         RecoveringFromDash _ ->
-            noFriction
+            dragCoefficentZero
+
+        SlowingToStop _ ->
+            maxDragCoefficent
 
         _ ->
             if pressingInDirectionOfVelocity horizontalDPadButton velocity && isButtonDown dashButton then
-                lightFriction
+                lightDragCoefficent
             else if pressingInDirectionOfVelocity horizontalDPadButton velocity then
-                mediumFriction
+                mediumDragCoefficent
             else if pressingInOppositeDirectionOfVelocity horizontalDPadButton velocity then
-                maxFriction
+                maxDragCoefficent
             else
-                heavyFriction
+                heavyDragCoefficent
 
 
 calculateVerticalFriction : Float -> DPadHorizontal -> Maybe Direction -> Float
 calculateVerticalFriction wallSlideFriction dPadHorizontal collisionDirection =
     case collisionDirection of
         Nothing ->
-            noFriction
+            dragCoefficentZero
 
         Just direction ->
             if pressingInDirectionOfDirection dPadHorizontal direction then
                 wallSlideFriction
             else
-                noFriction
+                dragCoefficentZero
 
 
 
@@ -498,13 +510,19 @@ calculatePlayerStateRoutineAction : TempProperties -> PlayerState -> PlayerState
 calculatePlayerStateRoutineAction tempProperties playerState =
     case playerState of
         Dashing frameNumber ->
-            if frameNumber > tempProperties.dashDuration + tempProperties.slowToStopDuration then
+            if frameNumber > tempProperties.dashDuration then
                 EndState
             else
                 IncrementFrame
 
         RecoveringFromDash frameNumber ->
             if frameNumber > tempProperties.dashRecoveryDuration then
+                EndState
+            else
+                IncrementFrame
+
+        SlowingToStop frameNumber ->
+            if frameNumber > tempProperties.slowToStopDuration then
                 EndState
             else
                 IncrementFrame
@@ -523,7 +541,12 @@ runPlayerStateRoutine playerState playerStateMsg =
             incrementFrameNumber playerState
 
         EndState ->
-            InTheAir 0
+            case playerState of
+                Dashing _ ->
+                    SlowingToStop 0
+
+                _ ->
+                    InTheAir 0
 
 
 incrementFrameNumber : PlayerState -> PlayerState
@@ -534,6 +557,9 @@ incrementFrameNumber playerState =
 
         RecoveringFromDash frameNumber ->
             RecoveringFromDash (frameNumber + 1)
+
+        SlowingToStop frameNumber ->
+            SlowingToStop (frameNumber + 1)
 
         OnTheGround frameNumber ->
             OnTheGround (frameNumber + 1)
@@ -578,6 +604,9 @@ calculatePlayerAction tempProperties controller platforms player =
                 StartDash <| getDirectionFromVelocity player.vx
             else
                 NoAction
+
+        SlowingToStop _ ->
+            NoAction
 
         OnTheGround _ ->
             if controller.jumpButton == Pressed then
