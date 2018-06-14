@@ -74,12 +74,11 @@ type alias TempProperties =
     { framesToApex : Int
     , maxJumpHeight : Float
     , minJumpHeight : Float
-    , wallFriction : Float
+    , maxWallSlideSpeed : Float
     , maxWalkingSpeed : Float
     , maxRunningSpeed : Float
     , dPadAcceleration : Float
     , dashDuration : Int
-    , slowToStopDuration : Int
     , dashRecoveryDuration : Int
     , buttonPressWindow : Int
     }

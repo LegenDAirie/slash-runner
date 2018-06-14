@@ -449,14 +449,14 @@ getHorizontalFrictionStrength horizontalDPadButton dashButton velocity playerSta
 
 
 getVerticalFrictionStrength : Float -> DPadHorizontal -> Maybe Direction -> Float
-getVerticalFrictionStrength wallSlideFriction dPadHorizontal collisionDirection =
+getVerticalFrictionStrength wallSlideFrictionCoefficent dPadHorizontal collisionDirection =
     case collisionDirection of
         Nothing ->
             lightDragCoefficent
 
         Just direction ->
             if pressingInDirectionOfDirection dPadHorizontal direction then
-                maxDragCoefficent
+                wallSlideFrictionCoefficent
             else
                 lightDragCoefficent
 
@@ -718,9 +718,10 @@ runRoutineX tempProperties controller player =
 
 runRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
 runRoutineY tempProperties controller ( collision, player ) =
+    -- maxWallSlideSpeed
     calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
         |> addAccelerationToYVelocity player
-        |> handleVerticalFriction tempProperties.wallFriction controller.dPadHorizontal collision
+        |> handleVerticalFriction 1 controller.dPadHorizontal collision
         |> (\player -> { player | y = player.y + player.vy })
 
 
