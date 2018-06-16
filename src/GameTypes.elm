@@ -71,6 +71,7 @@ type PlayerState
 
 
 type alias TempProperties =
+    -- that jump feel
     { framesToApex : Int
     , maxJumpHeight : Float
     , minJumpHeight : Float

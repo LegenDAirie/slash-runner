@@ -352,6 +352,13 @@ calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJu
     sqrt <| abs <| (initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight))
 
 
+calculateDragCoefficent : Float -> Float -> Float
+calculateDragCoefficent acceleration maxSpeed =
+    -- yuck!
+    abs ((acceleration - baseFrictionCoefficent) / ((maxSpeed + acceleration) * (maxSpeed + acceleration)))
+        |> Debug.log "drag: "
+
+
 getDPadForce : PlayerState -> DPadHorizontal -> Float -> Float
 getDPadForce playerState dPadHorizontal dPadAcceleration =
     case playerState of
@@ -373,9 +380,9 @@ getDPadForce playerState dPadHorizontal dPadAcceleration =
                     noForce
 
 
-handleHorizontalFriction : Controller -> Player -> Player
-handleHorizontalFriction controller player =
-    getHorizontalFrictionStrength controller.dPadHorizontal controller.dashButton player.vx player.playerState
+handleHorizontalFriction : TempProperties -> Controller -> Float -> Player -> Player
+handleHorizontalFriction tempProperties controller velocity player =
+    getHorizontalFrictionStrength tempProperties controller.dPadHorizontal controller.dashButton player.vx player.playerState velocity
         |> calculateTotalFriction player.vx
         |> calculateForceDirection player.vx
         |> applyFrictionToVelocity player.vx
@@ -428,8 +435,8 @@ handleVerticalFriction wallFriction horizontalDPad collisionDirection player =
         |> (\newVelocity -> { player | vy = newVelocity })
 
 
-getHorizontalFrictionStrength : DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float
-getHorizontalFrictionStrength horizontalDPadButton dashButton velocity playerState =
+getHorizontalFrictionStrength : TempProperties -> DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float -> Float
+getHorizontalFrictionStrength tempProperties horizontalDPadButton dashButton velocityAfterAcc playerState velocity =
     case playerState of
         RecoveringFromDash _ ->
             dragCoefficentZero
@@ -438,11 +445,15 @@ getHorizontalFrictionStrength horizontalDPadButton dashButton velocity playerSta
             maxDragCoefficent
 
         _ ->
-            if pressingInDirectionOfVelocity horizontalDPadButton velocity && isButtonDown dashButton then
-                lightDragCoefficent
-            else if pressingInDirectionOfVelocity horizontalDPadButton velocity then
-                mediumDragCoefficent
-            else if pressingInOppositeDirectionOfVelocity horizontalDPadButton velocity then
+            if pressingInDirectionOfVelocity horizontalDPadButton velocityAfterAcc && isButtonDown dashButton then
+                calculateDragCoefficent
+                    (abs (velocityAfterAcc - velocity))
+                    tempProperties.maxRunningSpeed
+            else if pressingInDirectionOfVelocity horizontalDPadButton velocityAfterAcc then
+                calculateDragCoefficent
+                    (abs (velocityAfterAcc - velocity))
+                    tempProperties.maxWalkingSpeed
+            else if pressingInOppositeDirectionOfVelocity horizontalDPadButton velocityAfterAcc then
                 maxDragCoefficent
             else
                 heavyDragCoefficent
@@ -712,7 +723,7 @@ runRoutineX : TempProperties -> Controller -> Player -> Player
 runRoutineX tempProperties controller player =
     getDPadForce player.playerState controller.dPadHorizontal tempProperties.dPadAcceleration
         |> addToXVelocity player
-        |> handleHorizontalFriction controller
+        |> handleHorizontalFriction tempProperties controller player.vx
         |> (\player -> { player | x = player.x + player.vx })
 
 
