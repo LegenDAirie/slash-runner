@@ -114,7 +114,7 @@ initialTempProperties =
     { framesToApex = 28
     , maxJumpHeight = 256
     , minJumpHeight = 16
-    , maxWallSlideSpeed = 1
+    , maxWallSlideSpeed = 5
     , maxWalkingSpeed = 10
     , maxRunningSpeed = 30
     , dPadAcceleration = 0.5
@@ -550,10 +550,10 @@ view model =
                     , input
                         [ type_ "number"
                         , Html.Attributes.max "20"
-                        , Html.Attributes.min "1"
+                        , Html.Attributes.min "0"
                         , Html.Attributes.step "1"
                         , Html.Attributes.value (toString model.temporaryProperties.maxWallSlideSpeed)
-                        , onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 1 20 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        , onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 0 20 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]

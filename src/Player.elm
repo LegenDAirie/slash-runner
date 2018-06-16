@@ -352,11 +352,15 @@ calculateEarlyJumpTerminationVelocity initialJumpVel gravity maxJumpHeight minJu
     sqrt <| abs <| (initialJumpVel * initialJumpVel) + (2 * gravity * (maxJumpHeight - minJumpHeight))
 
 
+calculateWallSlideFriction : Float -> Float -> Float
+calculateWallSlideFriction gravitationalAcceleration maxSpeed =
+    (negate <| abs gravitationalAcceleration) / (maxSpeed * maxSpeed)
+
+
 calculateDragCoefficent : Float -> Float -> Float
 calculateDragCoefficent acceleration maxSpeed =
     -- yuck!
     abs ((acceleration - baseFrictionCoefficent) / ((maxSpeed + acceleration) * (maxSpeed + acceleration)))
-        |> Debug.log "drag: "
 
 
 getDPadForce : PlayerState -> DPadHorizontal -> Float -> Float
@@ -426,9 +430,9 @@ flipDirection direction =
             Right
 
 
-handleVerticalFriction : Float -> DPadHorizontal -> Maybe Direction -> Player -> Player
-handleVerticalFriction wallFriction horizontalDPad collisionDirection player =
-    getVerticalFrictionStrength wallFriction horizontalDPad collisionDirection
+handleVerticalFriction : TempProperties -> DPadHorizontal -> Maybe Direction -> Float -> Player -> Player
+handleVerticalFriction tempProperties horizontalDPad collisionDirection acceleration player =
+    getVerticalFrictionStrength tempProperties horizontalDPad collisionDirection acceleration
         |> calculateTotalFriction player.vy
         |> calculateForceDirection player.vy
         |> applyFrictionToVelocity player.vy
@@ -459,15 +463,16 @@ getHorizontalFrictionStrength tempProperties horizontalDPadButton dashButton vel
                 heavyDragCoefficent
 
 
-getVerticalFrictionStrength : Float -> DPadHorizontal -> Maybe Direction -> Float
-getVerticalFrictionStrength wallSlideFrictionCoefficent dPadHorizontal collisionDirection =
+getVerticalFrictionStrength : TempProperties -> DPadHorizontal -> Maybe Direction -> Float -> Float
+getVerticalFrictionStrength tempProperties dPadHorizontal collisionDirection acceleration =
     case collisionDirection of
         Nothing ->
             lightDragCoefficent
 
         Just direction ->
             if pressingInDirectionOfDirection dPadHorizontal direction then
-                wallSlideFrictionCoefficent
+                (calculateDragCoefficent (abs acceleration) tempProperties.maxWallSlideSpeed)
+                -- |> Debug.log "vertical drag coefficent: "
             else
                 lightDragCoefficent
 
@@ -730,10 +735,14 @@ runRoutineX tempProperties controller player =
 runRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
 runRoutineY tempProperties controller ( collision, player ) =
     -- maxWallSlideSpeed
-    calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
-        |> addAccelerationToYVelocity player
-        |> handleVerticalFriction 1 controller.dPadHorizontal collision
-        |> (\player -> { player | y = player.y + player.vy })
+    let
+        gravity =
+            calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
+    in
+        gravity
+            |> addAccelerationToYVelocity player
+            |> handleVerticalFriction tempProperties controller.dPadHorizontal collision gravity
+            |> (\player -> { player | y = player.y + player.vy })
 
 
 handleCollisionX : Dict IntVector Platform -> Player -> ( Maybe Direction, Player )
