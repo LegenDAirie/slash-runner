@@ -661,7 +661,7 @@ calculatePlayerAction tempProperties controller platforms player =
         Dashing frameNumber ->
             if controller.jumpButton == Pressed then
                 Jump
-            else if controller.dashButton == Pressed && inDashRecoverWindow frameNumber tempProperties.dashDuration tempProperties.buttonPressWindow then
+            else if groundBelowPlayer platforms player.x player.y && controller.dashButton == Pressed && inDashRecoverWindow frameNumber tempProperties.dashDuration tempProperties.buttonPressWindow then
                 StartDashRecover
             else
                 NoAction
