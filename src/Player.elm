@@ -320,7 +320,9 @@ displacePlayerVerically : Player -> Maybe CollisionDirection -> Player
 displacePlayerVerically player collision =
     case collision of
         Nothing ->
-            player
+            { player
+                | playerState = playerStateAfterNoCollisionWithGround player.playerState
+            }
 
         Just collision ->
             case collision of
@@ -353,8 +355,27 @@ playerStateAfterCollisionWithGround currentState =
         OnTheGround frameNumber ->
             OnTheGround frameNumber
 
-        InTheAir frameNumber ->
+        InTheAir _ ->
             OnTheGround 0
+
+
+playerStateAfterNoCollisionWithGround : PlayerState -> PlayerState
+playerStateAfterNoCollisionWithGround playerState =
+    case playerState of
+        InTheAir frameNumber ->
+            InTheAir frameNumber
+
+        Dashing frameNumber ->
+            Dashing frameNumber
+
+        RecoveringFromDash frameNumber ->
+            RecoveringFromDash frameNumber
+
+        OnTheGround _ ->
+            InTheAir 0
+
+        SlowingToStop _ ->
+            InTheAir 0
 
 
 
