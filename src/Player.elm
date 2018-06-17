@@ -119,6 +119,24 @@ fullStop =
 -------------------------------
 
 
+getBottomCenterSpritePoint : Vector -> Vector
+getBottomCenterSpritePoint ( x, y ) =
+    let
+        halfHitBoxWidth =
+            (toFloat <| getX playerHitBoxSize) / 2
+
+        center =
+            x + halfHitBoxWidth
+
+        spriteHitBoxSizeDif =
+            getY playerSpriteSize - getY playerHitBoxSize
+
+        spriteBoxBottomSide =
+            y - (toFloat spriteHitBoxSizeDif / 2)
+    in
+        ( center, spriteBoxBottomSide )
+
+
 getPlayerLeftKickPoint : Vector -> Vector
 getPlayerLeftKickPoint ( x, y ) =
     let
@@ -149,17 +167,17 @@ getPlayerRightKickPoint ( x, y ) =
         ( spriteBoxRightSide, kickPointY )
 
 
-wallsNearPlayer : Dict IntVector Platform -> Player -> WallsNearPlayer
-wallsNearPlayer platforms player =
+wallsNearPlayer : Dict IntVector Platform -> Float -> Float -> WallsNearPlayer
+wallsNearPlayer platforms playerX playerY =
     let
         wallToTheRight =
-            ( player.x, player.y )
+            ( playerX, playerY )
                 |> getPlayerRightKickPoint
                 |> locationToGridCoordinate
                 |> flip Dict.member platforms
 
         wallToTheLeft =
-            ( player.x, player.y )
+            ( playerX, playerY )
                 |> getPlayerLeftKickPoint
                 |> locationToGridCoordinate
                 |> flip Dict.member platforms
@@ -176,6 +194,14 @@ wallsNearPlayer platforms player =
 
             ( False, True ) ->
                 WallOnRight
+
+
+groundBelowPlayer : Dict IntVector Platform -> Float -> Float -> Bool
+groundBelowPlayer platforms playerX playerY =
+    ( playerX, playerY )
+        |> getBottomCenterSpritePoint
+        |> locationToGridCoordinate
+        |> flip Dict.member platforms
 
 
 getDirectionFromVelocity : Float -> Direction
@@ -210,8 +236,8 @@ addAccelerationToYVelocity player acceleration =
     }
 
 
-getPlayerColor : PlayerState -> Int -> Color.Color
-getPlayerColor playerState dashDuration =
+getPlayerColor : PlayerState -> Color.Color
+getPlayerColor playerState =
     case playerState of
         Dashing frameNumber ->
             Color.yellow
@@ -620,7 +646,7 @@ calculatePlayerAction tempProperties controller platforms player =
                 NoAction
 
         RecoveringFromDash frameNumber ->
-            if controller.dashButton == Pressed && frameNumber > tempProperties.dashRecoveryDuration - tempProperties.buttonPressWindow then
+            if groundBelowPlayer platforms player.x player.y && controller.dashButton == Pressed && frameNumber > tempProperties.dashRecoveryDuration - tempProperties.buttonPressWindow then
                 StartDash <| getDirectionFromVelocity player.vx
             else
                 NoAction
@@ -638,7 +664,7 @@ calculatePlayerAction tempProperties controller platforms player =
 
         InTheAir _ ->
             if controller.jumpButton == Pressed then
-                case wallsNearPlayer platforms player of
+                case wallsNearPlayer platforms player.x player.y of
                     NoWalls ->
                         NoAction
 
@@ -769,14 +795,14 @@ handleCollisionY platforms player =
 -------------------------------
 
 
-renderPlayer : Resources -> Player -> Int -> List Renderable
-renderPlayer resources player dashDuration =
+renderPlayer : Resources -> Player -> Dict IntVector Platform -> List Renderable
+renderPlayer resources player platforms =
     let
         { x, y, playerState } =
             player
 
         playerColor =
-            getPlayerColor player.playerState dashDuration
+            getPlayerColor player.playerState
 
         hitBox =
             Render.shape

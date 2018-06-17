@@ -128,11 +128,11 @@ updatePlayState controller tempProperties state =
             |> (\state -> { state | camera = Camera.follow 0.5 0.17 ( state.player.x, state.player.y ) state.camera })
 
 
-renderNormalPlay : NormalPlayState -> Int -> List Renderable
-renderNormalPlay state dash =
+renderNormalPlay : NormalPlayState -> List Renderable
+renderNormalPlay state =
     List.concat
         [ (List.map (\( gridCoordinate, platform ) -> renderPlatform Color.grey gridCoordinate) (Dict.toList state.platforms))
-        , renderPlayer state.resources state.player dash
+        , renderPlayer state.resources state.player state.platforms
         ]
 
 

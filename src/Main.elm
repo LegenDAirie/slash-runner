@@ -475,10 +475,10 @@ view model =
                     ( Camera.fixedWidth (getX gameSize) ( 0, 0 ), [] )
 
                 NormalPlay state ->
-                    ( state.camera, renderNormalPlay state model.temporaryProperties.dashDuration )
+                    ( state.camera, renderNormalPlay state )
 
                 CreateLevel levelCreateState ->
-                    ( levelCreateState.playState.camera, renderLevelCreateScreen model.windowSize levelCreateState model.temporaryProperties.dashDuration )
+                    ( levelCreateState.playState.camera, renderLevelCreateScreen model.windowSize levelCreateState )
 
         canvasSize =
             calculateCanvasSize model.windowSize
