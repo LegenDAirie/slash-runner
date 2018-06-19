@@ -55,9 +55,7 @@ import CreateLevel
     exposing
         ( LevelCreateState
         , initialLevelCreateState
-        , updatePlayStateFromMouseState
         , renderLevelCreateScreen
-        , getCreateStateUpdateAction
         , updateCreateLevelState
         )
 
@@ -112,9 +110,9 @@ type Msg
 initialTempProperties : TempProperties
 initialTempProperties =
     { framesToApex = 28
-    , maxJumpHeight = 256
+    , maxJumpHeight = 320
     , minJumpHeight = 16
-    , maxWallSlideSpeed = 5
+    , maxWallSlideSpeed = 3
     , maxWalkingSpeed = 10
     , maxRunningSpeed = 30
     , dPadAcceleration = 0.5
@@ -549,11 +547,11 @@ view model =
                     [ text "Max Wall Slide Speed "
                     , input
                         [ type_ "number"
-                        , Html.Attributes.max "20"
+                        , Html.Attributes.max "10"
                         , Html.Attributes.min "0"
-                        , Html.Attributes.step "1"
+                        , Html.Attributes.step "0.5"
                         , Html.Attributes.value (toString model.temporaryProperties.maxWallSlideSpeed)
-                        , onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 0 20 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        , onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 0 10 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]

@@ -2,9 +2,7 @@ module CreateLevel
     exposing
         ( LevelCreateState
         , initialLevelCreateState
-        , updatePlayStateFromMouseState
         , renderLevelCreateScreen
-        , getCreateStateUpdateAction
         , updateCreateLevelState
         )
 
