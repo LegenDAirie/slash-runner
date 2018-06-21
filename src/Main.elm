@@ -101,6 +101,7 @@ type Msg
     | TweekMaxWallSlideSpeed Float
     | TweekMaxWalkingSpeed Float
     | TweekMaxRunningSpeed Float
+    | TweekMaxDashingSpeed Float
     | TweekDPadAcceleration Float
     | TweekDashDuration Int
     | TweekDashRecoveryDuration Int
@@ -114,7 +115,8 @@ initialTempProperties =
     , minJumpHeight = 16
     , maxWallSlideSpeed = 3
     , maxWalkingSpeed = 10
-    , maxRunningSpeed = 30
+    , maxRunningSpeed = 20
+    , maxDashingSpeed = 25
     , dPadAcceleration = 0.5
     , dashDuration = 41
     , dashRecoveryDuration = 41
@@ -215,6 +217,19 @@ update msg model =
 
                 newTempProps =
                     { temporaryProperties | maxWalkingSpeed = maxWalkingSpeed }
+            in
+                { model
+                    | temporaryProperties = newTempProps
+                }
+                    ! []
+
+        TweekMaxDashingSpeed maxDashingSpeed ->
+            let
+                { temporaryProperties } =
+                    model
+
+                newTempProps =
+                    { temporaryProperties | maxDashingSpeed = maxDashingSpeed }
             in
                 { model
                     | temporaryProperties = newTempProps
@@ -576,6 +591,18 @@ view model =
                         , Html.Attributes.step "1"
                         , Html.Attributes.value (toString model.temporaryProperties.maxRunningSpeed)
                         , onInput (\stringNumber -> TweekMaxRunningSpeed <| clamp model.temporaryProperties.maxWalkingSpeed 50 <| Result.withDefault 0 (String.toFloat stringNumber))
+                        ]
+                        []
+                    ]
+                , div []
+                    [ text "Max Dashing Speed"
+                    , input
+                        [ type_ "number"
+                        , Html.Attributes.max "50"
+                        , Html.Attributes.min <| toString model.temporaryProperties.maxRunningSpeed
+                        , Html.Attributes.step "1"
+                        , Html.Attributes.value (toString model.temporaryProperties.maxDashingSpeed)
+                        , onInput (\stringNumber -> TweekMaxDashingSpeed <| clamp model.temporaryProperties.maxRunningSpeed 50 <| Result.withDefault 0 (String.toFloat stringNumber))
                         ]
                         []
                     ]

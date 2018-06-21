@@ -751,17 +751,20 @@ actionUpdate tempProperties player action =
 
         StartDash dashDirection ->
             let
-                initialDashingVelocity =
-                    case dashDirection of
-                        Left ->
-                            -tempProperties.maxRunningSpeed
+                speedAfterDash =
+                    ((abs player.vx) + 10)
+                        |> clamp 0 tempProperties.maxDashingSpeed
 
-                        Right ->
-                            tempProperties.maxRunningSpeed
+                dashVelocity =
+                    max speedAfterDash <| abs player.vx
+
+                finalDashVelocity =
+                    getDirectionFromVelocity player.vx
+                        |> applyDirectionToForce dashVelocity
             in
                 { player
                     | playerState = Dashing 0
-                    , vx = initialDashingVelocity
+                    , vx = finalDashVelocity
                 }
 
         StartDashRecover ->

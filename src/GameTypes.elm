@@ -78,6 +78,7 @@ type alias TempProperties =
     , maxWallSlideSpeed : Float
     , maxWalkingSpeed : Float
     , maxRunningSpeed : Float
+    , maxDashingSpeed : Float
     , dPadAcceleration : Float
     , dashDuration : Int
     , dashRecoveryDuration : Int
