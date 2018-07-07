@@ -4,6 +4,9 @@ dist/
 # Images
 assets
 
+# Production Build
+build
+
 # elm-package generated files
 elm-stuff
 

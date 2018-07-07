@@ -120,7 +120,7 @@ initialTempProperties =
     , dPadAcceleration = 0.5
     , dashDuration = 41
     , dashRecoveryDuration = 41
-    , buttonPressWindow = 10
+    , buttonPressWindow = 13
     }
 
 
@@ -139,6 +139,12 @@ init =
     initialModel
         ! [ Task.perform SetWindowSize Window.size
           , Cmd.map Resources <| Resources.loadTextures [ "./assets/player-background-glow.png" ]
+          , Cmd.map Resources <| Resources.loadTextures [ "./assets/jumping-blob-sprite-sheet.png" ]
+          , Cmd.map Resources <| Resources.loadTextures [ "./assets/running-blob-sprite-sheet.png" ]
+          , Cmd.map Resources <| Resources.loadTextures [ "./assets/dashing-blob-sprite-sheet.png" ]
+          , Cmd.map Resources <| Resources.loadTextures [ "./assets/tripping-blob-sprite-sheet.png" ]
+          , Cmd.map Resources <| Resources.loadTextures [ "./assets/recovering-blob-sprite-sheet.png" ]
+          , Cmd.map Resources <| Resources.loadTextures [ "./assets/idling-blob-sprite-sheet.png" ]
           , fetchLevelData 1
           ]
 

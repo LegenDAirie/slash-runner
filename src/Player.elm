@@ -726,10 +726,10 @@ actionUpdate tempProperties player action =
                 jumpVelocityX =
                     case direction of
                         Left ->
-                            -jumpVelocityY
+                            -jumpVelocityY * 0.7
 
                         Right ->
-                            jumpVelocityY
+                            jumpVelocityY * 0.7
             in
                 { player
                     | vx = jumpVelocityX
@@ -842,7 +842,76 @@ renderPlayer resources player platforms =
                 , position = ( x - 32, y - 32 )
                 , size = vectorIntToFloat playerSpriteSize
                 }
+
+        ( currentFrame, totalFrames, spriteSheet ) =
+            determineSpriteFrame player
+
+        direction =
+            getDirectionFromVelocity player.vx
+                |> applyDirectionToForce 1
+
+        playerSrite =
+            Render.manuallyManagedAnimatedSpriteWithOptions
+                { bottomLeft = ( 0, 0 )
+                , topRight = ( 1, 1 )
+                , currentFrame = currentFrame
+                , numberOfFrames = totalFrames
+                , pivot = ( 0.5, 0.5 )
+                , position = ( x + 32, y + 48, 0 )
+                , rotation = 0
+                , size = (\( x, y ) -> ( direction * x, y )) <| vectorIntToFloat playerSpriteSize
+                , texture = Resources.getTexture ("./assets/" ++ spriteSheet) resources
+                }
     in
         [ fullSprite
         , hitBox
+        , playerSrite
         ]
+
+
+determineSpriteFrame : Player -> ( Int, Int, String )
+determineSpriteFrame player =
+    case player.playerState of
+        OnTheGround frameNumber ->
+            if player.vx == 0 then
+                ( frameNumber // 20, 2, "idling-blob-sprite-sheet.png" )
+            else
+                ( frameNumber // 8, 8, "running-blob-sprite-sheet.png" )
+
+        InTheAir _ ->
+            let
+                spriteFrame =
+                    if player.vy > 20 then
+                        0
+                    else if player.vy > 17 then
+                        1
+                    else if player.vy > 14 then
+                        2
+                    else if player.vy > 5 then
+                        3
+                    else if player.vy > 0 then
+                        4
+                    else
+                        5
+            in
+                ( spriteFrame, 8, "jumping-blob-sprite-sheet.png" )
+
+        Dashing frameNumber ->
+            ( frameNumber // 8, 4, "dashing-blob-sprite-sheet.png" )
+
+        SlowingToStop frameNumber ->
+            let
+                spriteFrame =
+                    if frameNumber < 5 then
+                        0
+                    else if frameNumber < 10 then
+                        1
+                    else if frameNumber < 15 then
+                        2
+                    else
+                        4
+            in
+                ( spriteFrame, 8, "tripping-blob-sprite-sheet.png" )
+
+        RecoveringFromDash frameNumber ->
+            ( frameNumber // 10, 4, "recovering-blob-sprite-sheet.png" )
