@@ -104,7 +104,6 @@ type Msg
     | TweekMaxDashingSpeed Float
     | TweekDPadAcceleration Float
     | TweekDashDuration Int
-    | TweekDashRecoveryDuration Int
     | TweekButtonPressWindow Int
 
 
@@ -119,7 +118,6 @@ initialTempProperties =
     , maxDashingSpeed = 25
     , dPadAcceleration = 0.5
     , dashDuration = 41
-    , dashRecoveryDuration = 41
     , buttonPressWindow = 13
     }
 
@@ -275,19 +273,6 @@ update msg model =
 
                 newTempProps =
                     { temporaryProperties | dashDuration = dashDuration }
-            in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
-
-        TweekDashRecoveryDuration dashRecoveryDuration ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | dashRecoveryDuration = dashRecoveryDuration }
             in
                 { model
                     | temporaryProperties = newTempProps
@@ -633,18 +618,6 @@ view model =
                         , Html.Attributes.step "1"
                         , Html.Attributes.value (toString model.temporaryProperties.dashDuration)
                         , onInput (\stringNumber -> TweekDashDuration <| clamp 25 50 <| Result.withDefault 0 (String.toInt stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Dash Recover Duration in frames"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "50"
-                        , Html.Attributes.min "25"
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.dashRecoveryDuration)
-                        , onInput (\stringNumber -> TweekDashRecoveryDuration <| clamp 25 50 <| Result.withDefault 0 (String.toInt stringNumber))
                         ]
                         []
                     ]

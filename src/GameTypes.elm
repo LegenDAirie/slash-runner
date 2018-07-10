@@ -7,7 +7,7 @@ module GameTypes
         , intVectorDecoder
         , vectorIntToFloat
         , vectorFloatToInt
-        , PlayerState(Dashing, OnTheGround, RecoveringFromDash, SlowingToStop, InTheAir)
+        , PlayerState(OnTheGround, GroundDash, InTheAir, AirDash, Falling)
         , TempProperties
         )
 
@@ -57,11 +57,11 @@ type alias Player =
 
 
 type PlayerState
-    = Dashing Int
-    | RecoveringFromDash Int
-    | SlowingToStop Int
-    | OnTheGround Int
+    = OnTheGround Int
+    | GroundDash Int
     | InTheAir Int
+    | AirDash Int
+    | Falling Int
 
 
 
@@ -81,6 +81,5 @@ type alias TempProperties =
     , maxDashingSpeed : Float
     , dPadAcceleration : Float
     , dashDuration : Int
-    , dashRecoveryDuration : Int
     , buttonPressWindow : Int
     }

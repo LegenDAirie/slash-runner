@@ -24,7 +24,7 @@ import GameTypes
         , Vector
         , vectorIntToFloat
         , IntVector
-        , PlayerState(OnTheGround, Dashing, RecoveringFromDash, SlowingToStop, InTheAir)
+        , PlayerState(OnTheGround, GroundDash, InTheAir, AirDash, Falling)
         , TempProperties
         )
 import Controller
@@ -239,20 +239,20 @@ addAccelerationToYVelocity player acceleration =
 getPlayerColor : PlayerState -> Color.Color
 getPlayerColor playerState =
     case playerState of
-        Dashing frameNumber ->
-            Color.yellow
-
-        RecoveringFromDash _ ->
-            Color.purple
-
-        SlowingToStop _ ->
-            Color.red
-
         OnTheGround _ ->
             Color.green
 
+        GroundDash _ ->
+            Color.yellow
+
         InTheAir _ ->
             Color.blue
+
+        AirDash _ ->
+            Color.orange
+
+        Falling _ ->
+            Color.red
 
 
 pressingInDirectionOfDirection : DPadHorizontal -> Direction -> Bool
@@ -341,41 +341,41 @@ displacePlayerVerically player collision =
 
 
 playerStateAfterCollisionWithGround : PlayerState -> PlayerState
-playerStateAfterCollisionWithGround currentState =
-    case currentState of
-        Dashing frameNumber ->
-            Dashing frameNumber
-
-        RecoveringFromDash frameNumber ->
-            RecoveringFromDash frameNumber
-
-        SlowingToStop frameNumber ->
-            SlowingToStop frameNumber
-
+playerStateAfterCollisionWithGround playerState =
+    case playerState of
         OnTheGround frameNumber ->
             OnTheGround frameNumber
 
+        GroundDash frameNumber ->
+            GroundDash frameNumber
+
         InTheAir _ ->
+            OnTheGround 0
+
+        AirDash _ ->
+            OnTheGround 0
+
+        Falling _ ->
             OnTheGround 0
 
 
 playerStateAfterNoCollisionWithGround : PlayerState -> PlayerState
 playerStateAfterNoCollisionWithGround playerState =
     case playerState of
-        InTheAir frameNumber ->
-            InTheAir frameNumber
-
-        Dashing frameNumber ->
-            Dashing frameNumber
-
-        RecoveringFromDash frameNumber ->
-            RecoveringFromDash frameNumber
-
         OnTheGround _ ->
             InTheAir 0
 
-        SlowingToStop _ ->
-            InTheAir 0
+        GroundDash frameNumber ->
+            GroundDash frameNumber
+
+        InTheAir frameNumber ->
+            InTheAir frameNumber
+
+        AirDash frameNumber ->
+            AirDash frameNumber
+
+        Falling frameNumber ->
+            Falling frameNumber
 
 
 
@@ -410,30 +410,22 @@ calculateDragCoefficent acceleration maxSpeed =
     abs ((acceleration - baseFrictionCoefficent) / ((maxSpeed + acceleration) * (maxSpeed + acceleration)))
 
 
-getDPadForce : PlayerState -> DPadHorizontal -> Float -> Float
-getDPadForce playerState dPadHorizontal dPadAcceleration =
-    case playerState of
-        RecoveringFromDash _ ->
+getDPadForce : DPadHorizontal -> Float -> Float
+getDPadForce dPadHorizontal dPadAcceleration =
+    case dPadHorizontal of
+        DPadRight ->
+            dPadAcceleration
+
+        DPadLeft ->
+            -dPadAcceleration
+
+        NoHorizontalDPad ->
             noForce
-
-        SlowingToStop _ ->
-            noForce
-
-        _ ->
-            case dPadHorizontal of
-                DPadRight ->
-                    dPadAcceleration
-
-                DPadLeft ->
-                    -dPadAcceleration
-
-                NoHorizontalDPad ->
-                    noForce
 
 
 handleHorizontalFriction : TempProperties -> Controller -> Float -> Player -> Player
 handleHorizontalFriction tempProperties controller velocity player =
-    getHorizontalFrictionStrength tempProperties controller.dPadHorizontal controller.dashButton player.vx player.playerState velocity
+    getHorizontalFrictionStrength tempProperties controller.dPadHorizontal controller.dashButton player.vx velocity
         |> calculateTotalFriction player.vx
         |> calculateForceDirection player.vx
         |> applyFrictionToVelocity player.vx
@@ -486,28 +478,20 @@ handleVerticalFriction tempProperties horizontalDPad collisionDirection accelera
         |> (\newVelocity -> { player | vy = newVelocity })
 
 
-getHorizontalFrictionStrength : TempProperties -> DPadHorizontal -> ButtonState -> Float -> PlayerState -> Float -> Float
-getHorizontalFrictionStrength tempProperties horizontalDPadButton dashButton velocityAfterAcc playerState velocity =
-    case playerState of
-        RecoveringFromDash _ ->
-            dragCoefficentZero
-
-        SlowingToStop _ ->
-            maxDragCoefficent
-
-        _ ->
-            if pressingInDirectionOfVelocity horizontalDPadButton velocityAfterAcc && isButtonDown dashButton then
-                calculateDragCoefficent
-                    (abs (velocityAfterAcc - velocity))
-                    tempProperties.maxRunningSpeed
-            else if pressingInDirectionOfVelocity horizontalDPadButton velocityAfterAcc then
-                calculateDragCoefficent
-                    (abs (velocityAfterAcc - velocity))
-                    tempProperties.maxWalkingSpeed
-            else if pressingInOppositeDirectionOfVelocity horizontalDPadButton velocityAfterAcc then
-                maxDragCoefficent
-            else
-                heavyDragCoefficent
+getHorizontalFrictionStrength : TempProperties -> DPadHorizontal -> ButtonState -> Float -> Float -> Float
+getHorizontalFrictionStrength tempProperties horizontalDPadButton dashButton velocityAfterAcc velocity =
+    if pressingInDirectionOfVelocity horizontalDPadButton velocityAfterAcc && isButtonDown dashButton then
+        calculateDragCoefficent
+            (abs (velocityAfterAcc - velocity))
+            tempProperties.maxRunningSpeed
+    else if pressingInDirectionOfVelocity horizontalDPadButton velocityAfterAcc then
+        calculateDragCoefficent
+            (abs (velocityAfterAcc - velocity))
+            tempProperties.maxWalkingSpeed
+    else if pressingInOppositeDirectionOfVelocity horizontalDPadButton velocityAfterAcc then
+        maxDragCoefficent
+    else
+        heavyDragCoefficent
 
 
 getVerticalFrictionStrength : TempProperties -> DPadHorizontal -> Maybe Direction -> Float -> Float
@@ -546,9 +530,13 @@ type PlayerAction
     = Jump
     | WallJump Direction
     | EndJump
-    | StartDash Direction
-    | StartDashRecover
+    | StartDash DashType
     | NoAction
+
+
+type DashType
+    = Ground
+    | Air
 
 
 type PlayerStateMsg
@@ -576,28 +564,25 @@ playerStateRoutine tempProperties player =
 calculatePlayerStateRoutineAction : TempProperties -> PlayerState -> Float -> PlayerStateMsg
 calculatePlayerStateRoutineAction tempProperties playerState playerXVelocity =
     case playerState of
-        Dashing frameNumber ->
+        GroundDash frameNumber ->
             if frameNumber > tempProperties.dashDuration then
                 EndState
             else
                 IncrementFrame
 
-        RecoveringFromDash frameNumber ->
-            if frameNumber > tempProperties.dashRecoveryDuration then
+        AirDash frameNumber ->
+            if frameNumber > tempProperties.dashDuration then
                 EndState
             else
                 IncrementFrame
-
-        SlowingToStop frameNumber ->
-            if playerXVelocity == 0 then
-                EndState
-            else
-                IncrementFrame
-
-        OnTheGround _ ->
-            IncrementFrame
 
         InTheAir _ ->
+            IncrementFrame
+
+        Falling _ ->
+            IncrementFrame
+
+        OnTheGround _ ->
             IncrementFrame
 
 
@@ -609,24 +594,27 @@ runPlayerStateRoutine playerState playerStateMsg =
 
         EndState ->
             case playerState of
-                Dashing _ ->
-                    SlowingToStop 0
+                GroundDash _ ->
+                    InTheAir 0
+
+                AirDash _ ->
+                    Falling 0
 
                 _ ->
-                    InTheAir 0
+                    playerState
 
 
 incrementFrameNumber : PlayerState -> PlayerState
 incrementFrameNumber playerState =
     case playerState of
-        Dashing frameNumber ->
-            Dashing (frameNumber + 1)
+        GroundDash frameNumber ->
+            GroundDash (frameNumber + 1)
 
-        RecoveringFromDash frameNumber ->
-            RecoveringFromDash (frameNumber + 1)
+        AirDash frameNumber ->
+            AirDash (frameNumber + 1)
 
-        SlowingToStop frameNumber ->
-            SlowingToStop (frameNumber + 1)
+        Falling frameNumber ->
+            Falling (frameNumber + 1)
 
         OnTheGround frameNumber ->
             OnTheGround (frameNumber + 1)
@@ -648,42 +636,67 @@ activeUpdate controller tempProperties platforms player =
         |> actionUpdate tempProperties player
 
 
-inDashRecoverWindow : Int -> Int -> Int -> Bool
-inDashRecoverWindow frameNumber dashDuration buttonPressWindow =
-    -- primitives suck!
-    frameNumber > dashDuration - buttonPressWindow && frameNumber < dashDuration
+canDashAgain : Int -> Int -> Int -> Bool
+canDashAgain frameNumber dashDuration buttonPressWindow =
+    -- primitives suck!!!!!
+    frameNumber > dashDuration - buttonPressWindow
+
+
+determineDashType : Dict IntVector Platform -> Float -> Float -> DashType
+determineDashType platforms playerX playerY =
+    case groundBelowPlayer platforms playerX playerY of
+        True ->
+            Ground
+
+        False ->
+            Air
 
 
 calculatePlayerAction : TempProperties -> Controller -> Dict IntVector Platform -> Player -> PlayerAction
 calculatePlayerAction tempProperties controller platforms player =
     -- don't need to pass in the whole player and only needs the jump and dash button states
     case player.playerState of
-        Dashing frameNumber ->
+        GroundDash frameNumber ->
             if controller.jumpButton == Pressed then
                 Jump
-            else if groundBelowPlayer platforms player.x player.y && controller.dashButton == Pressed && inDashRecoverWindow frameNumber tempProperties.dashDuration tempProperties.buttonPressWindow then
-                StartDashRecover
+            else if controller.dashButton == Pressed && canDashAgain frameNumber tempProperties.dashDuration tempProperties.buttonPressWindow then
+                StartDash <| determineDashType platforms player.x player.y
             else
                 NoAction
 
-        RecoveringFromDash frameNumber ->
-            if groundBelowPlayer platforms player.x player.y && controller.dashButton == Pressed && frameNumber > tempProperties.dashRecoveryDuration - tempProperties.buttonPressWindow then
-                StartDash <| getDirectionFromVelocity player.vx
-            else
-                NoAction
-
-        SlowingToStop _ ->
+        AirDash _ ->
             NoAction
 
         OnTheGround _ ->
             if controller.jumpButton == Pressed then
                 Jump
             else if controller.dashButton == Pressed then
-                StartDash <| getDirectionFromVelocity player.vx
+                StartDash Ground
             else
                 NoAction
 
         InTheAir _ ->
+            if controller.jumpButton == Pressed then
+                case wallsNearPlayer platforms player.x player.y of
+                    NoWalls ->
+                        NoAction
+
+                    WallOnLeftAndRight ->
+                        NoAction
+
+                    WallOnLeft ->
+                        WallJump Right
+
+                    WallOnRight ->
+                        WallJump Left
+            else if controller.dashButton == Pressed then
+                StartDash Air
+            else if controller.jumpButton == Released then
+                EndJump
+            else
+                NoAction
+
+        Falling _ ->
             if controller.jumpButton == Pressed then
                 case wallsNearPlayer platforms player.x player.y of
                     NoWalls ->
@@ -749,7 +762,7 @@ actionUpdate tempProperties player action =
             in
                 { player | vy = min earlyJumpTerminationVelocity player.vy }
 
-        StartDash dashDirection ->
+        StartDash dashType ->
             let
                 speedAfterDash =
                     ((abs player.vx) + 10)
@@ -761,14 +774,19 @@ actionUpdate tempProperties player action =
                 finalDashVelocity =
                     getDirectionFromVelocity player.vx
                         |> applyDirectionToForce dashVelocity
+
+                dash =
+                    case dashType of
+                        Ground ->
+                            GroundDash 0
+
+                        Air ->
+                            AirDash 0
             in
                 { player
-                    | playerState = Dashing 0
+                    | playerState = dash
                     , vx = finalDashVelocity
                 }
-
-        StartDashRecover ->
-            { player | playerState = RecoveringFromDash 0 }
 
         NoAction ->
             player
@@ -776,7 +794,7 @@ actionUpdate tempProperties player action =
 
 runRoutineX : TempProperties -> Controller -> Player -> Player
 runRoutineX tempProperties controller player =
-    getDPadForce player.playerState controller.dPadHorizontal tempProperties.dPadAcceleration
+    getDPadForce controller.dPadHorizontal tempProperties.dPadAcceleration
         |> addToXVelocity player
         |> handleHorizontalFriction tempProperties controller player.vx
         |> (\player -> { player | x = player.x + player.vx })
@@ -843,75 +861,76 @@ renderPlayer resources player platforms =
                 , size = vectorIntToFloat playerSpriteSize
                 }
 
-        ( currentFrame, totalFrames, spriteSheet ) =
-            determineSpriteFrame player
-
-        direction =
-            getDirectionFromVelocity player.vx
-                |> applyDirectionToForce 1
-
-        playerSrite =
-            Render.manuallyManagedAnimatedSpriteWithOptions
-                { bottomLeft = ( 0, 0 )
-                , topRight = ( 1, 1 )
-                , currentFrame = currentFrame
-                , numberOfFrames = totalFrames
-                , pivot = ( 0.5, 0.5 )
-                , position = ( x + 32, y + 48, 0 )
-                , rotation = 0
-                , size = (\( x, y ) -> ( direction * x, y )) <| vectorIntToFloat playerSpriteSize
-                , texture = Resources.getTexture ("./assets/" ++ spriteSheet) resources
-                }
+        -- ( currentFrame, totalFrames, spriteSheet ) =
+        --     determineSpriteFrame player
+        --
+        -- direction =
+        --     getDirectionFromVelocity player.vx
+        --         |> applyDirectionToForce 1
+        --
+        -- playerSrite =
+        --     Render.manuallyManagedAnimatedSpriteWithOptions
+        --         { bottomLeft = ( 0, 0 )
+        --         , topRight = ( 1, 1 )
+        --         , currentFrame = currentFrame
+        --         , numberOfFrames = totalFrames
+        --         , pivot = ( 0.5, 0.5 )
+        --         , position = ( x + 32, y + 48, 0 )
+        --         , rotation = 0
+        --         , size = (\( x, y ) -> ( direction * x, y )) <| vectorIntToFloat playerSpriteSize
+        --         , texture = Resources.getTexture ("./assets/" ++ spriteSheet) resources
+        --         }
     in
         [ fullSprite
         , hitBox
-        , playerSrite
+          -- , playerSrite
         ]
 
 
-determineSpriteFrame : Player -> ( Int, Int, String )
-determineSpriteFrame player =
-    case player.playerState of
-        OnTheGround frameNumber ->
-            if player.vx == 0 then
-                ( frameNumber // 20, 2, "idling-blob-sprite-sheet.png" )
-            else
-                ( frameNumber // 8, 8, "running-blob-sprite-sheet.png" )
 
-        InTheAir _ ->
-            let
-                spriteFrame =
-                    if player.vy > 20 then
-                        0
-                    else if player.vy > 17 then
-                        1
-                    else if player.vy > 14 then
-                        2
-                    else if player.vy > 5 then
-                        3
-                    else if player.vy > 0 then
-                        4
-                    else
-                        5
-            in
-                ( spriteFrame, 8, "jumping-blob-sprite-sheet.png" )
-
-        Dashing frameNumber ->
-            ( frameNumber // 8, 4, "dashing-blob-sprite-sheet.png" )
-
-        SlowingToStop frameNumber ->
-            let
-                spriteFrame =
-                    if frameNumber < 5 then
-                        0
-                    else if frameNumber < 10 then
-                        1
-                    else if frameNumber < 15 then
-                        2
-                    else
-                        4
-            in
-                ( spriteFrame, 8, "tripping-blob-sprite-sheet.png" )
-
-        RecoveringFromDash frameNumber ->
-            ( frameNumber // 10, 4, "recovering-blob-sprite-sheet.png" )
+-- determineSpriteFrame : Player -> ( Int, Int, String )
+-- determineSpriteFrame player =
+--     case player.playerState of
+--         OnTheGround frameNumber ->
+--             if player.vx == 0 then
+--                 ( frameNumber // 20, 2, "idling-blob-sprite-sheet.png" )
+--             else
+--                 ( frameNumber // 8, 8, "running-blob-sprite-sheet.png" )
+--
+--         InTheAir _ ->
+--             let
+--                 spriteFrame =
+--                     if player.vy > 20 then
+--                         0
+--                     else if player.vy > 17 then
+--                         1
+--                     else if player.vy > 14 then
+--                         2
+--                     else if player.vy > 5 then
+--                         3
+--                     else if player.vy > 0 then
+--                         4
+--                     else
+--                         5
+--             in
+--                 ( spriteFrame, 8, "jumping-blob-sprite-sheet.png" )
+--
+--         Dashing frameNumber ->
+--             ( frameNumber // 8, 4, "dashing-blob-sprite-sheet.png" )
+--
+--         SlowingToStop frameNumber ->
+--             let
+--                 spriteFrame =
+--                     if frameNumber < 5 then
+--                         0
+--                     else if frameNumber < 10 then
+--                         1
+--                     else if frameNumber < 15 then
+--                         2
+--                     else
+--                         4
+--             in
+--                 ( spriteFrame, 8, "tripping-blob-sprite-sheet.png" )
+--
+--         RecoveringFromDash frameNumber ->
+--             ( frameNumber // 10, 4, "recovering-blob-sprite-sheet.png" )
