@@ -8,13 +8,6 @@ import Browser
 import Browser.Dom
 import Browser.Events
 import Controller
-    exposing
-        ( Controller
-        , GamePad
-        , calculateControllerStateFromGamePad
-        , calculateControllerStateFromKeyboardState
-        , initialControllerState
-        )
 import Coordinates exposing (calculateCanvasSize, gameSize)
 import CreateLevel
     exposing
@@ -58,7 +51,7 @@ main =
 type alias Model =
     { windowSize : ( Float, Float )
     , keyboard : List Keyboard.Key
-    , controller : Controller
+    , controller : Controller.Controller
     , gameScreen : GameScreen
     , temporaryProperties : TempProperties
     }
@@ -74,7 +67,7 @@ type Msg
     = NoOp
     | GotNewWindowSize Int Int
     | GetGamePadState
-    | Tick GamePad
+    | Tick Controller.GamePad
     | KeyboardMsg Keyboard.Msg
     | ReceiveLevelData LevelData
     | MouseMove Vector
@@ -110,7 +103,7 @@ initialModel : Model
 initialModel =
     { windowSize = ( 0, 0 )
     , keyboard = []
-    , controller = initialControllerState
+    , controller = Controller.initialControllerState
     , gameScreen = CreateLevel initialLevelCreateState
     , temporaryProperties = initialTempProperties
     }
@@ -368,7 +361,7 @@ update msg model =
         Tick gamepadState ->
             let
                 newController =
-                    updateController model.keyboard gamepadState model.controller
+                    Controller.updateController model.keyboard gamepadState model.controller
 
                 ( newGameScreen, cmd ) =
                     updateGameScreen model.temporaryProperties model.keyboard model.windowSize model.gameScreen newController
@@ -381,17 +374,7 @@ update msg model =
             )
 
 
-updateController : List Keyboard.Key -> GamePad -> Controller -> Controller
-updateController pressedKeys gamePad controller =
-    case gamePad.gamepadConnected of
-        True ->
-            calculateControllerStateFromGamePad gamePad controller
-
-        False ->
-            calculateControllerStateFromKeyboardState pressedKeys controller
-
-
-updateGameScreen : TempProperties -> List Keyboard.Key -> Vector -> GameScreen -> Controller -> ( GameScreen, Cmd Msg )
+updateGameScreen : TempProperties -> List Keyboard.Key -> Vector -> GameScreen -> Controller.Controller -> ( GameScreen, Cmd Msg )
 updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
     case gameScreen of
         Uninitialized ->
@@ -647,7 +630,7 @@ viewBody model =
 port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg
 
 
-port receiveGamePadState : (GamePad -> msg) -> Sub msg
+port receiveGamePadState : (Controller.GamePad -> msg) -> Sub msg
 
 
 levelDataDecodeHandler : Json.Decode.Value -> Msg

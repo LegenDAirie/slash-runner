@@ -8,6 +8,7 @@ module Controller exposing
     , calculateControllerStateFromKeyboardState
     , initialControllerState
     , isButtonDown
+    , updateController
     )
 
 import Keyboard
@@ -23,6 +24,16 @@ type alias GamePad =
     , jump : Bool
     , dash : Bool
     }
+
+
+updateController : List Keyboard.Key -> GamePad -> Controller -> Controller
+updateController pressedKeys gamePad controller =
+    case gamePad.gamepadConnected of
+        True ->
+            calculateControllerStateFromGamePad gamePad controller
+
+        False ->
+            calculateControllerStateFromKeyboardState pressedKeys controller
 
 
 type ButtonState
