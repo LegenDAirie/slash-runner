@@ -1,42 +1,38 @@
-module Player
-    exposing
-        ( renderPlayer
-        , initialPlayer
-        , updatePlayer
-        )
+module Player exposing
+    ( initialPlayer
+    , renderPlayer
+    , updatePlayer
+    )
 
-import Game.TwoD.Render as Render exposing (Renderable, rectangle)
-import Game.Resources as Resources exposing (Resources)
-import Vector2 as V2 exposing (getX, getY)
-import Color
-import Dict exposing (Dict)
-import Coordinates exposing (locationToGridCoordinate)
-import GamePlatform exposing (Platform, platformSize)
 import CollisionHelpers
     exposing
-        ( getGridCoordinatesPlayerIsOverlapping
+        ( CollisionDirection(..)
         , getCollisionWithDisplacement
-        , CollisionDirection(CollisionNegativeDirection, CollisionPositiveDirection)
+        , getGridCoordinatesPlayerIsOverlapping
         )
-import GameTypes
-    exposing
-        ( Player
-        , Vector
-        , vectorIntToFloat
-        , IntVector
-        , PlayerState(OnTheGround, GroundDash, InTheAir, AirDash, Falling)
-        , TempProperties
-        )
+import Color
 import Controller
     exposing
-        ( Controller
-        , ButtonState
-            ( Pressed
-            , Released
-            )
-        , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
+        ( ButtonState(..)
+        , Controller
+        , DPadHorizontal(..)
         , isButtonDown
         )
+import Coordinates exposing (locationToGridCoordinate)
+import Dict exposing (Dict)
+import Game.Resources as Resources exposing (Resources)
+import Game.TwoD.Render as Render exposing (Renderable, rectangle)
+import GamePlatform exposing (Platform, platformSize)
+import GameTypes
+    exposing
+        ( IntVector
+        , Player
+        , PlayerState(..)
+        , TempProperties
+        , Vector
+        , vectorIntToFloat
+        )
+import V2
 
 
 initialPlayer : Player
@@ -123,48 +119,48 @@ getBottomCenterSpritePoint : Vector -> Vector
 getBottomCenterSpritePoint ( x, y ) =
     let
         halfHitBoxWidth =
-            (toFloat <| getX playerHitBoxSize) / 2
+            (toFloat <| Tuple.first playerHitBoxSize) / 2
 
         center =
             x + halfHitBoxWidth
 
         spriteHitBoxSizeDif =
-            getY playerSpriteSize - getY playerHitBoxSize
+            Tuple.second playerSpriteSize - Tuple.second playerHitBoxSize
 
         spriteBoxBottomSide =
             y - (toFloat spriteHitBoxSizeDif / 2)
     in
-        ( center, spriteBoxBottomSide )
+    ( center, spriteBoxBottomSide )
 
 
 getPlayerLeftKickPoint : Vector -> Vector
 getPlayerLeftKickPoint ( x, y ) =
     let
         spriteHitBoxSizeDif =
-            getX playerSpriteSize - getX playerHitBoxSize
+            Tuple.first playerSpriteSize - Tuple.first playerHitBoxSize
 
         spriteBoxLeftSide =
             x - toFloat spriteHitBoxSizeDif / 2
 
         kickPointY =
-            ((toFloat <| getY playerHitBoxSize) / 2) + y
+            ((toFloat <| Tuple.second playerHitBoxSize) / 2) + y
     in
-        ( spriteBoxLeftSide, kickPointY )
+    ( spriteBoxLeftSide, kickPointY )
 
 
 getPlayerRightKickPoint : Vector -> Vector
 getPlayerRightKickPoint ( x, y ) =
     let
         spriteHitBoxSizeDif =
-            getX playerSpriteSize - getX playerHitBoxSize
+            Tuple.first playerSpriteSize - Tuple.first playerHitBoxSize
 
         spriteBoxRightSide =
-            toFloat spriteHitBoxSizeDif / 2 + (toFloat <| getX playerHitBoxSize) + x
+            toFloat spriteHitBoxSizeDif / 2 + (toFloat <| Tuple.first playerHitBoxSize) + x
 
         kickPointY =
-            ((toFloat <| getY playerHitBoxSize) / 2) + y
+            ((toFloat <| Tuple.second playerHitBoxSize) / 2) + y
     in
-        ( spriteBoxRightSide, kickPointY )
+    ( spriteBoxRightSide, kickPointY )
 
 
 wallsNearPlayer : Dict IntVector Platform -> Float -> Float -> WallsNearPlayer
@@ -174,26 +170,26 @@ wallsNearPlayer platforms playerX playerY =
             ( playerX, playerY )
                 |> getPlayerRightKickPoint
                 |> locationToGridCoordinate
-                |> flip Dict.member platforms
+                |> V2.flip Dict.member platforms
 
         wallToTheLeft =
             ( playerX, playerY )
                 |> getPlayerLeftKickPoint
                 |> locationToGridCoordinate
-                |> flip Dict.member platforms
+                |> V2.flip Dict.member platforms
     in
-        case ( wallToTheLeft, wallToTheRight ) of
-            ( True, True ) ->
-                WallOnLeftAndRight
+    case ( wallToTheLeft, wallToTheRight ) of
+        ( True, True ) ->
+            WallOnLeftAndRight
 
-            ( False, False ) ->
-                NoWalls
+        ( False, False ) ->
+            NoWalls
 
-            ( True, False ) ->
-                WallOnLeft
+        ( True, False ) ->
+            WallOnLeft
 
-            ( False, True ) ->
-                WallOnRight
+        ( False, True ) ->
+            WallOnRight
 
 
 groundBelowPlayer : Dict IntVector Platform -> Float -> Float -> Bool
@@ -201,13 +197,14 @@ groundBelowPlayer platforms playerX playerY =
     ( playerX, playerY )
         |> getBottomCenterSpritePoint
         |> locationToGridCoordinate
-        |> flip Dict.member platforms
+        |> V2.flip Dict.member platforms
 
 
 getDirectionFromVelocity : Float -> Direction
 getDirectionFromVelocity velocity =
     if velocity < 0 then
         Left
+
     else
         Right
 
@@ -271,11 +268,11 @@ pressingInDirectionOfVelocity : DPadHorizontal -> Float -> Bool
 pressingInDirectionOfVelocity dPadHorizontal playerVelocity =
     dPadHorizontal
         == DPadLeft
-        && (getDirectionFromVelocity playerVelocity)
+        && getDirectionFromVelocity playerVelocity
         == Left
         || dPadHorizontal
         == DPadRight
-        && (getDirectionFromVelocity playerVelocity)
+        && getDirectionFromVelocity playerVelocity
         == Right
 
 
@@ -283,17 +280,17 @@ pressingInOppositeDirectionOfVelocity : DPadHorizontal -> Float -> Bool
 pressingInOppositeDirectionOfVelocity dPadHorizontal playerVelocity =
     dPadHorizontal
         == DPadLeft
-        && (getDirectionFromVelocity playerVelocity)
+        && getDirectionFromVelocity playerVelocity
         == Right
         || dPadHorizontal
         == DPadRight
-        && (getDirectionFromVelocity playerVelocity)
+        && getDirectionFromVelocity playerVelocity
         == Left
 
 
 displacePlayerHorizontally : Player -> Maybe CollisionDirection -> ( Maybe Direction, Player )
-displacePlayerHorizontally player collision =
-    case collision of
+displacePlayerHorizontally player maybeCollision =
+    case maybeCollision of
         Nothing ->
             ( Nothing, player )
 
@@ -317,8 +314,8 @@ displacePlayerHorizontally player collision =
 
 
 displacePlayerVerically : Player -> Maybe CollisionDirection -> Player
-displacePlayerVerically player collision =
-    case collision of
+displacePlayerVerically player maybeCollision =
+    case maybeCollision of
         Nothing ->
             { player
                 | playerState = playerStateAfterNoCollisionWithGround player.playerState
@@ -484,12 +481,15 @@ getHorizontalFrictionStrength tempProperties horizontalDPadButton dashButton vel
         calculateDragCoefficent
             (abs (velocityAfterAcc - velocity))
             tempProperties.maxRunningSpeed
+
     else if pressingInDirectionOfVelocity horizontalDPadButton velocityAfterAcc then
         calculateDragCoefficent
             (abs (velocityAfterAcc - velocity))
             tempProperties.maxWalkingSpeed
+
     else if pressingInOppositeDirectionOfVelocity horizontalDPadButton velocityAfterAcc then
         maxDragCoefficent
+
     else
         heavyDragCoefficent
 
@@ -502,8 +502,9 @@ getVerticalFrictionStrength tempProperties dPadHorizontal collisionDirection acc
 
         Just direction ->
             if pressingInDirectionOfDirection dPadHorizontal direction then
-                (calculateDragCoefficent (abs acceleration) tempProperties.maxWallSlideSpeed)
+                calculateDragCoefficent (abs acceleration) tempProperties.maxWallSlideSpeed
                 -- |> Debug.log "vertical drag coefficent: "
+
             else
                 lightDragCoefficent
 
@@ -567,12 +568,14 @@ calculatePlayerStateRoutineAction tempProperties playerState playerXVelocity =
         GroundDash frameNumber ->
             if frameNumber > tempProperties.dashDuration then
                 EndState
+
             else
                 IncrementFrame
 
         AirDash frameNumber ->
             if frameNumber > tempProperties.dashDuration then
                 EndState
+
             else
                 IncrementFrame
 
@@ -659,8 +662,10 @@ calculatePlayerAction tempProperties controller platforms player =
         GroundDash frameNumber ->
             if controller.jumpButton == Pressed then
                 Jump
+
             else if controller.dashButton == Pressed && canDashAgain frameNumber tempProperties.dashDuration tempProperties.buttonPressWindow then
                 StartDash <| determineDashType platforms player.x player.y
+
             else
                 NoAction
 
@@ -670,8 +675,10 @@ calculatePlayerAction tempProperties controller platforms player =
         OnTheGround _ ->
             if controller.jumpButton == Pressed then
                 Jump
+
             else if controller.dashButton == Pressed then
                 StartDash Ground
+
             else
                 NoAction
 
@@ -689,10 +696,13 @@ calculatePlayerAction tempProperties controller platforms player =
 
                     WallOnRight ->
                         WallJump Left
+
             else if controller.dashButton == Pressed then
                 StartDash Air
+
             else if controller.jumpButton == Released then
                 EndJump
+
             else
                 NoAction
 
@@ -710,8 +720,10 @@ calculatePlayerAction tempProperties controller platforms player =
 
                     WallOnRight ->
                         WallJump Left
+
             else if controller.jumpButton == Released then
                 EndJump
+
             else
                 NoAction
 
@@ -725,10 +737,10 @@ actionUpdate tempProperties player action =
                     calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
                         |> calculateInitialJumpVelocityFromJumpProperties tempProperties.maxJumpHeight
             in
-                { player
-                    | playerState = InTheAir 0
-                    , vy = jumpVelocityY
-                }
+            { player
+                | playerState = InTheAir 0
+                , vy = jumpVelocityY
+            }
 
         WallJump direction ->
             let
@@ -744,10 +756,10 @@ actionUpdate tempProperties player action =
                         Right ->
                             jumpVelocityY * 0.7
             in
-                { player
-                    | vx = jumpVelocityX
-                    , vy = jumpVelocityY
-                }
+            { player
+                | vx = jumpVelocityX
+                , vy = jumpVelocityY
+            }
 
         EndJump ->
             let
@@ -760,12 +772,12 @@ actionUpdate tempProperties player action =
                 earlyJumpTerminationVelocity =
                     calculateEarlyJumpTerminationVelocity baseJumpVelocityY baseGravity tempProperties.maxJumpHeight tempProperties.minJumpHeight
             in
-                { player | vy = min earlyJumpTerminationVelocity player.vy }
+            { player | vy = min earlyJumpTerminationVelocity player.vy }
 
         StartDash dashType ->
             let
                 speedAfterDash =
-                    ((abs player.vx) + 10)
+                    (abs player.vx + 10)
                         |> clamp 0 tempProperties.maxDashingSpeed
 
                 dashVelocity =
@@ -783,41 +795,41 @@ actionUpdate tempProperties player action =
                         Air ->
                             AirDash 0
             in
-                { player
-                    | playerState = dash
-                    , vx = finalDashVelocity
-                }
+            { player
+                | playerState = dash
+                , vx = finalDashVelocity
+            }
 
         NoAction ->
             player
 
 
 runRoutineX : TempProperties -> Controller -> Player -> Player
-runRoutineX tempProperties controller player =
+runRoutineX tempProperties controller thePlayer =
     getDPadForce controller.dPadHorizontal tempProperties.dPadAcceleration
-        |> addToXVelocity player
-        |> handleHorizontalFriction tempProperties controller player.vx
+        |> addToXVelocity thePlayer
+        |> handleHorizontalFriction tempProperties controller thePlayer.vx
         |> (\player -> { player | x = player.x + player.vx })
 
 
 runRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
-runRoutineY tempProperties controller ( collision, player ) =
+runRoutineY tempProperties controller ( collision, thePlayer ) =
     -- maxWallSlideSpeed
     let
         gravity =
             calculateYGravityFromJumpProperties tempProperties.maxJumpHeight tempProperties.framesToApex
     in
-        gravity
-            |> addAccelerationToYVelocity player
-            |> handleVerticalFriction tempProperties controller.dPadHorizontal collision gravity
-            |> (\player -> { player | y = player.y + player.vy })
+    gravity
+        |> addAccelerationToYVelocity thePlayer
+        |> handleVerticalFriction tempProperties controller.dPadHorizontal collision gravity
+        |> (\player -> { player | y = player.y + player.vy })
 
 
 handleCollisionX : Dict IntVector Platform -> Player -> ( Maybe Direction, Player )
 handleCollisionX platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
-        |> List.map (\( x, _ ) -> getCollisionWithDisplacement (getX playerHitBoxSize) player.x (getX platformSize) (toFloat x))
+        |> List.map (\( x, _ ) -> getCollisionWithDisplacement (Tuple.first playerHitBoxSize) player.x (Tuple.first platformSize) (toFloat x))
         |> List.head
         |> displacePlayerHorizontally player
 
@@ -826,7 +838,7 @@ handleCollisionY : Dict IntVector Platform -> Player -> Player
 handleCollisionY platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
-        |> List.map (\( _, y ) -> getCollisionWithDisplacement (getY playerHitBoxSize) player.y (getY platformSize) (toFloat y))
+        |> List.map (\( _, y ) -> getCollisionWithDisplacement (Tuple.second playerHitBoxSize) player.y (Tuple.second platformSize) (toFloat y))
         |> List.head
         |> displacePlayerVerically player
 
@@ -881,10 +893,11 @@ renderPlayer resources player platforms =
         --         , texture = Resources.getTexture ("./assets/" ++ spriteSheet) resources
         --         }
     in
-        [ fullSprite
-        , hitBox
-          -- , playerSrite
-        ]
+    [ fullSprite
+    , hitBox
+
+    -- , playerSrite
+    ]
 
 
 

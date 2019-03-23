@@ -1,17 +1,16 @@
-module GamePlatform
-    exposing
-        ( Platform
-        , PlatformType(Normal, Dangerous)
-        , renderPlatform
-        , platformSize
-        , platformWithLocationsDecoder
-        )
+module GamePlatform exposing
+    ( Platform
+    , PlatformType(..)
+    , platformSize
+    , platformWithLocationsDecoder
+    , renderPlatform
+    )
 
-import GameTypes exposing (Vector, IntVector, intVectorDecoder, vectorIntToFloat)
-import Game.TwoD.Render as Render exposing (Renderable)
-import Json.Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (decode, required)
 import Color exposing (Color)
+import Game.TwoD.Render as Render exposing (Renderable)
+import GameTypes exposing (IntVector, Vector, intVectorDecoder, vectorIntToFloat)
+import Json.Decode exposing (Decoder)
+import Json.Decode.Pipeline exposing (required)
 
 
 type alias Platform =
@@ -35,24 +34,24 @@ renderPlatform color location =
         ( x, y ) =
             location
     in
-        Render.shape
-            Render.rectangle
-            { position = ( toFloat x, toFloat y )
-            , size = vectorIntToFloat platformSize
-            , color = color
-            }
+    Render.shape
+        Render.rectangle
+        { position = ( toFloat x, toFloat y )
+        , size = vectorIntToFloat platformSize
+        , color = color
+        }
 
 
 platformWithLocationsDecoder : Decoder ( IntVector, Platform )
 platformWithLocationsDecoder =
-    decode (,)
+    Json.Decode.succeed Tuple.pair
         |> required "location" intVectorDecoder
         |> required "platform" platformDecoder
 
 
 platformDecoder : Decoder Platform
 platformDecoder =
-    decode Platform
+    Json.Decode.succeed Platform
         |> required "platformType" platformTypeDecoder
 
 

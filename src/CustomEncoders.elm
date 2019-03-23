@@ -1,22 +1,19 @@
-module CustomEncoders exposing (encodeVector, levelDataEncodeHandler, encodeEnemy)
+module CustomEncoders exposing (encodeEnemy, encodeVector, levelDataEncodeHandler)
 
-import Json.Encode
-import GameTypes exposing (Vector, IntVector)
 import Coordinates exposing (pixelToGridConversion)
 import Dict exposing (Dict)
-import GamePlatform
-    exposing
-        ( Platform
-        , PlatformType
-            ( Normal
-            , Dangerous
-            )
-        )
 import Enemy
     exposing
         ( Enemy
-        , EnemyMovement(NoMovement, Walk, LinePath)
+        , EnemyMovement(..)
         )
+import GamePlatform
+    exposing
+        ( Platform
+        , PlatformType(..)
+        )
+import GameTypes exposing (IntVector, Vector)
+import Json.Encode
 
 
 encodeVector : Vector -> Json.Encode.Value
@@ -25,10 +22,10 @@ encodeVector location =
         ( x, y ) =
             pixelToGridConversion location
     in
-        Json.Encode.object
-            [ ( "x", Json.Encode.float x )
-            , ( "y", Json.Encode.float y )
-            ]
+    Json.Encode.object
+        [ ( "x", Json.Encode.float x )
+        , ( "y", Json.Encode.float y )
+        ]
 
 
 encodeGridCoordinate : IntVector -> Json.Encode.Value
@@ -37,10 +34,10 @@ encodeGridCoordinate gridCoordinate =
         ( x, y ) =
             gridCoordinate
     in
-        Json.Encode.object
-            [ ( "x", Json.Encode.int x )
-            , ( "y", Json.Encode.int y )
-            ]
+    Json.Encode.object
+        [ ( "x", Json.Encode.int x )
+        , ( "y", Json.Encode.int y )
+        ]
 
 
 levelDataEncodeHandler : Dict IntVector Platform -> List Enemy -> String
@@ -49,14 +46,12 @@ levelDataEncodeHandler platforms enemies =
         encodedPlatforms =
             platforms
                 |> Dict.toList
-                |> List.map (\( gridCoordinate, platform ) -> encodePlatformAndLocation gridCoordinate platform)
 
         newPlatforms =
-            Json.Encode.list encodedPlatforms
+            Json.Encode.list (\( gridCoordinate, platform ) -> encodePlatformAndLocation gridCoordinate platform) encodedPlatforms
 
         encodedEnemies =
-            List.map (\enemy -> encodeEnemy enemy) enemies
-                |> Json.Encode.list
+            Json.Encode.list (\enemy -> encodeEnemy enemy) enemies
 
         encodedlevelData =
             Json.Encode.object
@@ -64,7 +59,7 @@ levelDataEncodeHandler platforms enemies =
                 , ( "enemies", encodedEnemies )
                 ]
     in
-        Json.Encode.encode 4 encodedlevelData
+    Json.Encode.encode 4 encodedlevelData
 
 
 encodePlatformAndLocation : IntVector -> Platform -> Json.Encode.Value

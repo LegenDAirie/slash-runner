@@ -1,16 +1,15 @@
-module Enemy
-    exposing
-        ( Enemy
-        , EnemyMovement(NoMovement, LinePath, Walk)
-        , LineMovementSpec
-        )
+module Enemy exposing
+    ( Enemy
+    , EnemyMovement(..)
+    , LineMovementSpec
+    )
 
-import Game.TwoD.Render as Render exposing (Renderable)
-import Vector2 as V2 exposing (getX, getY)
 import Color
-import GameTypes exposing (Vector, IntVector, vectorDecoder, vectorIntToFloat)
+import Game.TwoD.Render as Render exposing (Renderable)
+import GameTypes exposing (IntVector, Vector, vectorDecoder, vectorIntToFloat)
 import Json.Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (decode, required, hardcoded)
+import Json.Decode.Pipeline exposing (hardcoded, required)
+import V2
 
 
 type alias Enemy =
@@ -52,7 +51,7 @@ updateLinePath timeExisted startingLocation linePathSpec =
                 |> V2.add startNode
                 |> V2.add halfWayPoint
     in
-        newLocation
+    newLocation
 
 
 
@@ -70,10 +69,10 @@ renderEnemy : Enemy -> List Renderable
 renderEnemy enemy =
     let
         x =
-            getX enemy.startingLocation
+            Tuple.first enemy.startingLocation
 
         y =
-            getY enemy.startingLocation
+            Tuple.second enemy.startingLocation
 
         ( location, color ) =
             case enemy.movement of
@@ -110,12 +109,12 @@ renderEnemy enemy =
                         endNodeRenderable =
                             renderLinePathNode endNode
                     in
-                        [ startNodeRenderable, endNodeRenderable ]
+                    [ startNodeRenderable, endNodeRenderable ]
     in
-        List.concat
-            [ [ enemyRenderable ]
-            , linePathNodesRenderable
-            ]
+    List.concat
+        [ [ enemyRenderable ]
+        , linePathNodesRenderable
+        ]
 
 
 renderLinePathNode : Vector -> Renderable
@@ -129,7 +128,7 @@ renderLinePathNode location =
 
 enemyDecoder : Decoder Enemy
 enemyDecoder =
-    decode Enemy
+    Json.Decode.succeed Enemy
         |> required "location" vectorDecoder
         |> hardcoded 0
         |> hardcoded ( 64, 64 )
@@ -161,7 +160,7 @@ stringToMovementType movement =
 
 decodeLinePathMovementSpec : Decoder LineMovementSpec
 decodeLinePathMovementSpec =
-    decode LineMovementSpec
+    Json.Decode.succeed LineMovementSpec
         |> required "startNode" vectorDecoder
         |> required "endNode" vectorDecoder
         |> required "startingLocation" vectorDecoder

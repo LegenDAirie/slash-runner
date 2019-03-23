@@ -1,37 +1,33 @@
-module Screens.NormalPlay
-    exposing
-        ( NormalPlayState
-        , initialNormalPlayState
-        , renderNormalPlay
-        , LevelData
-        , createLevel
-        , updateNormalPlay
-        , jsonToLevelData
-        , resetPlayState
-        )
+module Screens.NormalPlay exposing
+    ( LevelData
+    , NormalPlayState
+    , createLevel
+    , initialNormalPlayState
+    , jsonToLevelData
+    , renderNormalPlay
+    , resetPlayState
+    , updateNormalPlay
+    )
 
 -- Libraries
-
-import Game.TwoD.Render as Render exposing (Renderable)
-import Game.TwoD.Camera as Camera exposing (Camera)
-import Game.Resources as Resources exposing (Resources)
-import Json.Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (decode, required)
-import Dict exposing (Dict)
-import Color
-
-
 -- My Modules
 
-import Enemy exposing (Enemy)
+import Color
+import Controller exposing (ButtonState, Controller)
 import Coordinates exposing (gameSize)
-import Controller exposing (Controller, ButtonState(Pressed))
+import Dict exposing (Dict)
+import Enemy exposing (Enemy)
+import Game.Resources as Resources exposing (Resources)
+import Game.TwoD.Camera as Camera exposing (Camera)
+import Game.TwoD.Render as Render exposing (Renderable)
+import GamePlatform exposing (Platform, platformWithLocationsDecoder, renderPlatform)
 import GameTypes exposing (IntVector, Player, TempProperties)
-import GamePlatform exposing (Platform, renderPlatform, platformWithLocationsDecoder)
+import Json.Decode exposing (Decoder)
+import Json.Decode.Pipeline exposing (required)
 import Player
     exposing
-        ( renderPlayer
-        , initialPlayer
+        ( initialPlayer
+        , renderPlayer
         , updatePlayer
         )
 
@@ -56,14 +52,14 @@ initialNormalPlayState =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = initialPlayer
-        , permanentEnemies = []
-        , enemies = []
-        , platforms = Dict.empty
-        , camera = Camera.fixedWidth gameWidth startingPoint
-        , resources = Resources.init
-        , paused = False
-        }
+    { player = initialPlayer
+    , permanentEnemies = []
+    , enemies = []
+    , platforms = Dict.empty
+    , camera = Camera.fixedWidth gameWidth startingPoint
+    , resources = Resources.init
+    , paused = False
+    }
 
 
 
@@ -79,14 +75,14 @@ createLevel levelData =
         ( gameWidth, gameHeight ) =
             gameSize
     in
-        { player = initialPlayer
-        , platforms = levelData.platforms
-        , camera = Camera.fixedWidth gameWidth startingPoint
-        , resources = Resources.init
-        , permanentEnemies = []
-        , enemies = []
-        , paused = False
-        }
+    { player = initialPlayer
+    , platforms = levelData.platforms
+    , camera = Camera.fixedWidth gameWidth startingPoint
+    , resources = Resources.init
+    , permanentEnemies = []
+    , enemies = []
+    , paused = False
+    }
 
 
 resetPlayState : NormalPlayState -> NormalPlayState
@@ -105,8 +101,9 @@ type alias LevelData =
 
 updatePausedState : ButtonState -> NormalPlayState -> NormalPlayState
 updatePausedState startButton state =
-    if startButton == Pressed then
+    if startButton == Controller.Pressed then
         { state | paused = not state.paused }
+
     else
         state
 
@@ -118,12 +115,13 @@ updateNormalPlay controller tempProperties state =
 
 
 updatePlayState : Controller -> TempProperties -> NormalPlayState -> NormalPlayState
-updatePlayState controller tempProperties state =
-    if state.paused then
-        state
+updatePlayState controller tempProperties theState =
+    if theState.paused then
+        theState
+
     else
-        { state
-            | player = updatePlayer controller tempProperties state.platforms state.player
+        { theState
+            | player = updatePlayer controller tempProperties theState.platforms theState.player
         }
             |> (\state -> { state | camera = Camera.follow 0.5 0.17 ( state.player.x, state.player.y ) state.camera })
 
@@ -131,12 +129,12 @@ updatePlayState controller tempProperties state =
 renderNormalPlay : NormalPlayState -> List Renderable
 renderNormalPlay state =
     List.concat
-        [ (List.map (\( gridCoordinate, platform ) -> renderPlatform Color.grey gridCoordinate) (Dict.toList state.platforms))
+        [ List.map (\( gridCoordinate, platform ) -> renderPlatform Color.grey gridCoordinate) (Dict.toList state.platforms)
         , renderPlayer state.resources state.player state.platforms
         ]
 
 
-jsonToLevelData : Json.Decode.Value -> Result String LevelData
+jsonToLevelData : Json.Decode.Value -> Result Json.Decode.Error LevelData
 jsonToLevelData levelDataJson =
     Json.Decode.decodeValue levelDataDecoder levelDataJson
 
@@ -148,5 +146,5 @@ levelDataDecoder =
             Json.Decode.list platformWithLocationsDecoder
                 |> Json.Decode.map Dict.fromList
     in
-        decode LevelData
-            |> required "platforms" platforms
+    Json.Decode.succeed LevelData
+        |> required "platforms" platforms

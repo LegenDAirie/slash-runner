@@ -1,17 +1,17 @@
-module Controller
-    exposing
-        ( Controller
-        , calculateControllerStateFromKeyboardState
-        , initialControllerState
-        , calculateControllerStateFromGamePad
-        , GamePad
-        , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
-        , DPadVertical(DPadUp, DPadDown, NoVerticalDPad)
-        , ButtonState(Pressed, Held, Released, Inactive)
-        , isButtonDown
-        )
+module Controller exposing
+    ( ButtonState(..)
+    , Controller
+    , DPadHorizontal(..)
+    , DPadVertical(..)
+    , GamePad
+    , calculateControllerStateFromGamePad
+    , calculateControllerStateFromKeyboardState
+    , initialControllerState
+    , isButtonDown
+    )
 
-import Keyboard.Extra
+import Keyboard
+import Keyboard.Arrows
 
 
 type alias GamePad =
@@ -123,60 +123,66 @@ initialControllerState =
     }
 
 
-calculateControllerStateFromKeyboardState : Keyboard.Extra.State -> Controller -> Controller
-calculateControllerStateFromKeyboardState keyboardState controllerState =
+calculateControllerStateFromKeyboardState : List Keyboard.Key -> Controller -> Controller
+calculateControllerStateFromKeyboardState pressedKeys controllerState =
     let
-        pressedKeys =
-            Keyboard.Extra.pressedDown keyboardState
+        charL =
+            Keyboard.Character "108"
 
         jumpPressed =
-            List.any (\key -> key == Keyboard.Extra.CharL) pressedKeys
+            List.any (\key -> key == charL) pressedKeys
+
+        charK =
+            Keyboard.Character "107"
 
         dashPressed =
-            List.any (\key -> key == Keyboard.Extra.CharK) pressedKeys
+            List.any (\key -> key == charK) pressedKeys
+
+        charP =
+            Keyboard.Character "112"
 
         startPressed =
-            List.any (\key -> key == Keyboard.Extra.CharP) pressedKeys
+            List.any (\key -> key == charP) pressedKeys
 
         wasd =
-            Keyboard.Extra.wasdDirection keyboardState
+            Keyboard.Arrows.wasdDirection pressedKeys
 
         ( horizontalDirection, verticalDirection ) =
             case wasd of
-                Keyboard.Extra.North ->
+                Keyboard.Arrows.North ->
                     ( NoHorizontalDPad, DPadUp )
 
-                Keyboard.Extra.NorthEast ->
+                Keyboard.Arrows.NorthEast ->
                     ( DPadRight, DPadUp )
 
-                Keyboard.Extra.East ->
+                Keyboard.Arrows.East ->
                     ( DPadRight, NoVerticalDPad )
 
-                Keyboard.Extra.SouthEast ->
+                Keyboard.Arrows.SouthEast ->
                     ( DPadRight, DPadDown )
 
-                Keyboard.Extra.South ->
+                Keyboard.Arrows.South ->
                     ( NoHorizontalDPad, DPadDown )
 
-                Keyboard.Extra.SouthWest ->
+                Keyboard.Arrows.SouthWest ->
                     ( DPadLeft, DPadDown )
 
-                Keyboard.Extra.West ->
+                Keyboard.Arrows.West ->
                     ( DPadLeft, NoVerticalDPad )
 
-                Keyboard.Extra.NorthWest ->
+                Keyboard.Arrows.NorthWest ->
                     ( DPadLeft, DPadUp )
 
-                Keyboard.Extra.NoDirection ->
+                Keyboard.Arrows.NoDirection ->
                     ( NoHorizontalDPad, NoVerticalDPad )
     in
-        { controllerState
-            | dPadHorizontal = horizontalDirection
-            , dPadVertical = verticalDirection
-            , jumpButton = updateButtonState jumpPressed controllerState.jumpButton
-            , dashButton = updateButtonState dashPressed controllerState.dashButton
-            , startButton = updateButtonState startPressed controllerState.startButton
-        }
+    { controllerState
+        | dPadHorizontal = horizontalDirection
+        , dPadVertical = verticalDirection
+        , jumpButton = updateButtonState jumpPressed controllerState.jumpButton
+        , dashButton = updateButtonState dashPressed controllerState.dashButton
+        , startButton = updateButtonState startPressed controllerState.startButton
+    }
 
 
 calculateControllerStateFromGamePad : GamePad -> Controller -> Controller
@@ -186,27 +192,35 @@ calculateControllerStateFromGamePad gamePad controllerState =
             if gamePad.up then
                 if gamePad.right then
                     ( DPadRight, DPadUp )
+
                 else if gamePad.left then
                     ( DPadLeft, DPadUp )
+
                 else
                     ( NoHorizontalDPad, DPadUp )
+
             else if gamePad.down then
                 if gamePad.right then
                     ( DPadRight, DPadDown )
+
                 else if gamePad.left then
                     ( DPadLeft, DPadDown )
+
                 else
                     ( NoHorizontalDPad, DPadDown )
+
             else if gamePad.left then
                 ( DPadLeft, NoVerticalDPad )
+
             else if gamePad.right then
                 ( DPadRight, NoVerticalDPad )
+
             else
                 ( NoHorizontalDPad, NoVerticalDPad )
     in
-        { controllerState
-            | dPadHorizontal = horizontalDirection
-            , dPadVertical = verticalDirection
-            , jumpButton = updateButtonState gamePad.jump controllerState.jumpButton
-            , dashButton = updateButtonState gamePad.dash controllerState.dashButton
-        }
+    { controllerState
+        | dPadHorizontal = horizontalDirection
+        , dPadVertical = verticalDirection
+        , jumpButton = updateButtonState gamePad.jump controllerState.jumpButton
+        , dashButton = updateButtonState gamePad.dash controllerState.dashButton
+    }

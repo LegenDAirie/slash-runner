@@ -1,18 +1,18 @@
-module GameTypes
-    exposing
-        ( Vector
-        , IntVector
-        , Player
-        , vectorDecoder
-        , intVectorDecoder
-        , vectorIntToFloat
-        , vectorFloatToInt
-        , PlayerState(OnTheGround, GroundDash, InTheAir, AirDash, Falling)
-        , TempProperties
-        )
+module GameTypes exposing
+    ( IntVector
+    , Player
+    , PlayerState(..)
+    , TempProperties
+    , Vector
+    , intVectorDecoder
+    , vectorDecoder
+    , vectorFloatToInt
+    , vectorIntToFloat
+    )
 
 import Json.Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (decode, required)
+import Json.Decode.Pipeline exposing (required)
+import Tuple
 
 
 type alias Vector =
@@ -35,14 +35,14 @@ vectorIntToFloat ( x, y ) =
 
 vectorDecoder : Decoder Vector
 vectorDecoder =
-    decode (,)
+    Json.Decode.succeed Tuple.pair
         |> required "x" Json.Decode.float
         |> required "y" Json.Decode.float
 
 
 intVectorDecoder : Decoder IntVector
 intVectorDecoder =
-    decode (,)
+    Json.Decode.succeed Tuple.pair
         |> required "x" Json.Decode.int
         |> required "y" Json.Decode.int
 

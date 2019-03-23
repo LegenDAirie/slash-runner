@@ -1,0 +1,12 @@
+{
+  "name": "Slash_Runner",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:yourSenchou/slash-runner.git",
+  "author": "Airiel D. Salvatore <airiel.d.salvatore@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "elm-hot": "^1.0.1",
+    "node-elm-compiler": "^5.0.3"
+  }
+}

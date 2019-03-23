@@ -1,18 +1,17 @@
-module Coordinates
-    exposing
-        ( convertMouseCoorToGameCoor
-        , convertToGameUnits
-        , gameSize
-        , gridSquareSize
-        , gridToPixelConversion
-        , pixelToGridConversion
-        , calculateCanvasSize
-        , locationToGridCoordinate
-        )
+module Coordinates exposing
+    ( calculateCanvasSize
+    , convertMouseCoorToGameCoor
+    , convertToGameUnits
+    , gameSize
+    , gridSquareSize
+    , gridToPixelConversion
+    , locationToGridCoordinate
+    , pixelToGridConversion
+    )
 
-import GameTypes exposing (Vector, IntVector, vectorFloatToInt)
-import Vector2 as V2 exposing (getX)
 import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
+import GameTypes exposing (IntVector, Vector, vectorFloatToInt)
+import V2
 
 
 gameSize : Vector
@@ -42,7 +41,7 @@ calculateCanvasSize ( width, height ) =
         newHeight =
             min height (9 / 16 * width)
     in
-        ( newWidth, newHeight )
+    ( newWidth, newHeight )
 
 
 gridToPixelConversion : Vector -> Vector
@@ -51,7 +50,7 @@ gridToPixelConversion ( gridX, gridY ) =
         ( gridSquareInPixelsX, gridSquareInPixelsY ) =
             gridSquareSize
     in
-        ( gridX * toFloat gridSquareInPixelsX, gridY * toFloat gridSquareInPixelsY )
+    ( gridX * toFloat gridSquareInPixelsX, gridY * toFloat gridSquareInPixelsY )
 
 
 pixelToGridConversion : Vector -> Vector
@@ -60,7 +59,7 @@ pixelToGridConversion ( pixelX, pixelY ) =
         ( gridSquareInPixelsX, gridSquareInPixelsY ) =
             gridSquareSize
     in
-        ( toFloat (floor (pixelX / toFloat gridSquareInPixelsX)), toFloat (floor (pixelY / toFloat gridSquareInPixelsY)) )
+    ( toFloat (floor (pixelX / toFloat gridSquareInPixelsX)), toFloat (floor (pixelY / toFloat gridSquareInPixelsY)) )
 
 
 convertMouseCoorToGameCoor : Camera -> Vector -> Vector
@@ -78,7 +77,7 @@ vectorFlipY ( x, y ) =
 
 convertToGameUnits : Vector -> Vector -> Vector
 convertToGameUnits canvasSize mouseLocation =
-    V2.scale (getX gameSize / getX canvasSize) mouseLocation
+    V2.scale (Tuple.first gameSize / Tuple.first canvasSize) mouseLocation
 
 
 offSetOrigin : Vector -> Vector

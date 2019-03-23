@@ -1,13 +1,12 @@
-module CollisionHelpers
-    exposing
-        ( getGridCoordinatesPlayerIsOverlapping
-        , getCollisionWithDisplacement
-        , CollisionDirection(CollisionNegativeDirection, CollisionPositiveDirection)
-        )
+module CollisionHelpers exposing
+    ( CollisionDirection(..)
+    , getCollisionWithDisplacement
+    , getGridCoordinatesPlayerIsOverlapping
+    )
 
+import Coordinates exposing (locationToGridCoordinate)
 import Dict exposing (Dict)
 import GamePlatform exposing (Platform)
-import Coordinates exposing (locationToGridCoordinate)
 import GameTypes exposing (IntVector, vectorIntToFloat)
 
 
@@ -49,7 +48,7 @@ getGridCoordinatesPlayerIsOverlapping x y size platforms =
             , bottomRight
             ]
     in
-        List.map (\location -> locationToGridCoordinate <| vectorIntToFloat location) box4Corners
+    List.map (\location -> locationToGridCoordinate <| vectorIntToFloat location) box4Corners
 
 
 type CollisionDirection
@@ -75,9 +74,9 @@ getCollisionWithDisplacement sizeOne positionOne sizeTwo positionTwo =
         overlap =
             max (minDistanceBetweenCenters - distanceBetweenCenters) 0
     in
-        case positionOne > positionTwo of
-            True ->
-                CollisionNegativeDirection overlap
+    case positionOne > positionTwo of
+        True ->
+            CollisionNegativeDirection overlap
 
-            False ->
-                CollisionPositiveDirection overlap
+        False ->
+            CollisionPositiveDirection overlap

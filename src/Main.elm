@@ -1,56 +1,21 @@
 port module Main exposing (main)
 
 -- system
-
-import Task
-import Html exposing (program, Html, div, h3, text, input)
-import Html.Attributes exposing (style, max, min, step, value, type_)
-import Html.Events exposing (onInput)
-import Json.Decode
-
-
 -- Libraries
-
-import Game.Resources as Resources exposing (Resources)
-import Game.TwoD as Game
-import Vector2 as V2 exposing (getX, getY)
-import Game.TwoD.Camera as Camera
-import AnimationFrame
-import Window
-import MouseEvents exposing (MouseEvent, onMouseMove, onClick, relPos, onMouseDown, onMouseUp)
-import Keyboard.Extra
-
-
 -- My Modules
 
-import GameTypes exposing (Vector, TempProperties, vectorIntToFloat)
-import Coordinates exposing (gameSize, calculateCanvasSize)
+import Browser
+import Browser.Dom
+import Browser.Events
 import Controller
     exposing
         ( Controller
         , GamePad
+        , calculateControllerStateFromGamePad
         , calculateControllerStateFromKeyboardState
         , initialControllerState
-        , calculateControllerStateFromGamePad
-        , DPadHorizontal(DPadRight, DPadLeft, NoHorizontalDPad)
-        , DPadVertical(DPadUp, DPadDown, NoVerticalDPad)
-        , ButtonState
-            ( Pressed
-            , Held
-            , Released
-            , Inactive
-            )
         )
-import Screens.NormalPlay
-    exposing
-        ( LevelData
-        , NormalPlayState
-        , initialNormalPlayState
-        , createLevel
-        , updateNormalPlay
-        , renderNormalPlay
-        , jsonToLevelData
-        )
+import Coordinates exposing (calculateCanvasSize, gameSize)
 import CreateLevel
     exposing
         ( LevelCreateState
@@ -58,11 +23,31 @@ import CreateLevel
         , renderLevelCreateScreen
         , updateCreateLevelState
         )
+import Game.TwoD as Game
+import Game.TwoD.Camera as Camera
+import GameTypes exposing (TempProperties, Vector, vectorIntToFloat)
+import Html exposing (Html, div, h3, input, text)
+import Html.Attributes exposing (max, min, step, style, type_, value)
+import Html.Events exposing (onInput)
+import Html.Events.Extra.Mouse
+import Json.Decode
+import Keyboard
+import Screens.NormalPlay
+    exposing
+        ( LevelData
+        , NormalPlayState
+        , createLevel
+        , initialNormalPlayState
+        , jsonToLevelData
+        , renderNormalPlay
+        , updateNormalPlay
+        )
+import Task
 
 
-main : Program Never Model Msg
+main : Program () Model Msg
 main =
-    program
+    Browser.document
         { view = view
         , init = init
         , update = update
@@ -71,8 +56,8 @@ main =
 
 
 type alias Model =
-    { windowSize : Vector
-    , keyboard : Keyboard.Extra.State
+    { windowSize : ( Float, Float )
+    , keyboard : List Keyboard.Key
     , controller : Controller
     , gameScreen : GameScreen
     , temporaryProperties : TempProperties
@@ -87,11 +72,10 @@ type GameScreen
 
 type Msg
     = NoOp
-    | SetWindowSize Window.Size
+    | GotNewWindowSize Int Int
     | GetGamePadState
     | Tick GamePad
-    | Resources Resources.Msg
-    | KeyboardMsg Keyboard.Extra.Msg
+    | KeyboardMsg Keyboard.Msg
     | ReceiveLevelData LevelData
     | MouseMove Vector
     | SetIsCursorActive Bool
@@ -125,26 +109,21 @@ initialTempProperties =
 initialModel : Model
 initialModel =
     { windowSize = ( 0, 0 )
-    , keyboard = Keyboard.Extra.initialState
+    , keyboard = []
     , controller = initialControllerState
     , gameScreen = CreateLevel initialLevelCreateState
     , temporaryProperties = initialTempProperties
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    initialModel
-        ! [ Task.perform SetWindowSize Window.size
-          , Cmd.map Resources <| Resources.loadTextures [ "./assets/player-background-glow.png" ]
-          , Cmd.map Resources <| Resources.loadTextures [ "./assets/jumping-blob-sprite-sheet.png" ]
-          , Cmd.map Resources <| Resources.loadTextures [ "./assets/running-blob-sprite-sheet.png" ]
-          , Cmd.map Resources <| Resources.loadTextures [ "./assets/dashing-blob-sprite-sheet.png" ]
-          , Cmd.map Resources <| Resources.loadTextures [ "./assets/tripping-blob-sprite-sheet.png" ]
-          , Cmd.map Resources <| Resources.loadTextures [ "./assets/recovering-blob-sprite-sheet.png" ]
-          , Cmd.map Resources <| Resources.loadTextures [ "./assets/idling-blob-sprite-sheet.png" ]
-          , fetchLevelData 1
-          ]
+init : flags -> ( Model, Cmd Msg )
+init _ =
+    ( initialModel
+    , Cmd.batch
+        [ Task.perform viewPortToWindowSize <| Browser.Dom.getViewport
+        , fetchLevelData 1
+        ]
+    )
 
 
 port fetchLevelData : Int -> Cmd msg
@@ -160,7 +139,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NoOp ->
-            model ! []
+            ( model, Cmd.none )
 
         TweekJumpDuration framesToApex ->
             let
@@ -170,10 +149,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | framesToApex = framesToApex }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekMaxJumpHeight maxJumpHeight ->
             let
@@ -183,10 +163,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | maxJumpHeight = maxJumpHeight }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekMinJumpHeight minJumpHeight ->
             let
@@ -196,10 +177,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | minJumpHeight = minJumpHeight }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekMaxWallSlideSpeed maxWallSlideSpeed ->
             let
@@ -209,10 +191,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | maxWallSlideSpeed = maxWallSlideSpeed }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekMaxWalkingSpeed maxWalkingSpeed ->
             let
@@ -222,10 +205,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | maxWalkingSpeed = maxWalkingSpeed }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekMaxDashingSpeed maxDashingSpeed ->
             let
@@ -235,10 +219,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | maxDashingSpeed = maxDashingSpeed }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekMaxRunningSpeed maxRunningSpeed ->
             let
@@ -248,10 +233,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | maxRunningSpeed = maxRunningSpeed }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekDPadAcceleration dPadAcceleration ->
             let
@@ -261,10 +247,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | dPadAcceleration = dPadAcceleration }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekDashDuration dashDuration ->
             let
@@ -274,10 +261,11 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | dashDuration = dashDuration }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
         TweekButtonPressWindow buttonPressWindow ->
             let
@@ -287,68 +275,37 @@ update msg model =
                 newTempProps =
                     { temporaryProperties | buttonPressWindow = buttonPressWindow }
             in
-                { model
-                    | temporaryProperties = newTempProps
-                }
-                    ! []
+            ( { model
+                | temporaryProperties = newTempProps
+              }
+            , Cmd.none
+            )
 
-        SetWindowSize size ->
-            let
-                windowSize =
-                    (\windowSize -> ( toFloat windowSize.width, toFloat windowSize.height )) size
-            in
-                { model
-                    | windowSize = windowSize
-                }
-                    ! []
+        GotNewWindowSize width height ->
+            ( { model
+                | windowSize = ( toFloat width, toFloat height )
+              }
+            , Cmd.none
+            )
 
         KeyboardMsg keyMsg ->
-            { model
-                | keyboard = Keyboard.Extra.update keyMsg model.keyboard
-            }
-                ! []
-
-        Resources msg ->
-            case model.gameScreen of
-                Uninitialized ->
-                    model ! []
-
-                NormalPlay state ->
-                    { model
-                        | gameScreen =
-                            NormalPlay { state | resources = Resources.update msg state.resources }
-                    }
-                        ! []
-
-                CreateLevel levelCreateState ->
-                    let
-                        { itemToPlace, playState } =
-                            levelCreateState
-
-                        newPlayState =
-                            { playState | resources = Resources.update msg playState.resources }
-
-                        newLevelCreateState =
-                            { levelCreateState
-                                | playState = newPlayState
-                            }
-                    in
-                        { model
-                            | gameScreen =
-                                CreateLevel newLevelCreateState
-                        }
-                            ! []
+            ( { model
+                | keyboard = Keyboard.update keyMsg model.keyboard
+              }
+            , Cmd.none
+            )
 
         ReceiveLevelData levelData ->
             case model.gameScreen of
                 Uninitialized ->
-                    model ! []
+                    ( model, Cmd.none )
 
                 NormalPlay playState ->
-                    { model
+                    ( { model
                         | gameScreen = NormalPlay (createLevel levelData)
-                    }
-                        ! []
+                      }
+                    , Cmd.none
+                    )
 
                 CreateLevel levelCreateState ->
                     let
@@ -357,18 +314,19 @@ update msg model =
                                 | playState = createLevel levelData
                             }
                     in
-                        { model
-                            | gameScreen = CreateLevel newLevelCreateState
-                        }
-                            ! []
+                    ( { model
+                        | gameScreen = CreateLevel newLevelCreateState
+                      }
+                    , Cmd.none
+                    )
 
         MouseMove mousePosition ->
             case model.gameScreen of
                 Uninitialized ->
-                    model ! []
+                    ( model, Cmd.none )
 
                 NormalPlay state ->
-                    model ! []
+                    ( model, Cmd.none )
 
                 CreateLevel levelCreateState ->
                     let
@@ -377,18 +335,19 @@ update msg model =
                                 | cursorLocation = mousePosition
                             }
                     in
-                        { model
-                            | gameScreen = CreateLevel newLevelCreateState
-                        }
-                            ! []
+                    ( { model
+                        | gameScreen = CreateLevel newLevelCreateState
+                      }
+                    , Cmd.none
+                    )
 
         SetIsCursorActive isActive ->
             case model.gameScreen of
                 Uninitialized ->
-                    model ! []
+                    ( model, Cmd.none )
 
                 NormalPlay state ->
-                    model ! []
+                    ( model, Cmd.none )
 
                 CreateLevel levelCreateState ->
                     let
@@ -397,13 +356,14 @@ update msg model =
                                 | cursorActive = isActive
                             }
                     in
-                        { model
-                            | gameScreen = CreateLevel newLevelCreateState
-                        }
-                            ! []
+                    ( { model
+                        | gameScreen = CreateLevel newLevelCreateState
+                      }
+                    , Cmd.none
+                    )
 
         GetGamePadState ->
-            model ! [ getGamePadState 0 ]
+            ( model, getGamePadState 0 )
 
         Tick gamepadState ->
             let
@@ -413,24 +373,25 @@ update msg model =
                 ( newGameScreen, cmd ) =
                     updateGameScreen model.temporaryProperties model.keyboard model.windowSize model.gameScreen newController
             in
-                { model
-                    | gameScreen = newGameScreen
-                    , controller = newController
-                }
-                    ! [ cmd ]
+            ( { model
+                | gameScreen = newGameScreen
+                , controller = newController
+              }
+            , cmd
+            )
 
 
-updateController : Keyboard.Extra.State -> GamePad -> Controller -> Controller
-updateController keyboard gamePad controller =
+updateController : List Keyboard.Key -> GamePad -> Controller -> Controller
+updateController pressedKeys gamePad controller =
     case gamePad.gamepadConnected of
         True ->
             calculateControllerStateFromGamePad gamePad controller
 
         False ->
-            calculateControllerStateFromKeyboardState keyboard controller
+            calculateControllerStateFromKeyboardState pressedKeys controller
 
 
-updateGameScreen : TempProperties -> Keyboard.Extra.State -> Vector -> GameScreen -> Controller -> ( GameScreen, Cmd Msg )
+updateGameScreen : TempProperties -> List Keyboard.Key -> Vector -> GameScreen -> Controller -> ( GameScreen, Cmd Msg )
 updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
     case gameScreen of
         Uninitialized ->
@@ -458,25 +419,23 @@ updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
                         Nothing ->
                             Cmd.none
             in
-                ( CreateLevel newLevelCreateState, cmd )
+            ( CreateLevel newLevelCreateState, cmd )
 
 
-mouseMoveEventToMsg : MouseEvent -> Msg
-mouseMoveEventToMsg mouseEvent =
-    let
-        { x, y } =
-            relPos mouseEvent
-    in
-        MouseMove ( toFloat x, toFloat y )
-
-
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
+    { title = "Slash-Runner"
+    , body = viewBody model
+    }
+
+
+viewBody : Model -> List (Html.Html Msg)
+viewBody model =
     let
         ( camera, gameScene ) =
             case model.gameScreen of
                 Uninitialized ->
-                    ( Camera.fixedWidth (getX gameSize) ( 0, 0 ), [] )
+                    ( Camera.fixedWidth (Tuple.first gameSize) ( 0, 0 ), [] )
 
                 NormalPlay state ->
                     ( state.camera, renderNormalPlay state )
@@ -488,202 +447,201 @@ view model =
             calculateCanvasSize model.windowSize
 
         sideMargin =
-            style [ ( "margin", "15px 10px" ) ]
+            [ style "margin" "15px 10px" ]
 
         flexBoxRow =
-            style [ ( "display", "flex" ), ( "flex-direction", "row" ) ]
+            [ style "display" "flex", style "flex-direction" "row" ]
     in
-        div []
-            [ div
-                [ style
-                    [ ( "display", "flex" )
-                    , ( "justify-content", "center" )
-                    ]
-                ]
-                [ Game.renderWithOptions
-                    [ onMouseMove mouseMoveEventToMsg
-                    , onMouseDown (\_ -> SetIsCursorActive True)
-                    , onMouseUp (\_ -> SetIsCursorActive False)
-                    , style [ ( "border", "solid 1px black" ) ]
-                    ]
-                    { time = 0
-                    , size = ( floor <| getX canvasSize, floor <| getY canvasSize )
-                    , camera = camera
-                    }
-                    gameScene
-                ]
-            , div []
-                [ div []
-                    [ text "Frames to Apex"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "128"
-                        , Html.Attributes.min "1"
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.framesToApex)
-                        , onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Result.withDefault 0 (String.toInt stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Max Jumping Height"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "512"
-                        , Html.Attributes.min (toString model.temporaryProperties.minJumpHeight)
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.maxJumpHeight)
-                        , onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.temporaryProperties.minJumpHeight 512 <| Result.withDefault 0 (String.toFloat stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Min Jumping Height"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max (toString model.temporaryProperties.maxJumpHeight)
-                        , Html.Attributes.min "16"
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.minJumpHeight)
-                        , onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.temporaryProperties.maxJumpHeight <| Result.withDefault 0 (String.toFloat stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Max Wall Slide Speed "
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "10"
-                        , Html.Attributes.min "0"
-                        , Html.Attributes.step "0.5"
-                        , Html.Attributes.value (toString model.temporaryProperties.maxWallSlideSpeed)
-                        , onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 0 10 <| Result.withDefault 0 (String.toFloat stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Max Walking Speed"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "25"
-                        , Html.Attributes.min "5"
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.maxWalkingSpeed)
-                        , onInput (\stringNumber -> TweekMaxWalkingSpeed <| clamp 5 25 <| Result.withDefault 0 (String.toFloat stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Max Running Speed"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "50"
-                        , Html.Attributes.min <| toString model.temporaryProperties.maxWalkingSpeed
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.maxRunningSpeed)
-                        , onInput (\stringNumber -> TweekMaxRunningSpeed <| clamp model.temporaryProperties.maxWalkingSpeed 50 <| Result.withDefault 0 (String.toFloat stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Max Dashing Speed"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "50"
-                        , Html.Attributes.min <| toString model.temporaryProperties.maxRunningSpeed
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.maxDashingSpeed)
-                        , onInput (\stringNumber -> TweekMaxDashingSpeed <| clamp model.temporaryProperties.maxRunningSpeed 50 <| Result.withDefault 0 (String.toFloat stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "DPad Acceleration"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "3"
-                        , Html.Attributes.min "0.1"
-                        , Html.Attributes.step "0.1"
-                        , Html.Attributes.value (toString model.temporaryProperties.dPadAcceleration)
-                        , onInput (\stringNumber -> TweekDPadAcceleration <| clamp 0.1 3 <| Result.withDefault 0 (String.toFloat stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Dash Duration in frames"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "50"
-                        , Html.Attributes.min "25"
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.dashDuration)
-                        , onInput (\stringNumber -> TweekDashDuration <| clamp 25 50 <| Result.withDefault 0 (String.toInt stringNumber))
-                        ]
-                        []
-                    ]
-                , div []
-                    [ text "Dash button press window duration"
-                    , input
-                        [ type_ "number"
-                        , Html.Attributes.max "18"
-                        , Html.Attributes.min "8"
-                        , Html.Attributes.step "1"
-                        , Html.Attributes.value (toString model.temporaryProperties.buttonPressWindow)
-                        , onInput (\stringNumber -> TweekButtonPressWindow <| clamp 8 18 <| Result.withDefault 0 (String.toInt stringNumber))
-                        ]
-                        []
-                    ]
-                ]
-            , div
-                [ style [ ( "display", "flex" ), ( "flex-direction", "column" ) ]
-                ]
-                [ div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text (toString 0) ]
-                    , Html.p [] [ text "- PlaceNothing" ]
-                    ]
-                , div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text (toString 1) ]
-                    , Html.p [] [ text "- Normal Platform" ]
-                    ]
-                , div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text (toString 2) ]
-                    , Html.p [] [ text "- Static enemy that doesn't move" ]
-                    ]
-                , div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text (toString 3) ]
-                    , Html.p [] [ text "- Dangerous platform" ]
-                    ]
-                , div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text (toString 4) ]
-                    , Html.p [] [ text "- Enemy on a set path" ]
-                    ]
-                , div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text (toString 5) ]
-                    , Html.p [] [ text "- Walking Enemy" ]
-                    ]
-                , div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text (toString 9) ]
-                    , Html.p [] [ text "- Remove Platform" ]
-                    ]
-                , div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text "R" ]
-                    , Html.p [] [ text "- Resets enemies to starting positions" ]
-                    ]
-                , div
-                    [ flexBoxRow ]
-                    [ h3 [ sideMargin ] [ text "G + H" ]
-                    , Html.p [] [ text "- Wipe the whole level clean of everyting" ]
-                    ]
-                ]
+    [ div
+        [ style "display" "flex"
+        , style "justify-content" "center"
+        ]
+        [ Game.renderWithOptions
+            [ Html.Events.Extra.Mouse.onMove (MouseMove << .offsetPos)
+            , Html.Events.Extra.Mouse.onDown (\_ -> SetIsCursorActive True)
+            , Html.Events.Extra.Mouse.onUp (\_ -> SetIsCursorActive False)
+            , style "border" "solid 1px black"
             ]
+            { time = 0
+            , size =
+                ( floor <| Tuple.first canvasSize
+                , floor <| Tuple.second canvasSize
+                )
+            , camera = camera
+            }
+            gameScene
+        ]
+    , div []
+        [ div []
+            [ text "Frames to Apex"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "128"
+                , Html.Attributes.min "1"
+                , Html.Attributes.step "1"
+                , Html.Attributes.value (String.fromInt model.temporaryProperties.framesToApex)
+                , onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Maybe.withDefault 0 (String.toInt stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "Max Jumping Height"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "512"
+                , Html.Attributes.min (String.fromFloat model.temporaryProperties.minJumpHeight)
+                , Html.Attributes.step "1"
+                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxJumpHeight)
+                , onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.temporaryProperties.minJumpHeight 512 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "Min Jumping Height"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max (String.fromFloat model.temporaryProperties.maxJumpHeight)
+                , Html.Attributes.min "16"
+                , Html.Attributes.step "1"
+                , Html.Attributes.value (String.fromFloat model.temporaryProperties.minJumpHeight)
+                , onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.temporaryProperties.maxJumpHeight <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "Max Wall Slide Speed "
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "10"
+                , Html.Attributes.min "0"
+                , Html.Attributes.step "0.5"
+                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxWallSlideSpeed)
+                , onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 0 10 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "Max Walking Speed"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "25"
+                , Html.Attributes.min "5"
+                , Html.Attributes.step "1"
+                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxWalkingSpeed)
+                , onInput (\stringNumber -> TweekMaxWalkingSpeed <| clamp 5 25 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "Max Running Speed"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "50"
+                , Html.Attributes.min <| String.fromFloat model.temporaryProperties.maxWalkingSpeed
+                , Html.Attributes.step "1"
+                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxRunningSpeed)
+                , onInput (\stringNumber -> TweekMaxRunningSpeed <| clamp model.temporaryProperties.maxWalkingSpeed 50 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "Max Dashing Speed"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "50"
+                , Html.Attributes.min <| String.fromFloat model.temporaryProperties.maxRunningSpeed
+                , Html.Attributes.step "1"
+                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxDashingSpeed)
+                , onInput (\stringNumber -> TweekMaxDashingSpeed <| clamp model.temporaryProperties.maxRunningSpeed 50 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "DPad Acceleration"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "3"
+                , Html.Attributes.min "0.1"
+                , Html.Attributes.step "0.1"
+                , Html.Attributes.value (String.fromFloat model.temporaryProperties.dPadAcceleration)
+                , onInput (\stringNumber -> TweekDPadAcceleration <| clamp 0.1 3 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "Dash Duration in frames"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "50"
+                , Html.Attributes.min "25"
+                , Html.Attributes.step "1"
+                , Html.Attributes.value (String.fromInt model.temporaryProperties.dashDuration)
+                , onInput (\stringNumber -> TweekDashDuration <| clamp 25 50 <| Maybe.withDefault 0 (String.toInt stringNumber))
+                ]
+                []
+            ]
+        , div []
+            [ text "Dash button press window duration"
+            , input
+                [ type_ "number"
+                , Html.Attributes.max "18"
+                , Html.Attributes.min "8"
+                , Html.Attributes.step "1"
+                , Html.Attributes.value (String.fromInt model.temporaryProperties.buttonPressWindow)
+                , onInput (\stringNumber -> TweekButtonPressWindow <| clamp 8 18 <| Maybe.withDefault 0 (String.toInt stringNumber))
+                ]
+                []
+            ]
+        ]
+    , div
+        [ style "display" "flex", style "flex-direction" "column" ]
+        [ div
+            flexBoxRow
+            [ h3 sideMargin [ text (String.fromInt 0) ]
+            , Html.p [] [ text "- PlaceNothing" ]
+            ]
+        , div
+            flexBoxRow
+            [ h3 sideMargin [ text (String.fromInt 1) ]
+            , Html.p [] [ text "- Normal Platform" ]
+            ]
+        , div
+            flexBoxRow
+            [ h3 sideMargin [ text (String.fromInt 2) ]
+            , Html.p [] [ text "- Static enemy that doesn't move" ]
+            ]
+        , div
+            flexBoxRow
+            [ h3 sideMargin [ text (String.fromInt 3) ]
+            , Html.p [] [ text "- Dangerous platform" ]
+            ]
+        , div
+            flexBoxRow
+            [ h3 sideMargin [ text (String.fromInt 4) ]
+            , Html.p [] [ text "- Enemy on a set path" ]
+            ]
+        , div
+            flexBoxRow
+            [ h3 sideMargin [ text (String.fromInt 5) ]
+            , Html.p [] [ text "- Walking Enemy" ]
+            ]
+        , div
+            flexBoxRow
+            [ h3 sideMargin [ text (String.fromInt 9) ]
+            , Html.p [] [ text "- Remove Platform" ]
+            ]
+        , div
+            flexBoxRow
+            [ h3 sideMargin [ text "R" ]
+            , Html.p [] [ text "- Resets enemies to starting positions" ]
+            ]
+        , div
+            flexBoxRow
+            [ h3 sideMargin [ text "G + H" ]
+            , Html.p [] [ text "- Wipe the whole level clean of everyting" ]
+            ]
+        ]
+    ]
 
 
 port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg
@@ -703,15 +661,20 @@ levelDataDecodeHandler levelDataJson =
                 _ =
                     Debug.log "Error in levelDataDecodeHandler" errorMessage
             in
-                NoOp
+            NoOp
+
+
+viewPortToWindowSize : Browser.Dom.Viewport -> Msg
+viewPortToWindowSize viewport =
+    GotNewWindowSize (round viewport.viewport.width) (round viewport.viewport.height)
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ AnimationFrame.diffs (\dt -> GetGamePadState)
+        [ Browser.Events.onAnimationFrame (\_ -> GetGamePadState)
         , receiveGamePadState (\gamepadState -> Tick gamepadState)
-        , Window.resizes (\size -> SetWindowSize size)
-        , Sub.map KeyboardMsg Keyboard.Extra.subscriptions
+        , Browser.Events.onResize GotNewWindowSize
+        , Sub.map KeyboardMsg Keyboard.subscriptions
         , receiveLevelData levelDataDecodeHandler
         ]
