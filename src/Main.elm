@@ -20,8 +20,8 @@ import Game.TwoD as Game
 import Game.TwoD.Camera as Camera
 import GameTypes exposing (TempProperties, Vector, vectorIntToFloat)
 import Html
-import Html.Attributes exposing (max, min, step, style, type_, value)
-import Html.Events exposing (onInput)
+import Html.Attributes
+import Html.Events
 import Html.Events.Extra.Mouse
 import Json.Decode
 import Keyboard
@@ -430,20 +430,20 @@ viewBody model =
             Coordinates.calculateCanvasSize model.windowSize
 
         sideMargin =
-            [ style "margin" "15px 10px" ]
+            [ Html.Attributes.style "margin" "15px 10px" ]
 
         flexBoxRow =
-            [ style "display" "flex", style "flex-direction" "row" ]
+            [ Html.Attributes.style "display" "flex", Html.Attributes.style "flex-direction" "row" ]
     in
     [ Html.div
-        [ style "display" "flex"
-        , style "justify-content" "center"
+        [ Html.Attributes.style "display" "flex"
+        , Html.Attributes.style "justify-content" "center"
         ]
         [ Game.renderWithOptions
             [ Html.Events.Extra.Mouse.onMove (MouseMove << .offsetPos)
             , Html.Events.Extra.Mouse.onDown (\_ -> SetIsCursorActive True)
             , Html.Events.Extra.Mouse.onUp (\_ -> SetIsCursorActive False)
-            , style "border" "solid 1px black"
+            , Html.Attributes.style "border" "solid 1px black"
             ]
             { time = 0
             , size =
@@ -458,126 +458,126 @@ viewBody model =
         [ Html.div []
             [ Html.text "Frames to Apex"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "128"
                 , Html.Attributes.min "1"
                 , Html.Attributes.step "1"
                 , Html.Attributes.value (String.fromInt model.temporaryProperties.framesToApex)
-                , onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Maybe.withDefault 0 (String.toInt stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Maybe.withDefault 0 (String.toInt stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "Max Jumping Height"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "512"
                 , Html.Attributes.min (String.fromFloat model.temporaryProperties.minJumpHeight)
                 , Html.Attributes.step "1"
                 , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxJumpHeight)
-                , onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.temporaryProperties.minJumpHeight 512 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.temporaryProperties.minJumpHeight 512 <| Maybe.withDefault 0 (String.toFloat stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "Min Jumping Height"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max (String.fromFloat model.temporaryProperties.maxJumpHeight)
                 , Html.Attributes.min "16"
                 , Html.Attributes.step "1"
                 , Html.Attributes.value (String.fromFloat model.temporaryProperties.minJumpHeight)
-                , onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.temporaryProperties.maxJumpHeight <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.temporaryProperties.maxJumpHeight <| Maybe.withDefault 0 (String.toFloat stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "Max Wall Slide Speed "
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "10"
                 , Html.Attributes.min "0"
                 , Html.Attributes.step "0.5"
                 , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxWallSlideSpeed)
-                , onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 0 10 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 0 10 <| Maybe.withDefault 0 (String.toFloat stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "Max Walking Speed"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "25"
                 , Html.Attributes.min "5"
                 , Html.Attributes.step "1"
                 , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxWalkingSpeed)
-                , onInput (\stringNumber -> TweekMaxWalkingSpeed <| clamp 5 25 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekMaxWalkingSpeed <| clamp 5 25 <| Maybe.withDefault 0 (String.toFloat stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "Max Running Speed"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "50"
                 , Html.Attributes.min <| String.fromFloat model.temporaryProperties.maxWalkingSpeed
                 , Html.Attributes.step "1"
                 , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxRunningSpeed)
-                , onInput (\stringNumber -> TweekMaxRunningSpeed <| clamp model.temporaryProperties.maxWalkingSpeed 50 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekMaxRunningSpeed <| clamp model.temporaryProperties.maxWalkingSpeed 50 <| Maybe.withDefault 0 (String.toFloat stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "Max Dashing Speed"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "50"
                 , Html.Attributes.min <| String.fromFloat model.temporaryProperties.maxRunningSpeed
                 , Html.Attributes.step "1"
                 , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxDashingSpeed)
-                , onInput (\stringNumber -> TweekMaxDashingSpeed <| clamp model.temporaryProperties.maxRunningSpeed 50 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekMaxDashingSpeed <| clamp model.temporaryProperties.maxRunningSpeed 50 <| Maybe.withDefault 0 (String.toFloat stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "DPad Acceleration"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "3"
                 , Html.Attributes.min "0.1"
                 , Html.Attributes.step "0.1"
                 , Html.Attributes.value (String.fromFloat model.temporaryProperties.dPadAcceleration)
-                , onInput (\stringNumber -> TweekDPadAcceleration <| clamp 0.1 3 <| Maybe.withDefault 0 (String.toFloat stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekDPadAcceleration <| clamp 0.1 3 <| Maybe.withDefault 0 (String.toFloat stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "Dash Duration in frames"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "50"
                 , Html.Attributes.min "25"
                 , Html.Attributes.step "1"
                 , Html.Attributes.value (String.fromInt model.temporaryProperties.dashDuration)
-                , onInput (\stringNumber -> TweekDashDuration <| clamp 25 50 <| Maybe.withDefault 0 (String.toInt stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekDashDuration <| clamp 25 50 <| Maybe.withDefault 0 (String.toInt stringNumber))
                 ]
                 []
             ]
         , Html.div []
             [ Html.text "Dash button press window duration"
             , Html.input
-                [ type_ "number"
+                [ Html.Attributes.type_ "number"
                 , Html.Attributes.max "18"
                 , Html.Attributes.min "8"
                 , Html.Attributes.step "1"
                 , Html.Attributes.value (String.fromInt model.temporaryProperties.buttonPressWindow)
-                , onInput (\stringNumber -> TweekButtonPressWindow <| clamp 8 18 <| Maybe.withDefault 0 (String.toInt stringNumber))
+                , Html.Events.onInput (\stringNumber -> TweekButtonPressWindow <| clamp 8 18 <| Maybe.withDefault 0 (String.toInt stringNumber))
                 ]
                 []
             ]
         ]
     , Html.div
-        [ style "display" "flex", style "flex-direction" "column" ]
+        [ Html.Attributes.style "display" "flex", Html.Attributes.style "flex-direction" "column" ]
         [ Html.div
             flexBoxRow
             [ Html.h3 sideMargin [ Html.text (String.fromInt 0) ]
