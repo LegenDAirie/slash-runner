@@ -8,7 +8,7 @@ import Browser
 import Browser.Dom
 import Browser.Events
 import Controller
-import Coordinates exposing (calculateCanvasSize, gameSize)
+import Coordinates
 import CreateLevel
     exposing
         ( LevelCreateState
@@ -418,7 +418,7 @@ viewBody model =
         ( camera, gameScene ) =
             case model.gameScreen of
                 Uninitialized ->
-                    ( Camera.fixedWidth (Tuple.first gameSize) ( 0, 0 ), [] )
+                    ( Camera.fixedWidth (Tuple.first Coordinates.gameSize) ( 0, 0 ), [] )
 
                 NormalPlay state ->
                     ( state.camera, renderNormalPlay state )
@@ -427,7 +427,7 @@ viewBody model =
                     ( levelCreateState.playState.camera, renderLevelCreateScreen model.windowSize levelCreateState )
 
         canvasSize =
-            calculateCanvasSize model.windowSize
+            Coordinates.calculateCanvasSize model.windowSize
 
         sideMargin =
             [ style "margin" "15px 10px" ]
