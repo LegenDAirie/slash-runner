@@ -1,4 +1,4 @@
-module Screens.NormalPlay exposing
+module NormalPlay exposing
     ( LevelData
     , NormalPlayState
     , createLevel
