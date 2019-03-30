@@ -4,7 +4,6 @@ module Controller exposing
     , DPadHorizontal(..)
     , DPadVertical(..)
     , GamePad
-    , calculateControllerStateFromGamePad
     , calculateControllerStateFromKeyboardState
     , initialControllerState
     , isButtonDown
