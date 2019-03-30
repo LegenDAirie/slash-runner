@@ -9,7 +9,7 @@ module Coordinates exposing
     , pixelToGridConversion
     )
 
-import Game.TwoD.Camera as Camera exposing (Camera, getPosition)
+import Game.TwoD.Camera as Camera
 import GameTypes exposing (IntVector, Vector, vectorFloatToInt)
 import V2
 
@@ -62,7 +62,7 @@ pixelToGridConversion ( pixelX, pixelY ) =
     ( toFloat (floor (pixelX / toFloat gridSquareInPixelsX)), toFloat (floor (pixelY / toFloat gridSquareInPixelsY)) )
 
 
-convertMouseCoorToGameCoor : Camera -> Vector -> Vector
+convertMouseCoorToGameCoor : Camera.Camera -> Vector -> Vector
 convertMouseCoorToGameCoor camera mouseLocation =
     mouseLocation
         |> offSetOrigin
@@ -87,9 +87,9 @@ offSetOrigin location =
         |> V2.sub location
 
 
-offSetByCamera : Camera -> Vector -> Vector
+offSetByCamera : Camera.Camera -> Vector -> Vector
 offSetByCamera camera location =
     camera
-        |> getPosition
+        |> Camera.getPosition
         |> vectorFlipY
         |> V2.add location
