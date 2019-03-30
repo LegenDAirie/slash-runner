@@ -20,7 +20,7 @@ import GamePlatform exposing (Platform, PlatformType(..), platformSize)
 import GameTypes exposing (TempProperties, Vector, vectorIntToFloat)
 import Keyboard
 import MouseHelpers exposing (mouseToGridInPixels)
-import Screens.NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay, resetPlayState, updateNormalPlay)
+import NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay, resetPlayState, updateNormalPlay)
 import V2
 
 

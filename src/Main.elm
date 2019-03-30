@@ -19,16 +19,7 @@ import Html.Events
 import Html.Events.Extra.Mouse
 import Json.Decode
 import Keyboard
-import Screens.NormalPlay
-    exposing
-        ( LevelData
-        , NormalPlayState
-        , createLevel
-        , initialNormalPlayState
-        , jsonToLevelData
-        , renderNormalPlay
-        , updateNormalPlay
-        )
+import NormalPlay
 import Task
 
 
@@ -54,7 +45,7 @@ type alias Model =
 type GameScreen
     = Uninitialized
     | CreateLevel CreateLevel.LevelCreateState
-    | NormalPlay NormalPlayState
+    | NormalPlay NormalPlay.NormalPlayState
 
 
 type Msg
@@ -63,7 +54,7 @@ type Msg
     | GetGamePadState
     | Tick Controller.GamePad
     | KeyboardMsg Keyboard.Msg
-    | ReceiveLevelData LevelData
+    | ReceiveLevelData NormalPlay.LevelData
     | MouseMove GameTypes.Vector
     | SetIsCursorActive Bool
     | TweekJumpDuration Int
@@ -289,7 +280,7 @@ update msg model =
 
                 NormalPlay playState ->
                     ( { model
-                        | gameScreen = NormalPlay (createLevel levelData)
+                        | gameScreen = NormalPlay (NormalPlay.createLevel levelData)
                       }
                     , Cmd.none
                     )
@@ -298,7 +289,7 @@ update msg model =
                     let
                         newLevelCreateState =
                             { levelCreateState
-                                | playState = createLevel levelData
+                                | playState = NormalPlay.createLevel levelData
                             }
                     in
                     ( { model
@@ -376,7 +367,7 @@ updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
 
         NormalPlay gameState ->
             ( NormalPlay <|
-                updateNormalPlay
+                NormalPlay.updateNormalPlay
                     controller
                     temporaryProperties
                     gameState
@@ -415,7 +406,7 @@ viewBody model =
                     ( Camera.fixedWidth (Tuple.first Coordinates.gameSize) ( 0, 0 ), [] )
 
                 NormalPlay state ->
-                    ( state.camera, renderNormalPlay state )
+                    ( state.camera, NormalPlay.renderNormalPlay state )
 
                 CreateLevel levelCreateState ->
                     ( levelCreateState.playState.camera, CreateLevel.renderLevelCreateScreen model.windowSize levelCreateState )
@@ -629,7 +620,7 @@ port receiveGamePadState : (Controller.GamePad -> msg) -> Sub msg
 
 levelDataDecodeHandler : Json.Decode.Value -> Msg
 levelDataDecodeHandler levelDataJson =
-    case jsonToLevelData levelDataJson of
+    case NormalPlay.jsonToLevelData levelDataJson of
         Ok levelData ->
             ReceiveLevelData levelData
 
