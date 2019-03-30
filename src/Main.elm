@@ -19,7 +19,7 @@ import CreateLevel
 import Game.TwoD as Game
 import Game.TwoD.Camera as Camera
 import GameTypes exposing (TempProperties, Vector, vectorIntToFloat)
-import Html exposing (Html, div, h3, input, text)
+import Html
 import Html.Attributes exposing (max, min, step, style, type_, value)
 import Html.Events exposing (onInput)
 import Html.Events.Extra.Mouse
@@ -435,7 +435,7 @@ viewBody model =
         flexBoxRow =
             [ style "display" "flex", style "flex-direction" "row" ]
     in
-    [ div
+    [ Html.div
         [ style "display" "flex"
         , style "justify-content" "center"
         ]
@@ -454,10 +454,10 @@ viewBody model =
             }
             gameScene
         ]
-    , div []
-        [ div []
-            [ text "Frames to Apex"
-            , input
+    , Html.div []
+        [ Html.div []
+            [ Html.text "Frames to Apex"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "128"
                 , Html.Attributes.min "1"
@@ -467,9 +467,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "Max Jumping Height"
-            , input
+        , Html.div []
+            [ Html.text "Max Jumping Height"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "512"
                 , Html.Attributes.min (String.fromFloat model.temporaryProperties.minJumpHeight)
@@ -479,9 +479,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "Min Jumping Height"
-            , input
+        , Html.div []
+            [ Html.text "Min Jumping Height"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max (String.fromFloat model.temporaryProperties.maxJumpHeight)
                 , Html.Attributes.min "16"
@@ -491,9 +491,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "Max Wall Slide Speed "
-            , input
+        , Html.div []
+            [ Html.text "Max Wall Slide Speed "
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "10"
                 , Html.Attributes.min "0"
@@ -503,9 +503,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "Max Walking Speed"
-            , input
+        , Html.div []
+            [ Html.text "Max Walking Speed"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "25"
                 , Html.Attributes.min "5"
@@ -515,9 +515,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "Max Running Speed"
-            , input
+        , Html.div []
+            [ Html.text "Max Running Speed"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "50"
                 , Html.Attributes.min <| String.fromFloat model.temporaryProperties.maxWalkingSpeed
@@ -527,9 +527,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "Max Dashing Speed"
-            , input
+        , Html.div []
+            [ Html.text "Max Dashing Speed"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "50"
                 , Html.Attributes.min <| String.fromFloat model.temporaryProperties.maxRunningSpeed
@@ -539,9 +539,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "DPad Acceleration"
-            , input
+        , Html.div []
+            [ Html.text "DPad Acceleration"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "3"
                 , Html.Attributes.min "0.1"
@@ -551,9 +551,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "Dash Duration in frames"
-            , input
+        , Html.div []
+            [ Html.text "Dash Duration in frames"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "50"
                 , Html.Attributes.min "25"
@@ -563,9 +563,9 @@ viewBody model =
                 ]
                 []
             ]
-        , div []
-            [ text "Dash button press window duration"
-            , input
+        , Html.div []
+            [ Html.text "Dash button press window duration"
+            , Html.input
                 [ type_ "number"
                 , Html.Attributes.max "18"
                 , Html.Attributes.min "8"
@@ -576,52 +576,52 @@ viewBody model =
                 []
             ]
         ]
-    , div
+    , Html.div
         [ style "display" "flex", style "flex-direction" "column" ]
-        [ div
+        [ Html.div
             flexBoxRow
-            [ h3 sideMargin [ text (String.fromInt 0) ]
-            , Html.p [] [ text "- PlaceNothing" ]
+            [ Html.h3 sideMargin [ Html.text (String.fromInt 0) ]
+            , Html.p [] [ Html.text "- PlaceNothing" ]
             ]
-        , div
+        , Html.div
             flexBoxRow
-            [ h3 sideMargin [ text (String.fromInt 1) ]
-            , Html.p [] [ text "- Normal Platform" ]
+            [ Html.h3 sideMargin [ Html.text (String.fromInt 1) ]
+            , Html.p [] [ Html.text "- Normal Platform" ]
             ]
-        , div
+        , Html.div
             flexBoxRow
-            [ h3 sideMargin [ text (String.fromInt 2) ]
-            , Html.p [] [ text "- Static enemy that doesn't move" ]
+            [ Html.h3 sideMargin [ Html.text (String.fromInt 2) ]
+            , Html.p [] [ Html.text "- Static enemy that doesn't move" ]
             ]
-        , div
+        , Html.div
             flexBoxRow
-            [ h3 sideMargin [ text (String.fromInt 3) ]
-            , Html.p [] [ text "- Dangerous platform" ]
+            [ Html.h3 sideMargin [ Html.text (String.fromInt 3) ]
+            , Html.p [] [ Html.text "- Dangerous platform" ]
             ]
-        , div
+        , Html.div
             flexBoxRow
-            [ h3 sideMargin [ text (String.fromInt 4) ]
-            , Html.p [] [ text "- Enemy on a set path" ]
+            [ Html.h3 sideMargin [ Html.text (String.fromInt 4) ]
+            , Html.p [] [ Html.text "- Enemy on a set path" ]
             ]
-        , div
+        , Html.div
             flexBoxRow
-            [ h3 sideMargin [ text (String.fromInt 5) ]
-            , Html.p [] [ text "- Walking Enemy" ]
+            [ Html.h3 sideMargin [ Html.text (String.fromInt 5) ]
+            , Html.p [] [ Html.text "- Walking Enemy" ]
             ]
-        , div
+        , Html.div
             flexBoxRow
-            [ h3 sideMargin [ text (String.fromInt 9) ]
-            , Html.p [] [ text "- Remove Platform" ]
+            [ Html.h3 sideMargin [ Html.text (String.fromInt 9) ]
+            , Html.p [] [ Html.text "- Remove Platform" ]
             ]
-        , div
+        , Html.div
             flexBoxRow
-            [ h3 sideMargin [ text "R" ]
-            , Html.p [] [ text "- Resets enemies to starting positions" ]
+            [ Html.h3 sideMargin [ Html.text "R" ]
+            , Html.p [] [ Html.text "- Resets enemies to starting positions" ]
             ]
-        , div
+        , Html.div
             flexBoxRow
-            [ h3 sideMargin [ text "G + H" ]
-            , Html.p [] [ text "- Wipe the whole level clean of everyting" ]
+            [ Html.h3 sideMargin [ Html.text "G + H" ]
+            , Html.p [] [ Html.text "- Wipe the whole level clean of everyting" ]
             ]
         ]
     ]
