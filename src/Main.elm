@@ -1,9 +1,5 @@
 port module Main exposing (main)
 
--- system
--- Libraries
--- My Modules
-
 import Browser
 import Browser.Dom
 import Browser.Events
