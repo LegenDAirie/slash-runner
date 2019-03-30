@@ -18,7 +18,7 @@ import CreateLevel
         )
 import Game.TwoD as Game
 import Game.TwoD.Camera as Camera
-import GameTypes exposing (TempProperties, Vector, vectorIntToFloat)
+import GameTypes
 import Html
 import Html.Attributes
 import Html.Events
@@ -53,7 +53,7 @@ type alias Model =
     , keyboard : List Keyboard.Key
     , controller : Controller.Controller
     , gameScreen : GameScreen
-    , temporaryProperties : TempProperties
+    , temporaryProperties : GameTypes.TempProperties
     }
 
 
@@ -70,7 +70,7 @@ type Msg
     | Tick Controller.GamePad
     | KeyboardMsg Keyboard.Msg
     | ReceiveLevelData LevelData
-    | MouseMove Vector
+    | MouseMove GameTypes.Vector
     | SetIsCursorActive Bool
     | TweekJumpDuration Int
     | TweekMaxJumpHeight Float
@@ -84,7 +84,7 @@ type Msg
     | TweekButtonPressWindow Int
 
 
-initialTempProperties : TempProperties
+initialTempProperties : GameTypes.TempProperties
 initialTempProperties =
     { framesToApex = 28
     , maxJumpHeight = 320
@@ -374,7 +374,7 @@ update msg model =
             )
 
 
-updateGameScreen : TempProperties -> List Keyboard.Key -> Vector -> GameScreen -> Controller.Controller -> ( GameScreen, Cmd Msg )
+updateGameScreen : GameTypes.TempProperties -> List Keyboard.Key -> GameTypes.Vector -> GameScreen -> Controller.Controller -> ( GameScreen, Cmd Msg )
 updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
     case gameScreen of
         Uninitialized ->
