@@ -10,12 +10,6 @@ import Browser.Events
 import Controller
 import Coordinates
 import CreateLevel
-    exposing
-        ( LevelCreateState
-        , initialLevelCreateState
-        , renderLevelCreateScreen
-        , updateCreateLevelState
-        )
 import Game.TwoD as Game
 import Game.TwoD.Camera as Camera
 import GameTypes
@@ -59,7 +53,7 @@ type alias Model =
 
 type GameScreen
     = Uninitialized
-    | CreateLevel LevelCreateState
+    | CreateLevel CreateLevel.LevelCreateState
     | NormalPlay NormalPlayState
 
 
@@ -104,7 +98,7 @@ initialModel =
     { windowSize = ( 0, 0 )
     , keyboard = []
     , controller = Controller.initialControllerState
-    , gameScreen = CreateLevel initialLevelCreateState
+    , gameScreen = CreateLevel CreateLevel.initialLevelCreateState
     , temporaryProperties = initialTempProperties
     }
 
@@ -392,7 +386,7 @@ updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
         CreateLevel levelCreateState ->
             let
                 ( newLevelCreateState, encodedLevelData ) =
-                    updateCreateLevelState controller windowSize keyboard temporaryProperties levelCreateState
+                    CreateLevel.updateCreateLevelState controller windowSize keyboard temporaryProperties levelCreateState
 
                 cmd =
                     case encodedLevelData of
@@ -424,7 +418,7 @@ viewBody model =
                     ( state.camera, renderNormalPlay state )
 
                 CreateLevel levelCreateState ->
-                    ( levelCreateState.playState.camera, renderLevelCreateScreen model.windowSize levelCreateState )
+                    ( levelCreateState.playState.camera, CreateLevel.renderLevelCreateScreen model.windowSize levelCreateState )
 
         canvasSize =
             Coordinates.calculateCanvasSize model.windowSize
