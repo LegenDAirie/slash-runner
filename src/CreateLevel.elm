@@ -10,12 +10,12 @@ module CreateLevel exposing
 -- my modules
 
 import Color
-import Controller exposing (Controller)
-import Coordinates exposing (gridSquareSize)
-import CustomEncoders exposing (levelDataEncodeHandler)
+import Controller
+import Coordinates
+import CustomEncoders
 import Dict
-import Enemy exposing (Enemy, EnemyMovement(..), LineMovementSpec)
-import Game.TwoD.Render as Render exposing (Renderable)
+import Enemy
+import Game.TwoD.Render as Render
 import GamePlatform exposing (Platform, PlatformType(..), platformSize)
 import GameTypes exposing (TempProperties, Vector, vectorIntToFloat)
 import Keyboard
@@ -101,7 +101,7 @@ getCreateStateUpdateAction playState pressedKeys =
         NoAction
 
 
-updateCreateLevelState : Controller -> Vector -> List Keyboard.Key -> TempProperties -> LevelCreateState -> ( LevelCreateState, Maybe String )
+updateCreateLevelState : Controller.Controller -> Vector -> List Keyboard.Key -> TempProperties -> LevelCreateState -> ( LevelCreateState, Maybe String )
 updateCreateLevelState controller windowSize pressedKeys tempProperties levelCreateState =
     -- everything in this function could just be in main but I am waiting till
     -- I get the update logic working again and then implement extensible record types
@@ -204,7 +204,7 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
             vectorIntToFloat newPosition
 
         newStaticEnemy =
-            Enemy floatPosition 0 ( 64, 64 ) NoMovement True
+            Enemy.Enemy floatPosition 0 ( 64, 64 ) Enemy.NoMovement True
 
         startNode =
             V2.add floatPosition ( -128, 0 )
@@ -213,10 +213,10 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
             V2.add floatPosition ( 128, 0 )
 
         newEnemyOnTrack =
-            Enemy floatPosition 0 ( 64, 64 ) (LinePath (LineMovementSpec startNode endNode floatPosition 1)) True
+            Enemy.Enemy floatPosition 0 ( 64, 64 ) (Enemy.LinePath (Enemy.LineMovementSpec startNode endNode floatPosition 1)) True
 
         newWalkingEnemy =
-            Enemy floatPosition 0 ( 64, 64 ) (Walk floatPosition) True
+            Enemy.Enemy floatPosition 0 ( 64, 64 ) (Enemy.Walk floatPosition) True
 
         newEnemies =
             case itemToPlace of
@@ -265,7 +265,7 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
 
         encodedLevelData =
             if List.member Keyboard.Shift pressedKeys && List.member (Keyboard.Character "115") pressedKeys then
-                Just (levelDataEncodeHandler newPlayState.platforms newPlayState.permanentEnemies)
+                Just (CustomEncoders.levelDataEncodeHandler newPlayState.platforms newPlayState.permanentEnemies)
 
             else
                 Nothing
@@ -278,7 +278,7 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
     ( newLevelCreateState, encodedLevelData )
 
 
-renderLevelCreateScreen : Vector -> LevelCreateState -> List Renderable
+renderLevelCreateScreen : Vector -> LevelCreateState -> List Render.Renderable
 renderLevelCreateScreen windowSize levelCreateState =
     let
         { itemToPlace, cursorLocation, playState } =
@@ -293,7 +293,7 @@ renderLevelCreateScreen windowSize levelCreateState =
         ]
 
 
-renderCursorBlock : ItemToBePlaced -> Vector -> Renderable
+renderCursorBlock : ItemToBePlaced -> Vector -> Render.Renderable
 renderCursorBlock itemToBePlace location =
     let
         mouseColor =
@@ -323,5 +323,5 @@ renderCursorBlock itemToBePlace location =
         Render.rectangle
         { color = mouseColor
         , position = location
-        , size = vectorIntToFloat gridSquareSize
+        , size = vectorIntToFloat Coordinates.gridSquareSize
         }
