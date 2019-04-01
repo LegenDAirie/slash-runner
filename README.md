@@ -1,2 +1,2 @@
 # Todo
-* Instead of just using generic vectors make different types for different things.
+* No generic vectors, custom types for specific things
