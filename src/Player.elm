@@ -22,7 +22,7 @@ import Coordinates exposing (locationToGridCoordinate)
 import Dict exposing (Dict)
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
-import GamePlatform exposing (Platform, platformSize)
+import GamePlatform
 import GameTypes
     exposing
         ( IntVector
@@ -163,7 +163,7 @@ getPlayerRightKickPoint ( x, y ) =
     ( spriteBoxRightSide, kickPointY )
 
 
-wallsNearPlayer : Dict IntVector Platform -> Float -> Float -> WallsNearPlayer
+wallsNearPlayer : Dict IntVector GamePlatform.Platform -> Float -> Float -> WallsNearPlayer
 wallsNearPlayer platforms playerX playerY =
     let
         wallToTheRight =
@@ -192,7 +192,7 @@ wallsNearPlayer platforms playerX playerY =
             WallOnRight
 
 
-groundBelowPlayer : Dict IntVector Platform -> Float -> Float -> Bool
+groundBelowPlayer : Dict IntVector GamePlatform.Platform -> Float -> Float -> Bool
 groundBelowPlayer platforms playerX playerY =
     ( playerX, playerY )
         |> getBottomCenterSpritePoint
@@ -545,7 +545,7 @@ type PlayerStateMsg
     | EndState
 
 
-updatePlayer : Controller -> TempProperties -> Dict IntVector Platform -> Player -> Player
+updatePlayer : Controller -> TempProperties -> Dict IntVector GamePlatform.Platform -> Player -> Player
 updatePlayer controller tempProperties platforms player =
     playerStateRoutine tempProperties player
         |> activeUpdate controller tempProperties platforms
@@ -633,7 +633,7 @@ setPlayerState player playerState =
     }
 
 
-activeUpdate : Controller -> TempProperties -> Dict IntVector Platform -> Player -> Player
+activeUpdate : Controller -> TempProperties -> Dict IntVector GamePlatform.Platform -> Player -> Player
 activeUpdate controller tempProperties platforms player =
     calculatePlayerAction tempProperties controller platforms player
         |> actionUpdate tempProperties player
@@ -645,7 +645,7 @@ canDashAgain frameNumber dashDuration buttonPressWindow =
     frameNumber > dashDuration - buttonPressWindow
 
 
-determineDashType : Dict IntVector Platform -> Float -> Float -> DashType
+determineDashType : Dict IntVector GamePlatform.Platform -> Float -> Float -> DashType
 determineDashType platforms playerX playerY =
     case groundBelowPlayer platforms playerX playerY of
         True ->
@@ -655,7 +655,7 @@ determineDashType platforms playerX playerY =
             Air
 
 
-calculatePlayerAction : TempProperties -> Controller -> Dict IntVector Platform -> Player -> PlayerAction
+calculatePlayerAction : TempProperties -> Controller -> Dict IntVector GamePlatform.Platform -> Player -> PlayerAction
 calculatePlayerAction tempProperties controller platforms player =
     -- don't need to pass in the whole player and only needs the jump and dash button states
     case player.playerState of
@@ -825,20 +825,20 @@ runRoutineY tempProperties controller ( collision, thePlayer ) =
         |> (\player -> { player | y = player.y + player.vy })
 
 
-handleCollisionX : Dict IntVector Platform -> Player -> ( Maybe Direction, Player )
+handleCollisionX : Dict IntVector GamePlatform.Platform -> Player -> ( Maybe Direction, Player )
 handleCollisionX platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
-        |> List.map (\( x, _ ) -> getCollisionWithDisplacement (Tuple.first playerHitBoxSize) player.x (Tuple.first platformSize) (toFloat x))
+        |> List.map (\( x, _ ) -> getCollisionWithDisplacement (Tuple.first playerHitBoxSize) player.x (Tuple.first Coordinates.gridSquareSize) (toFloat x))
         |> List.head
         |> displacePlayerHorizontally player
 
 
-handleCollisionY : Dict IntVector Platform -> Player -> Player
+handleCollisionY : Dict IntVector GamePlatform.Platform -> Player -> Player
 handleCollisionY platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
-        |> List.map (\( _, y ) -> getCollisionWithDisplacement (Tuple.second playerHitBoxSize) player.y (Tuple.second platformSize) (toFloat y))
+        |> List.map (\( _, y ) -> getCollisionWithDisplacement (Tuple.second playerHitBoxSize) player.y (Tuple.second Coordinates.gridSquareSize) (toFloat y))
         |> List.head
         |> displacePlayerVerically player
 
@@ -849,7 +849,7 @@ handleCollisionY platforms player =
 -------------------------------
 
 
-renderPlayer : Resources -> Player -> Dict IntVector Platform -> List Renderable
+renderPlayer : Resources -> Player -> Dict IntVector GamePlatform.Platform -> List Renderable
 renderPlayer resources player platforms =
     let
         { x, y, playerState } =

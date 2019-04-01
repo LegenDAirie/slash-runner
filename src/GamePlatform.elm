@@ -1,49 +1,44 @@
 module GamePlatform exposing
-    ( Platform
-    , PlatformType(..)
-    , platformSize
+    ( Platform(..)
     , platformWithLocationsDecoder
     , renderPlatform
     )
 
 import Color exposing (Color)
+import Coordinates
 import Game.TwoD.Render as Render exposing (Renderable)
 import GameTypes exposing (IntVector, Vector, intVectorDecoder, vectorIntToFloat)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
 
 
-type alias Platform =
-    { platformType : PlatformType
-    }
+
+-- This doesn't need to be it's own file. Besides the Platform type,
+-- it's all just decoders
 
 
-type PlatformType
+type Platform
     = Normal
     | Dangerous
 
 
-platformSize : IntVector
-platformSize =
-    ( 64, 64 )
-
-
 renderPlatform : Color -> IntVector -> Renderable
-renderPlatform color location =
-    let
-        ( x, y ) =
-            location
-    in
+renderPlatform color ( x, y ) =
+    -- Render should probably not be in this file
     Render.shape
         Render.rectangle
         { position = ( toFloat x, toFloat y )
-        , size = vectorIntToFloat platformSize
+        , size = vectorIntToFloat Coordinates.gridSquareSize
         , color = color
         }
 
 
 platformWithLocationsDecoder : Decoder ( IntVector, Platform )
 platformWithLocationsDecoder =
+    -- Hmmm so this is wierd...
+    -- Either a platform should have both
+    -- or
+    -- a platform is separate from the collections that is the map
     Json.Decode.succeed Tuple.pair
         |> required "location" intVectorDecoder
         |> required "platform" platformDecoder
@@ -51,18 +46,12 @@ platformWithLocationsDecoder =
 
 platformDecoder : Decoder Platform
 platformDecoder =
-    Json.Decode.succeed Platform
-        |> required "platformType" platformTypeDecoder
-
-
-platformTypeDecoder : Decoder PlatformType
-platformTypeDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen stringToPlatformType
+        |> Json.Decode.andThen stringToPlatform
 
 
-stringToPlatformType : String -> Decoder PlatformType
-stringToPlatformType platformType =
+stringToPlatform : String -> Decoder Platform
+stringToPlatform platformType =
     case platformType of
         "Dangerous" ->
             Json.Decode.succeed Dangerous

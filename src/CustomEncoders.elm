@@ -8,12 +8,12 @@ import Enemy
         , EnemyMovement(..)
         )
 import GamePlatform
-    exposing
-        ( Platform
-        , PlatformType(..)
-        )
 import GameTypes exposing (IntVector, Vector)
 import Json.Encode
+
+
+
+-- having all of the encoders here might be a good idea.
 
 
 encodeVector : Vector -> Json.Encode.Value
@@ -40,7 +40,7 @@ encodeGridCoordinate gridCoordinate =
         ]
 
 
-levelDataEncodeHandler : Dict IntVector Platform -> List Enemy -> String
+levelDataEncodeHandler : Dict IntVector GamePlatform.Platform -> List Enemy -> String
 levelDataEncodeHandler platforms enemies =
     let
         encodedPlatforms =
@@ -62,7 +62,7 @@ levelDataEncodeHandler platforms enemies =
     Json.Encode.encode 4 encodedlevelData
 
 
-encodePlatformAndLocation : IntVector -> Platform -> Json.Encode.Value
+encodePlatformAndLocation : IntVector -> GamePlatform.Platform -> Json.Encode.Value
 encodePlatformAndLocation location platform =
     Json.Encode.object
         [ ( "location", encodeGridCoordinate location )
@@ -70,10 +70,10 @@ encodePlatformAndLocation location platform =
         ]
 
 
-encodePlatform : Platform -> Json.Encode.Value
+encodePlatform : GamePlatform.Platform -> Json.Encode.Value
 encodePlatform platform =
     Json.Encode.object
-        [ ( "platformType", encodePlatformType platform.platformType )
+        [ ( "platformType", encodePlatformType platform )
         ]
 
 
@@ -102,11 +102,11 @@ encodeMovement movement =
                 ]
 
 
-encodePlatformType : PlatformType -> Json.Encode.Value
-encodePlatformType platformType =
-    case platformType of
-        Normal ->
+encodePlatformType : GamePlatform.Platform -> Json.Encode.Value
+encodePlatformType platform =
+    case platform of
+        GamePlatform.Normal ->
             Json.Encode.string "Normal"
 
-        Dangerous ->
+        GamePlatform.Dangerous ->
             Json.Encode.string "Dangerous"

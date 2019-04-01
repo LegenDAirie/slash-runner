@@ -16,7 +16,7 @@ import CustomEncoders
 import Dict
 import Enemy
 import Game.TwoD.Render as Render
-import GamePlatform exposing (Platform, PlatformType(..), platformSize)
+import GamePlatform
 import GameTypes exposing (TempProperties, Vector, vectorIntToFloat)
 import Keyboard
 import MouseHelpers exposing (mouseToGridInPixels)
@@ -145,7 +145,7 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
     -- holy shit I have no fucking idea what I was thinking with this one...
     let
         ( width, height ) =
-            platformSize
+            Coordinates.gridSquareSize
 
         { itemToPlace, playState, cursorLocation, cursorActive } =
             levelCreateState
@@ -154,10 +154,10 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
             mouseToGridInPixels windowSize playState.camera cursorLocation
 
         newNormalPlatform =
-            Platform Normal
+            GamePlatform.Normal
 
         newDangerousPlatform =
-            Platform Dangerous
+            GamePlatform.Dangerous
 
         newPlatforms =
             case itemToPlace of
