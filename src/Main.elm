@@ -8,7 +8,7 @@ import Coordinates
 import CreateLevel
 import Game.TwoD as Game
 import Game.TwoD.Camera as Camera
-import GameTypes
+import GameFeel
 import Html
 import Html.Attributes
 import Html.Events
@@ -35,7 +35,7 @@ type alias Model =
     , keyboard : List Keyboard.Key
     , controller : Controller.Controller
     , gameScreen : GameScreen
-    , temporaryProperties : GameTypes.TempProperties
+    , gameFeelProps : GameFeel.GameFeel
     }
 
 
@@ -54,31 +54,7 @@ type Msg
     | ReceiveLevelData NormalPlay.LevelData
     | MouseMove V2.Vector2
     | SetIsCursorActive Bool
-    | TweekJumpDuration Int
-    | TweekMaxJumpHeight Float
-    | TweekMinJumpHeight Float
-    | TweekMaxWallSlideSpeed Float
-    | TweekMaxWalkingSpeed Float
-    | TweekMaxRunningSpeed Float
-    | TweekMaxDashingSpeed Float
-    | TweekDPadAcceleration Float
-    | TweekDashDuration Int
-    | TweekButtonPressWindow Int
-
-
-initialTempProperties : GameTypes.TempProperties
-initialTempProperties =
-    { framesToApex = 28
-    , maxJumpHeight = 320
-    , minJumpHeight = 16
-    , maxWallSlideSpeed = 3
-    , maxWalkingSpeed = 10
-    , maxRunningSpeed = 20
-    , maxDashingSpeed = 25
-    , dPadAcceleration = 0.5
-    , dashDuration = 41
-    , buttonPressWindow = 13
-    }
+    | GotNewGameFeelAdjustment GameFeel.Msg
 
 
 initialModel : Model
@@ -87,7 +63,7 @@ initialModel =
     , keyboard = []
     , controller = Controller.initialControllerState
     , gameScreen = CreateLevel CreateLevel.initialLevelCreateState
-    , temporaryProperties = initialTempProperties
+    , gameFeelProps = GameFeel.initialGameFeel
     }
 
 
@@ -116,142 +92,9 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        TweekJumpDuration framesToApex ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | framesToApex = framesToApex }
-            in
+        GotNewGameFeelAdjustment gameFeelAdjustment ->
             ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekMaxJumpHeight maxJumpHeight ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | maxJumpHeight = maxJumpHeight }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekMinJumpHeight minJumpHeight ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | minJumpHeight = minJumpHeight }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekMaxWallSlideSpeed maxWallSlideSpeed ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | maxWallSlideSpeed = maxWallSlideSpeed }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekMaxWalkingSpeed maxWalkingSpeed ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | maxWalkingSpeed = maxWalkingSpeed }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekMaxDashingSpeed maxDashingSpeed ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | maxDashingSpeed = maxDashingSpeed }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekMaxRunningSpeed maxRunningSpeed ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | maxRunningSpeed = maxRunningSpeed }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekDPadAcceleration dPadAcceleration ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | dPadAcceleration = dPadAcceleration }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekDashDuration dashDuration ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | dashDuration = dashDuration }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
-              }
-            , Cmd.none
-            )
-
-        TweekButtonPressWindow buttonPressWindow ->
-            let
-                { temporaryProperties } =
-                    model
-
-                newTempProps =
-                    { temporaryProperties | buttonPressWindow = buttonPressWindow }
-            in
-            ( { model
-                | temporaryProperties = newTempProps
+                | gameFeelProps = GameFeel.updateGameFeel gameFeelAdjustment model.gameFeelProps
               }
             , Cmd.none
             )
@@ -346,7 +189,7 @@ update msg model =
                     Controller.updateController model.keyboard gamepadState model.controller
 
                 ( newGameScreen, cmd ) =
-                    updateGameScreen model.temporaryProperties model.keyboard model.windowSize model.gameScreen newController
+                    updateGameScreen model.gameFeelProps model.keyboard model.windowSize model.gameScreen newController
             in
             ( { model
                 | gameScreen = newGameScreen
@@ -356,8 +199,8 @@ update msg model =
             )
 
 
-updateGameScreen : GameTypes.TempProperties -> List Keyboard.Key -> V2.Vector2 -> GameScreen -> Controller.Controller -> ( GameScreen, Cmd Msg )
-updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
+updateGameScreen : GameFeel.GameFeel -> List Keyboard.Key -> V2.Vector2 -> GameScreen -> Controller.Controller -> ( GameScreen, Cmd Msg )
+updateGameScreen gameFeelProps keyboard windowSize gameScreen controller =
     case gameScreen of
         Uninitialized ->
             ( Uninitialized, Cmd.none )
@@ -366,7 +209,7 @@ updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
             ( NormalPlay <|
                 NormalPlay.updateNormalPlay
                     controller
-                    temporaryProperties
+                    gameFeelProps
                     gameState
             , Cmd.none
             )
@@ -374,7 +217,7 @@ updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
         CreateLevel levelCreateState ->
             let
                 ( newLevelCreateState, encodedLevelData ) =
-                    CreateLevel.updateCreateLevelState controller windowSize keyboard temporaryProperties levelCreateState
+                    CreateLevel.updateCreateLevelState controller windowSize keyboard gameFeelProps levelCreateState
 
                 cmd =
                     case encodedLevelData of
@@ -436,128 +279,7 @@ viewBody model =
             }
             gameScene
         ]
-    , Html.div []
-        [ Html.div []
-            [ Html.text "Frames to Apex"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "128"
-                , Html.Attributes.min "1"
-                , Html.Attributes.step "1"
-                , Html.Attributes.value (String.fromInt model.temporaryProperties.framesToApex)
-                , Html.Events.onInput (\stringNumber -> TweekJumpDuration <| clamp 1 128 <| Maybe.withDefault 0 (String.toInt stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "Max Jumping Height"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "512"
-                , Html.Attributes.min (String.fromFloat model.temporaryProperties.minJumpHeight)
-                , Html.Attributes.step "1"
-                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxJumpHeight)
-                , Html.Events.onInput (\stringNumber -> TweekMaxJumpHeight <| clamp model.temporaryProperties.minJumpHeight 512 <| Maybe.withDefault 0 (String.toFloat stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "Min Jumping Height"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max (String.fromFloat model.temporaryProperties.maxJumpHeight)
-                , Html.Attributes.min "16"
-                , Html.Attributes.step "1"
-                , Html.Attributes.value (String.fromFloat model.temporaryProperties.minJumpHeight)
-                , Html.Events.onInput (\stringNumber -> TweekMinJumpHeight <| clamp 16 model.temporaryProperties.maxJumpHeight <| Maybe.withDefault 0 (String.toFloat stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "Max Wall Slide Speed "
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "10"
-                , Html.Attributes.min "0"
-                , Html.Attributes.step "0.5"
-                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxWallSlideSpeed)
-                , Html.Events.onInput (\stringNumber -> TweekMaxWallSlideSpeed <| clamp 0 10 <| Maybe.withDefault 0 (String.toFloat stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "Max Walking Speed"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "25"
-                , Html.Attributes.min "5"
-                , Html.Attributes.step "1"
-                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxWalkingSpeed)
-                , Html.Events.onInput (\stringNumber -> TweekMaxWalkingSpeed <| clamp 5 25 <| Maybe.withDefault 0 (String.toFloat stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "Max Running Speed"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "50"
-                , Html.Attributes.min <| String.fromFloat model.temporaryProperties.maxWalkingSpeed
-                , Html.Attributes.step "1"
-                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxRunningSpeed)
-                , Html.Events.onInput (\stringNumber -> TweekMaxRunningSpeed <| clamp model.temporaryProperties.maxWalkingSpeed 50 <| Maybe.withDefault 0 (String.toFloat stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "Max Dashing Speed"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "50"
-                , Html.Attributes.min <| String.fromFloat model.temporaryProperties.maxRunningSpeed
-                , Html.Attributes.step "1"
-                , Html.Attributes.value (String.fromFloat model.temporaryProperties.maxDashingSpeed)
-                , Html.Events.onInput (\stringNumber -> TweekMaxDashingSpeed <| clamp model.temporaryProperties.maxRunningSpeed 50 <| Maybe.withDefault 0 (String.toFloat stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "DPad Acceleration"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "3"
-                , Html.Attributes.min "0.1"
-                , Html.Attributes.step "0.1"
-                , Html.Attributes.value (String.fromFloat model.temporaryProperties.dPadAcceleration)
-                , Html.Events.onInput (\stringNumber -> TweekDPadAcceleration <| clamp 0.1 3 <| Maybe.withDefault 0 (String.toFloat stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "Dash Duration in frames"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "50"
-                , Html.Attributes.min "25"
-                , Html.Attributes.step "1"
-                , Html.Attributes.value (String.fromInt model.temporaryProperties.dashDuration)
-                , Html.Events.onInput (\stringNumber -> TweekDashDuration <| clamp 25 50 <| Maybe.withDefault 0 (String.toInt stringNumber))
-                ]
-                []
-            ]
-        , Html.div []
-            [ Html.text "Dash button press window duration"
-            , Html.input
-                [ Html.Attributes.type_ "number"
-                , Html.Attributes.max "18"
-                , Html.Attributes.min "8"
-                , Html.Attributes.step "1"
-                , Html.Attributes.value (String.fromInt model.temporaryProperties.buttonPressWindow)
-                , Html.Events.onInput (\stringNumber -> TweekButtonPressWindow <| clamp 8 18 <| Maybe.withDefault 0 (String.toInt stringNumber))
-                ]
-                []
-            ]
-        ]
+    , gameFeelAdjustmentPanel model.gameFeelProps
     , Html.div
         [ Html.Attributes.style "display" "flex", Html.Attributes.style "flex-direction" "column" ]
         [ Html.div
@@ -607,6 +329,11 @@ viewBody model =
             ]
         ]
     ]
+
+
+gameFeelAdjustmentPanel : GameFeel.GameFeel -> Html.Html Msg
+gameFeelAdjustmentPanel =
+    Html.map GotNewGameFeelAdjustment << GameFeel.gameFeelView
 
 
 port receiveLevelData : (Json.Decode.Value -> msg) -> Sub msg

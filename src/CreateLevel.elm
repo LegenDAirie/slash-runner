@@ -16,8 +16,8 @@ import CustomEncoders
 import Dict
 import Enemy
 import Game.TwoD.Render as Render
+import GameFeel
 import GamePlatform
-import GameTypes exposing (TempProperties)
 import Keyboard
 import MouseHelpers exposing (mouseToGridInPixels)
 import NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay, resetPlayState, updateNormalPlay)
@@ -101,7 +101,7 @@ getCreateStateUpdateAction playState pressedKeys =
         NoAction
 
 
-updateCreateLevelState : Controller.Controller -> V2.Vector2 -> List Keyboard.Key -> TempProperties -> LevelCreateState -> ( LevelCreateState, Maybe String )
+updateCreateLevelState : Controller.Controller -> V2.Vector2 -> List Keyboard.Key -> GameFeel.GameFeel -> LevelCreateState -> ( LevelCreateState, Maybe String )
 updateCreateLevelState controller windowSize pressedKeys tempProperties levelCreateState =
     -- everything in this function could just be in main but I am waiting till
     -- I get the update logic working again and then implement extensible record types

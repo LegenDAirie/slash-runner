@@ -23,11 +23,8 @@ import Coordinates exposing (locationToGridCoordinate)
 import Dict exposing (Dict)
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Render as Render exposing (Renderable, rectangle)
+import GameFeel
 import GamePlatform
-import GameTypes
-    exposing
-        ( TempProperties
-        )
 import V2
 
 
@@ -433,7 +430,7 @@ getDPadForce dPadHorizontal dPadAcceleration =
             noForce
 
 
-handleHorizontalFriction : TempProperties -> Controller -> Float -> Player -> Player
+handleHorizontalFriction : GameFeel.GameFeel -> Controller -> Float -> Player -> Player
 handleHorizontalFriction tempProperties controller velocity player =
     getHorizontalFrictionStrength tempProperties controller.dPadHorizontal controller.dashButton player.vx velocity
         |> calculateTotalFriction player.vx
@@ -479,7 +476,7 @@ flipDirection direction =
             Right
 
 
-handleVerticalFriction : TempProperties -> DPadHorizontal -> Maybe Direction -> Float -> Player -> Player
+handleVerticalFriction : GameFeel.GameFeel -> DPadHorizontal -> Maybe Direction -> Float -> Player -> Player
 handleVerticalFriction tempProperties horizontalDPad collisionDirection acceleration player =
     getVerticalFrictionStrength tempProperties horizontalDPad collisionDirection acceleration
         |> calculateTotalFriction player.vy
@@ -488,7 +485,7 @@ handleVerticalFriction tempProperties horizontalDPad collisionDirection accelera
         |> (\newVelocity -> { player | vy = newVelocity })
 
 
-getHorizontalFrictionStrength : TempProperties -> DPadHorizontal -> ButtonState -> Float -> Float -> Float
+getHorizontalFrictionStrength : GameFeel.GameFeel -> DPadHorizontal -> ButtonState -> Float -> Float -> Float
 getHorizontalFrictionStrength tempProperties horizontalDPadButton dashButton velocityAfterAcc velocity =
     if pressingInDirectionOfVelocity horizontalDPadButton velocityAfterAcc && isButtonDown dashButton then
         calculateDragCoefficent
@@ -507,7 +504,7 @@ getHorizontalFrictionStrength tempProperties horizontalDPadButton dashButton vel
         heavyDragCoefficent
 
 
-getVerticalFrictionStrength : TempProperties -> DPadHorizontal -> Maybe Direction -> Float -> Float
+getVerticalFrictionStrength : GameFeel.GameFeel -> DPadHorizontal -> Maybe Direction -> Float -> Float
 getVerticalFrictionStrength tempProperties dPadHorizontal collisionDirection acceleration =
     case collisionDirection of
         Nothing ->
@@ -558,7 +555,7 @@ type PlayerStateMsg
     | EndState
 
 
-updatePlayer : Controller -> TempProperties -> Dict V2.IntVector GamePlatform.Platform -> Player -> Player
+updatePlayer : Controller -> GameFeel.GameFeel -> Dict V2.IntVector GamePlatform.Platform -> Player -> Player
 updatePlayer controller tempProperties platforms player =
     playerStateRoutine tempProperties player
         |> activeUpdate controller tempProperties platforms
@@ -568,14 +565,14 @@ updatePlayer controller tempProperties platforms player =
         |> handleCollisionY platforms
 
 
-playerStateRoutine : TempProperties -> Player -> Player
+playerStateRoutine : GameFeel.GameFeel -> Player -> Player
 playerStateRoutine tempProperties player =
     calculatePlayerStateRoutineAction tempProperties player.playerState player.vx
         |> runPlayerStateRoutine player.playerState
         |> setPlayerState player
 
 
-calculatePlayerStateRoutineAction : TempProperties -> PlayerState -> Float -> PlayerStateMsg
+calculatePlayerStateRoutineAction : GameFeel.GameFeel -> PlayerState -> Float -> PlayerStateMsg
 calculatePlayerStateRoutineAction tempProperties playerState playerXVelocity =
     case playerState of
         GroundDash frameNumber ->
@@ -646,7 +643,7 @@ setPlayerState player playerState =
     }
 
 
-activeUpdate : Controller -> TempProperties -> Dict V2.IntVector GamePlatform.Platform -> Player -> Player
+activeUpdate : Controller -> GameFeel.GameFeel -> Dict V2.IntVector GamePlatform.Platform -> Player -> Player
 activeUpdate controller tempProperties platforms player =
     calculatePlayerAction tempProperties controller platforms player
         |> actionUpdate tempProperties player
@@ -668,7 +665,7 @@ determineDashType platforms playerX playerY =
             Air
 
 
-calculatePlayerAction : TempProperties -> Controller -> Dict V2.IntVector GamePlatform.Platform -> Player -> PlayerAction
+calculatePlayerAction : GameFeel.GameFeel -> Controller -> Dict V2.IntVector GamePlatform.Platform -> Player -> PlayerAction
 calculatePlayerAction tempProperties controller platforms player =
     -- don't need to pass in the whole player and only needs the jump and dash button states
     case player.playerState of
@@ -741,7 +738,7 @@ calculatePlayerAction tempProperties controller platforms player =
                 NoAction
 
 
-actionUpdate : TempProperties -> Player -> PlayerAction -> Player
+actionUpdate : GameFeel.GameFeel -> Player -> PlayerAction -> Player
 actionUpdate tempProperties player action =
     case action of
         Jump ->
@@ -817,7 +814,7 @@ actionUpdate tempProperties player action =
             player
 
 
-runRoutineX : TempProperties -> Controller -> Player -> Player
+runRoutineX : GameFeel.GameFeel -> Controller -> Player -> Player
 runRoutineX tempProperties controller thePlayer =
     getDPadForce controller.dPadHorizontal tempProperties.dPadAcceleration
         |> addToXVelocity thePlayer
@@ -825,7 +822,7 @@ runRoutineX tempProperties controller thePlayer =
         |> (\player -> { player | x = player.x + player.vx })
 
 
-runRoutineY : TempProperties -> Controller -> ( Maybe Direction, Player ) -> Player
+runRoutineY : GameFeel.GameFeel -> Controller -> ( Maybe Direction, Player ) -> Player
 runRoutineY tempProperties controller ( collision, thePlayer ) =
     -- maxWallSlideSpeed
     let

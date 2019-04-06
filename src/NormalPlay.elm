@@ -20,8 +20,8 @@ import Enemy exposing (Enemy)
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.TwoD.Render as Render exposing (Renderable)
+import GameFeel
 import GamePlatform exposing (Platform, platformWithLocationsDecoder, renderPlatform)
-import GameTypes exposing (TempProperties)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
 import Player
@@ -109,13 +109,13 @@ updatePausedState startButton state =
         state
 
 
-updateNormalPlay : Controller -> TempProperties -> NormalPlayState -> NormalPlayState
+updateNormalPlay : Controller -> GameFeel.GameFeel -> NormalPlayState -> NormalPlayState
 updateNormalPlay controller tempProperties state =
     updatePausedState controller.startButton state
         |> updatePlayState controller tempProperties
 
 
-updatePlayState : Controller -> TempProperties -> NormalPlayState -> NormalPlayState
+updatePlayState : Controller -> GameFeel.GameFeel -> NormalPlayState -> NormalPlayState
 updatePlayState controller tempProperties theState =
     if theState.paused then
         theState
