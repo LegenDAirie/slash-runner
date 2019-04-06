@@ -103,8 +103,6 @@ getCreateStateUpdateAction playState pressedKeys =
 
 updateCreateLevelState : Controller.Controller -> V2.Vector2 -> List Keyboard.Key -> GameFeel.GameFeel -> LevelCreateState -> ( LevelCreateState, Maybe String )
 updateCreateLevelState controller windowSize pressedKeys tempProperties levelCreateState =
-    -- everything in this function could just be in main but I am waiting till
-    -- I get the update logic working again and then implement extensible record types
     let
         ( newCreateLevelState, possibleEncodedLevelData ) =
             getCreateStateUpdateAction levelCreateState.playState pressedKeys

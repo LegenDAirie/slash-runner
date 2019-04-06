@@ -9,3 +9,6 @@
 * Collision needs an overhaul
 * All types should live in there home file
 * Should GameFeel be stored in NormalPlay's model or stay in Main????
+* Make sure the NormalPlay module is done before CreateLevel because CreateLevel containers NormalPlay. Maybe starting the refactors with lower level modules and working up is the best idea. Not completely sure though.
+* Clean up/little tasks
+  - Get window width and height from flags not initial Cmd

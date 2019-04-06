@@ -71,7 +71,7 @@ init : flags -> ( Model, Cmd Msg )
 init _ =
     ( initialModel
     , Cmd.batch
-        [ Task.perform viewPortToWindowSize <| Browser.Dom.getViewport
+        [ Task.perform viewPortToWindowSize <| Browser.Dom.getViewport -- Use flags instead
         , fetchLevelData 1
         ]
     )
