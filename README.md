@@ -9,9 +9,10 @@
 * All types should live in there home file
 * Should GameFeel be stored in NormalPlay's model or stay in Main????
 * MouseHelpers, should it be its own module???
-* Clean up/little tasks
-  - Get window width and height from flags not initial Cmd
-  - `Tuple.second Coordinates.gridSquareSize` is not straightforward... `gridSquareWidth` might be.
+
+## Little clean up tasks
+* Get window width and height from flags not initial Cmd
+* `Tuple.second Coordinates.gridSquareSize` is not straightforward... `gridSquareWidth` might be.
 
 ## Refactor order (This will solve a lot of the todos above)
 1. V2 and Coordinates need to be a new way of representing locations, sizes and speeds or something
