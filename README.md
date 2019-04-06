@@ -8,3 +8,4 @@
 * `Tuple.second Coordinates.gridSquareSize` is not straightforward... `gridSquareWidth` might be.
 * Collision needs an overhaul
 * All types should live in there home file
+* Should GameFeel be stored in NormalPlay's model or stay in Main????
