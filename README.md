@@ -5,8 +5,6 @@
 * GamePlatform and the game map are different concepts. Make a game map that owns things and the locations they are at.
   - `GamePlatform` does not need its own file.
 * `Dict IntVector GamePlatform.Platform` is really just the game map.(Platforms, layout, enemies spawning points?)
-* `Tuple.second Coordinates.gridSquareSize` is not straightforward... `gridSquareWidth` might be
-* `TempProperties` should be in it's own file, same with how it's updated.
+* `Tuple.second Coordinates.gridSquareSize` is not straightforward... `gridSquareWidth` might be.
 * Collision needs an overhaul
-* Player type should live in the Player file
 * All types should live in there home file
