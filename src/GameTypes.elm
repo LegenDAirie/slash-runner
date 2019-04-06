@@ -1,30 +1,9 @@
-module GameTypes exposing
-    ( Player
-    , PlayerState(..)
-    , TempProperties
-    )
+module GameTypes exposing (TempProperties)
 
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
 import Tuple
 import V2
-
-
-type alias Player =
-    { x : Float
-    , y : Float
-    , vx : Float
-    , vy : Float
-    , playerState : PlayerState
-    }
-
-
-type PlayerState
-    = OnTheGround Int
-    | GroundDash Int
-    | InTheAir Int
-    | AirDash Int
-    | Falling Int
 
 
 

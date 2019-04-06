@@ -1,5 +1,6 @@
 module Player exposing
-    ( initialPlayer
+    ( Player
+    , initialPlayer
     , renderPlayer
     , updatePlayer
     )
@@ -25,11 +26,26 @@ import Game.TwoD.Render as Render exposing (Renderable, rectangle)
 import GamePlatform
 import GameTypes
     exposing
-        ( Player
-        , PlayerState(..)
-        , TempProperties
+        ( TempProperties
         )
 import V2
+
+
+type alias Player =
+    { x : Float
+    , y : Float
+    , vx : Float
+    , vy : Float
+    , playerState : PlayerState
+    }
+
+
+type PlayerState
+    = OnTheGround Int
+    | GroundDash Int
+    | InTheAir Int
+    | AirDash Int
+    | Falling Int
 
 
 initialPlayer : Player

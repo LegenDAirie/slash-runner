@@ -21,7 +21,7 @@ import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.TwoD.Render as Render exposing (Renderable)
 import GamePlatform exposing (Platform, platformWithLocationsDecoder, renderPlatform)
-import GameTypes exposing (Player, TempProperties)
+import GameTypes exposing (TempProperties)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
 import Player
@@ -34,7 +34,7 @@ import V2
 
 
 type alias NormalPlayState =
-    { player : Player
+    { player : Player.Player
     , permanentEnemies : List Enemy
     , enemies : List Enemy
     , platforms : Dict V2.IntVector Platform
