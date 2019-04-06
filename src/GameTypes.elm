@@ -1,50 +1,13 @@
 module GameTypes exposing
-    ( IntVector
-    , Player
+    ( Player
     , PlayerState(..)
     , TempProperties
-    , Vector
-    , intVectorDecoder
-    , vectorDecoder
-    , vectorFloatToInt
-    , vectorIntToFloat
     )
 
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
 import Tuple
-
-
-type alias Vector =
-    ( Float, Float )
-
-
-type alias IntVector =
-    ( Int, Int )
-
-
-vectorFloatToInt : Vector -> IntVector
-vectorFloatToInt ( x, y ) =
-    ( round x, round y )
-
-
-vectorIntToFloat : IntVector -> Vector
-vectorIntToFloat ( x, y ) =
-    ( toFloat x, toFloat y )
-
-
-vectorDecoder : Decoder Vector
-vectorDecoder =
-    Json.Decode.succeed Tuple.pair
-        |> required "x" Json.Decode.float
-        |> required "y" Json.Decode.float
-
-
-intVectorDecoder : Decoder IntVector
-intVectorDecoder =
-    Json.Decode.succeed Tuple.pair
-        |> required "x" Json.Decode.int
-        |> required "y" Json.Decode.int
+import V2
 
 
 type alias Player =

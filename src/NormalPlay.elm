@@ -21,7 +21,7 @@ import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.TwoD.Render as Render exposing (Renderable)
 import GamePlatform exposing (Platform, platformWithLocationsDecoder, renderPlatform)
-import GameTypes exposing (IntVector, Player, TempProperties)
+import GameTypes exposing (Player, TempProperties)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
 import Player
@@ -30,13 +30,14 @@ import Player
         , renderPlayer
         , updatePlayer
         )
+import V2
 
 
 type alias NormalPlayState =
     { player : Player
     , permanentEnemies : List Enemy
     , enemies : List Enemy
-    , platforms : Dict IntVector Platform
+    , platforms : Dict V2.IntVector Platform
     , camera : Camera
     , resources : Resources
     , paused : Bool
@@ -96,7 +97,7 @@ resetPlayState normalPlayState =
 
 
 type alias LevelData =
-    { platforms : Dict IntVector Platform }
+    { platforms : Dict V2.IntVector Platform }
 
 
 updatePausedState : ButtonState -> NormalPlayState -> NormalPlayState

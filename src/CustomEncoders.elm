@@ -8,15 +8,15 @@ import Enemy
         , EnemyMovement(..)
         )
 import GamePlatform
-import GameTypes exposing (IntVector, Vector)
 import Json.Encode
+import V2
 
 
 
 -- having all of the encoders here might be a good idea.
 
 
-encodeVector : Vector -> Json.Encode.Value
+encodeVector : V2.Vector2 -> Json.Encode.Value
 encodeVector location =
     let
         ( x, y ) =
@@ -28,7 +28,7 @@ encodeVector location =
         ]
 
 
-encodeGridCoordinate : IntVector -> Json.Encode.Value
+encodeGridCoordinate : V2.IntVector -> Json.Encode.Value
 encodeGridCoordinate gridCoordinate =
     let
         ( x, y ) =
@@ -40,7 +40,7 @@ encodeGridCoordinate gridCoordinate =
         ]
 
 
-levelDataEncodeHandler : Dict IntVector GamePlatform.Platform -> List Enemy -> String
+levelDataEncodeHandler : Dict V2.IntVector GamePlatform.Platform -> List Enemy -> String
 levelDataEncodeHandler platforms enemies =
     let
         encodedPlatforms =
@@ -62,7 +62,7 @@ levelDataEncodeHandler platforms enemies =
     Json.Encode.encode 4 encodedlevelData
 
 
-encodePlatformAndLocation : IntVector -> GamePlatform.Platform -> Json.Encode.Value
+encodePlatformAndLocation : V2.IntVector -> GamePlatform.Platform -> Json.Encode.Value
 encodePlatformAndLocation location platform =
     Json.Encode.object
         [ ( "location", encodeGridCoordinate location )

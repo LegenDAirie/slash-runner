@@ -6,16 +6,15 @@ module Enemy exposing
 
 import Color
 import Game.TwoD.Render as Render exposing (Renderable)
-import GameTypes exposing (IntVector, Vector, vectorDecoder, vectorIntToFloat)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (hardcoded, required)
 import V2
 
 
 type alias Enemy =
-    { startingLocation : Vector
+    { startingLocation : V2.Vector2
     , timeExisted : Int
-    , size : IntVector
+    , size : V2.IntVector
     , movement : EnemyMovement
     , directionLeft : Bool
     }
@@ -24,18 +23,18 @@ type alias Enemy =
 type EnemyMovement
     = NoMovement
     | LinePath LineMovementSpec
-    | Walk Vector
+    | Walk V2.Vector2
 
 
 type alias LineMovementSpec =
-    { startNode : Vector
-    , endNode : Vector
-    , currentLocation : Vector
+    { startNode : V2.Vector2
+    , endNode : V2.Vector2
+    , currentLocation : V2.Vector2
     , speed : Float
     }
 
 
-updateLinePath : Int -> Vector -> LineMovementSpec -> Vector
+updateLinePath : Int -> V2.Vector2 -> LineMovementSpec -> V2.Vector2
 updateLinePath timeExisted startingLocation linePathSpec =
     let
         { startNode, endNode } =
@@ -90,7 +89,7 @@ renderEnemy enemy =
                 Render.rectangle
                 { color = color
                 , position = location
-                , size = vectorIntToFloat enemy.size
+                , size = V2.vectorIntToFloat enemy.size
                 }
 
         linePathNodesRenderable =
@@ -117,7 +116,7 @@ renderEnemy enemy =
         ]
 
 
-renderLinePathNode : Vector -> Renderable
+renderLinePathNode : V2.Vector2 -> Renderable
 renderLinePathNode location =
     Render.shape Render.circle
         { color = Color.lightBrown
@@ -129,7 +128,7 @@ renderLinePathNode location =
 enemyDecoder : Decoder Enemy
 enemyDecoder =
     Json.Decode.succeed Enemy
-        |> required "location" vectorDecoder
+        |> required "location" V2.vectorDecoder
         |> hardcoded 0
         |> hardcoded ( 64, 64 )
         |> required "movement" movementDecoder
@@ -149,7 +148,7 @@ stringToMovementType movement =
             Json.Decode.succeed NoMovement
 
         "Walk" ->
-            Json.Decode.map Walk vectorDecoder
+            Json.Decode.map Walk V2.vectorDecoder
 
         "LinePath" ->
             Json.Decode.map LinePath decodeLinePathMovementSpec
@@ -161,7 +160,7 @@ stringToMovementType movement =
 decodeLinePathMovementSpec : Decoder LineMovementSpec
 decodeLinePathMovementSpec =
     Json.Decode.succeed LineMovementSpec
-        |> required "startNode" vectorDecoder
-        |> required "endNode" vectorDecoder
-        |> required "startingLocation" vectorDecoder
+        |> required "startNode" V2.vectorDecoder
+        |> required "endNode" V2.vectorDecoder
+        |> required "startingLocation" V2.vectorDecoder
         |> required "speed" Json.Decode.float

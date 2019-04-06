@@ -7,10 +7,10 @@ module CollisionHelpers exposing
 import Coordinates
 import Dict
 import GamePlatform
-import GameTypes
+import V2
 
 
-getGridCoordinatesPlayerIsOverlapping : Float -> Float -> GameTypes.IntVector -> Dict.Dict GameTypes.IntVector GamePlatform.Platform -> List GameTypes.IntVector
+getGridCoordinatesPlayerIsOverlapping : Float -> Float -> V2.IntVector -> Dict.Dict V2.IntVector GamePlatform.Platform -> List V2.IntVector
 getGridCoordinatesPlayerIsOverlapping x y size platforms =
     ------ only works for squares
     let
@@ -48,7 +48,7 @@ getGridCoordinatesPlayerIsOverlapping x y size platforms =
             , bottomRight
             ]
     in
-    List.map (\location -> Coordinates.locationToGridCoordinate <| GameTypes.vectorIntToFloat location) box4Corners
+    List.map (\location -> Coordinates.locationToGridCoordinate <| V2.vectorIntToFloat location) box4Corners
 
 
 type CollisionDirection

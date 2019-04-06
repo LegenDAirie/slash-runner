@@ -1,9 +1,40 @@
-module V2 exposing (add, divideBy, flip, scale, sub)
+module V2 exposing (IntVector, Vector2, add, divideBy, flip, intVectorDecoder, scale, sub, vectorDecoder, vectorFloatToInt, vectorIntToFloat)
 
 ------------------------------------------------------------------------
 -- This file is suuuuuuuper temporary!!!!!!!1
 -- It's only to assist with upgrading from Elm 0.18 to 0.19
 ------------------------------------------------------------------------
+
+import Json.Decode
+import Json.Decode.Pipeline
+
+
+type alias IntVector =
+    ( Int, Int )
+
+
+vectorFloatToInt : Vector2 -> IntVector
+vectorFloatToInt ( x, y ) =
+    ( round x, round y )
+
+
+vectorIntToFloat : IntVector -> Vector2
+vectorIntToFloat ( x, y ) =
+    ( toFloat x, toFloat y )
+
+
+vectorDecoder : Json.Decode.Decoder Vector2
+vectorDecoder =
+    Json.Decode.succeed Tuple.pair
+        |> Json.Decode.Pipeline.required "x" Json.Decode.float
+        |> Json.Decode.Pipeline.required "y" Json.Decode.float
+
+
+intVectorDecoder : Json.Decode.Decoder IntVector
+intVectorDecoder =
+    Json.Decode.succeed Tuple.pair
+        |> Json.Decode.Pipeline.required "x" Json.Decode.int
+        |> Json.Decode.Pipeline.required "y" Json.Decode.int
 
 
 type alias Vector2 =

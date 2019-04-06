@@ -8,3 +8,5 @@
 * `Tuple.second Coordinates.gridSquareSize` is not straightforward... `gridSquareWidth` might be
 * `TempProperties` should be in it's own file, same with how it's updated.
 * Collision needs an overhaul
+* Player type should live in the Player file
+* All types should live in there home file

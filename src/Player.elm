@@ -25,12 +25,9 @@ import Game.TwoD.Render as Render exposing (Renderable, rectangle)
 import GamePlatform
 import GameTypes
     exposing
-        ( IntVector
-        , Player
+        ( Player
         , PlayerState(..)
         , TempProperties
-        , Vector
-        , vectorIntToFloat
         )
 import V2
 
@@ -51,12 +48,12 @@ initialPlayer =
 -------------------------------
 
 
-playerSpriteSize : IntVector
+playerSpriteSize : V2.IntVector
 playerSpriteSize =
     ( 128, 128 )
 
 
-playerHitBoxSize : IntVector
+playerHitBoxSize : V2.IntVector
 playerHitBoxSize =
     ( 64, 64 )
 
@@ -115,7 +112,7 @@ fullStop =
 -------------------------------
 
 
-getBottomCenterSpritePoint : Vector -> Vector
+getBottomCenterSpritePoint : V2.Vector2 -> V2.Vector2
 getBottomCenterSpritePoint ( x, y ) =
     let
         halfHitBoxWidth =
@@ -133,7 +130,7 @@ getBottomCenterSpritePoint ( x, y ) =
     ( center, spriteBoxBottomSide )
 
 
-getPlayerLeftKickPoint : Vector -> Vector
+getPlayerLeftKickPoint : V2.Vector2 -> V2.Vector2
 getPlayerLeftKickPoint ( x, y ) =
     let
         spriteHitBoxSizeDif =
@@ -148,7 +145,7 @@ getPlayerLeftKickPoint ( x, y ) =
     ( spriteBoxLeftSide, kickPointY )
 
 
-getPlayerRightKickPoint : Vector -> Vector
+getPlayerRightKickPoint : V2.Vector2 -> V2.Vector2
 getPlayerRightKickPoint ( x, y ) =
     let
         spriteHitBoxSizeDif =
@@ -163,7 +160,7 @@ getPlayerRightKickPoint ( x, y ) =
     ( spriteBoxRightSide, kickPointY )
 
 
-wallsNearPlayer : Dict IntVector GamePlatform.Platform -> Float -> Float -> WallsNearPlayer
+wallsNearPlayer : Dict V2.IntVector GamePlatform.Platform -> Float -> Float -> WallsNearPlayer
 wallsNearPlayer platforms playerX playerY =
     let
         wallToTheRight =
@@ -192,7 +189,7 @@ wallsNearPlayer platforms playerX playerY =
             WallOnRight
 
 
-groundBelowPlayer : Dict IntVector GamePlatform.Platform -> Float -> Float -> Bool
+groundBelowPlayer : Dict V2.IntVector GamePlatform.Platform -> Float -> Float -> Bool
 groundBelowPlayer platforms playerX playerY =
     ( playerX, playerY )
         |> getBottomCenterSpritePoint
@@ -545,7 +542,7 @@ type PlayerStateMsg
     | EndState
 
 
-updatePlayer : Controller -> TempProperties -> Dict IntVector GamePlatform.Platform -> Player -> Player
+updatePlayer : Controller -> TempProperties -> Dict V2.IntVector GamePlatform.Platform -> Player -> Player
 updatePlayer controller tempProperties platforms player =
     playerStateRoutine tempProperties player
         |> activeUpdate controller tempProperties platforms
@@ -633,7 +630,7 @@ setPlayerState player playerState =
     }
 
 
-activeUpdate : Controller -> TempProperties -> Dict IntVector GamePlatform.Platform -> Player -> Player
+activeUpdate : Controller -> TempProperties -> Dict V2.IntVector GamePlatform.Platform -> Player -> Player
 activeUpdate controller tempProperties platforms player =
     calculatePlayerAction tempProperties controller platforms player
         |> actionUpdate tempProperties player
@@ -645,7 +642,7 @@ canDashAgain frameNumber dashDuration buttonPressWindow =
     frameNumber > dashDuration - buttonPressWindow
 
 
-determineDashType : Dict IntVector GamePlatform.Platform -> Float -> Float -> DashType
+determineDashType : Dict V2.IntVector GamePlatform.Platform -> Float -> Float -> DashType
 determineDashType platforms playerX playerY =
     case groundBelowPlayer platforms playerX playerY of
         True ->
@@ -655,7 +652,7 @@ determineDashType platforms playerX playerY =
             Air
 
 
-calculatePlayerAction : TempProperties -> Controller -> Dict IntVector GamePlatform.Platform -> Player -> PlayerAction
+calculatePlayerAction : TempProperties -> Controller -> Dict V2.IntVector GamePlatform.Platform -> Player -> PlayerAction
 calculatePlayerAction tempProperties controller platforms player =
     -- don't need to pass in the whole player and only needs the jump and dash button states
     case player.playerState of
@@ -825,7 +822,7 @@ runRoutineY tempProperties controller ( collision, thePlayer ) =
         |> (\player -> { player | y = player.y + player.vy })
 
 
-handleCollisionX : Dict IntVector GamePlatform.Platform -> Player -> ( Maybe Direction, Player )
+handleCollisionX : Dict V2.IntVector GamePlatform.Platform -> Player -> ( Maybe Direction, Player )
 handleCollisionX platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
@@ -834,7 +831,7 @@ handleCollisionX platforms player =
         |> displacePlayerHorizontally player
 
 
-handleCollisionY : Dict IntVector GamePlatform.Platform -> Player -> Player
+handleCollisionY : Dict V2.IntVector GamePlatform.Platform -> Player -> Player
 handleCollisionY platforms player =
     getGridCoordinatesPlayerIsOverlapping player.x player.y playerHitBoxSize platforms
         |> List.filter (\coord -> Dict.member coord platforms)
@@ -849,7 +846,7 @@ handleCollisionY platforms player =
 -------------------------------
 
 
-renderPlayer : Resources -> Player -> Dict IntVector GamePlatform.Platform -> List Renderable
+renderPlayer : Resources -> Player -> Dict V2.IntVector GamePlatform.Platform -> List Renderable
 renderPlayer resources player platforms =
     let
         { x, y, playerState } =
@@ -863,14 +860,14 @@ renderPlayer resources player platforms =
                 Render.rectangle
                 { color = playerColor
                 , position = ( x, y )
-                , size = vectorIntToFloat playerHitBoxSize
+                , size = V2.vectorIntToFloat playerHitBoxSize
                 }
 
         fullSprite =
             Render.sprite
                 { texture = Resources.getTexture "./assets/player-background-glow.png" resources
                 , position = ( x - 32, y - 32 )
-                , size = vectorIntToFloat playerSpriteSize
+                , size = V2.vectorIntToFloat playerSpriteSize
                 }
 
         -- ( currentFrame, totalFrames, spriteSheet ) =
@@ -889,7 +886,7 @@ renderPlayer resources player platforms =
         --         , pivot = ( 0.5, 0.5 )
         --         , position = ( x + 32, y + 48, 0 )
         --         , rotation = 0
-        --         , size = (\( x, y ) -> ( direction * x, y )) <| vectorIntToFloat playerSpriteSize
+        --         , size = (\( x, y ) -> ( direction * x, y )) <| V2.vectorIntToFloat playerSpriteSize
         --         , texture = Resources.getTexture ("./assets/" ++ spriteSheet) resources
         --         }
     in

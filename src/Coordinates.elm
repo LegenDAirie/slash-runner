@@ -10,29 +10,28 @@ module Coordinates exposing
     )
 
 import Game.TwoD.Camera as Camera
-import GameTypes exposing (IntVector, Vector, vectorFloatToInt)
 import V2
 
 
-gameSize : Vector
+gameSize : V2.Vector2
 gameSize =
     ( 1280, 720 )
 
 
-gridSquareSize : IntVector
+gridSquareSize : V2.IntVector
 gridSquareSize =
     ( 64, 64 )
 
 
-locationToGridCoordinate : Vector -> IntVector
+locationToGridCoordinate : V2.Vector2 -> V2.IntVector
 locationToGridCoordinate location =
     location
         |> pixelToGridConversion
         |> gridToPixelConversion
-        |> vectorFloatToInt
+        |> V2.vectorFloatToInt
 
 
-calculateCanvasSize : Vector -> Vector
+calculateCanvasSize : V2.Vector2 -> V2.Vector2
 calculateCanvasSize ( width, height ) =
     let
         newWidth =
@@ -44,7 +43,7 @@ calculateCanvasSize ( width, height ) =
     ( newWidth, newHeight )
 
 
-gridToPixelConversion : Vector -> Vector
+gridToPixelConversion : V2.Vector2 -> V2.Vector2
 gridToPixelConversion ( gridX, gridY ) =
     let
         ( gridSquareInPixelsX, gridSquareInPixelsY ) =
@@ -53,7 +52,7 @@ gridToPixelConversion ( gridX, gridY ) =
     ( gridX * toFloat gridSquareInPixelsX, gridY * toFloat gridSquareInPixelsY )
 
 
-pixelToGridConversion : Vector -> Vector
+pixelToGridConversion : V2.Vector2 -> V2.Vector2
 pixelToGridConversion ( pixelX, pixelY ) =
     let
         ( gridSquareInPixelsX, gridSquareInPixelsY ) =
@@ -62,7 +61,7 @@ pixelToGridConversion ( pixelX, pixelY ) =
     ( toFloat (floor (pixelX / toFloat gridSquareInPixelsX)), toFloat (floor (pixelY / toFloat gridSquareInPixelsY)) )
 
 
-convertMouseCoorToGameCoor : Camera.Camera -> Vector -> Vector
+convertMouseCoorToGameCoor : Camera.Camera -> V2.Vector2 -> V2.Vector2
 convertMouseCoorToGameCoor camera mouseLocation =
     mouseLocation
         |> offSetOrigin
@@ -70,24 +69,24 @@ convertMouseCoorToGameCoor camera mouseLocation =
         |> vectorFlipY
 
 
-vectorFlipY : Vector -> Vector
+vectorFlipY : V2.Vector2 -> V2.Vector2
 vectorFlipY ( x, y ) =
     ( x, -y )
 
 
-convertToGameUnits : Vector -> Vector -> Vector
+convertToGameUnits : V2.Vector2 -> V2.Vector2 -> V2.Vector2
 convertToGameUnits canvasSize mouseLocation =
     V2.scale (Tuple.first gameSize / Tuple.first canvasSize) mouseLocation
 
 
-offSetOrigin : Vector -> Vector
+offSetOrigin : V2.Vector2 -> V2.Vector2
 offSetOrigin location =
     gameSize
         |> V2.scale 0.5
         |> V2.sub location
 
 
-offSetByCamera : Camera.Camera -> Vector -> Vector
+offSetByCamera : Camera.Camera -> V2.Vector2 -> V2.Vector2
 offSetByCamera camera location =
     camera
         |> Camera.getPosition

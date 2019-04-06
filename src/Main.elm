@@ -17,6 +17,7 @@ import Json.Decode
 import Keyboard
 import NormalPlay
 import Task
+import V2
 
 
 main : Program () Model Msg
@@ -51,7 +52,7 @@ type Msg
     | Tick Controller.GamePad
     | KeyboardMsg Keyboard.Msg
     | ReceiveLevelData NormalPlay.LevelData
-    | MouseMove GameTypes.Vector
+    | MouseMove V2.Vector2
     | SetIsCursorActive Bool
     | TweekJumpDuration Int
     | TweekMaxJumpHeight Float
@@ -355,7 +356,7 @@ update msg model =
             )
 
 
-updateGameScreen : GameTypes.TempProperties -> List Keyboard.Key -> GameTypes.Vector -> GameScreen -> Controller.Controller -> ( GameScreen, Cmd Msg )
+updateGameScreen : GameTypes.TempProperties -> List Keyboard.Key -> V2.Vector2 -> GameScreen -> Controller.Controller -> ( GameScreen, Cmd Msg )
 updateGameScreen temporaryProperties keyboard windowSize gameScreen controller =
     case gameScreen of
         Uninitialized ->

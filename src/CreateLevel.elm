@@ -17,7 +17,7 @@ import Dict
 import Enemy
 import Game.TwoD.Render as Render
 import GamePlatform
-import GameTypes exposing (TempProperties, Vector, vectorIntToFloat)
+import GameTypes exposing (TempProperties)
 import Keyboard
 import MouseHelpers exposing (mouseToGridInPixels)
 import NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay, resetPlayState, updateNormalPlay)
@@ -26,9 +26,9 @@ import V2
 
 type alias LevelCreateState =
     { itemToPlace : ItemToBePlaced
-    , cursorLocation : Vector
+    , cursorLocation : V2.Vector2
     , cursorActive : Bool
-    , locationForCameraToFollow : Vector
+    , locationForCameraToFollow : V2.Vector2
     , playState : NormalPlayState
     }
 
@@ -101,7 +101,7 @@ getCreateStateUpdateAction playState pressedKeys =
         NoAction
 
 
-updateCreateLevelState : Controller.Controller -> Vector -> List Keyboard.Key -> TempProperties -> LevelCreateState -> ( LevelCreateState, Maybe String )
+updateCreateLevelState : Controller.Controller -> V2.Vector2 -> List Keyboard.Key -> TempProperties -> LevelCreateState -> ( LevelCreateState, Maybe String )
 updateCreateLevelState controller windowSize pressedKeys tempProperties levelCreateState =
     -- everything in this function could just be in main but I am waiting till
     -- I get the update logic working again and then implement extensible record types
@@ -140,7 +140,7 @@ actionUpdate levelCreateState action =
             levelCreateState
 
 
-updatePlayStateFromMouseState : Vector -> List Keyboard.Key -> LevelCreateState -> ( LevelCreateState, Maybe String )
+updatePlayStateFromMouseState : V2.Vector2 -> List Keyboard.Key -> LevelCreateState -> ( LevelCreateState, Maybe String )
 updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
     -- holy shit I have no fucking idea what I was thinking with this one...
     let
@@ -201,7 +201,7 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
                         Dict.insert newPosition newDangerousPlatform playState.platforms
 
         floatPosition =
-            vectorIntToFloat newPosition
+            V2.vectorIntToFloat newPosition
 
         newStaticEnemy =
             Enemy.Enemy floatPosition 0 ( 64, 64 ) Enemy.NoMovement True
@@ -278,7 +278,7 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
     ( newLevelCreateState, encodedLevelData )
 
 
-renderLevelCreateScreen : Vector -> LevelCreateState -> List Render.Renderable
+renderLevelCreateScreen : V2.Vector2 -> LevelCreateState -> List Render.Renderable
 renderLevelCreateScreen windowSize levelCreateState =
     let
         { itemToPlace, cursorLocation, playState } =
@@ -288,12 +288,12 @@ renderLevelCreateScreen windowSize levelCreateState =
             mouseToGridInPixels windowSize playState.camera cursorLocation
     in
     List.concat
-        [ [ renderCursorBlock itemToPlace (vectorIntToFloat newMouseLocation) ]
+        [ [ renderCursorBlock itemToPlace (V2.vectorIntToFloat newMouseLocation) ]
         , renderNormalPlay playState
         ]
 
 
-renderCursorBlock : ItemToBePlaced -> Vector -> Render.Renderable
+renderCursorBlock : ItemToBePlaced -> V2.Vector2 -> Render.Renderable
 renderCursorBlock itemToBePlace location =
     let
         mouseColor =
@@ -323,5 +323,5 @@ renderCursorBlock itemToBePlace location =
         Render.rectangle
         { color = mouseColor
         , position = location
-        , size = vectorIntToFloat Coordinates.gridSquareSize
+        , size = V2.vectorIntToFloat Coordinates.gridSquareSize
         }

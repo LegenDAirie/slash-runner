@@ -3,10 +3,10 @@ module MouseHelpers exposing (mouseToGridInPixels)
 import Coordinates exposing (calculateCanvasSize, convertMouseCoorToGameCoor, convertToGameUnits, gridToPixelConversion, pixelToGridConversion)
 import Game.TwoD.Camera as Camera exposing (Camera)
 import GamePlatform
-import GameTypes exposing (IntVector, Vector, vectorFloatToInt)
+import V2
 
 
-mouseToGridInPixels : Vector -> Camera -> Vector -> IntVector
+mouseToGridInPixels : V2.Vector2 -> Camera -> V2.Vector2 -> V2.IntVector
 mouseToGridInPixels windowSize camera mousePosition =
     let
         ( width, height ) =
@@ -39,4 +39,4 @@ mouseToGridInPixels windowSize camera mousePosition =
                 |> pixelToGridConversion
                 |> gridToPixelConversion
     in
-    vectorFloatToInt newPosition
+    V2.vectorFloatToInt newPosition

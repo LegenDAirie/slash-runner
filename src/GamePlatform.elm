@@ -7,9 +7,9 @@ module GamePlatform exposing
 import Color exposing (Color)
 import Coordinates
 import Game.TwoD.Render as Render exposing (Renderable)
-import GameTypes exposing (IntVector, Vector, intVectorDecoder, vectorIntToFloat)
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
+import V2
 
 
 
@@ -22,25 +22,25 @@ type Platform
     | Dangerous
 
 
-renderPlatform : Color -> IntVector -> Renderable
+renderPlatform : Color -> V2.IntVector -> Renderable
 renderPlatform color ( x, y ) =
     -- Render should probably not be in this file
     Render.shape
         Render.rectangle
         { position = ( toFloat x, toFloat y )
-        , size = vectorIntToFloat Coordinates.gridSquareSize
+        , size = V2.vectorIntToFloat Coordinates.gridSquareSize
         , color = color
         }
 
 
-platformWithLocationsDecoder : Decoder ( IntVector, Platform )
+platformWithLocationsDecoder : Decoder ( V2.IntVector, Platform )
 platformWithLocationsDecoder =
     -- Hmmm so this is wierd...
     -- Either a platform should have both
     -- or
     -- a platform is separate from the collections that is the map
     Json.Decode.succeed Tuple.pair
-        |> required "location" intVectorDecoder
+        |> required "location" V2.intVectorDecoder
         |> required "platform" platformDecoder
 
 
