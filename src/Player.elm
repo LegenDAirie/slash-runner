@@ -532,7 +532,9 @@ type WallsNearPlayer
     | WallOnRight
 
 
-type Direction
+type
+    Direction
+    -- Rename to PlayerFacing??
     = Left
     | Right
 
