@@ -14,12 +14,15 @@
 * Get window width and height from flags not initial Cmd
 * `Tuple.second Coordinates.gridSquareSize` is not straightforward... `gridSquareWidth` might be.
 * Rename Direction in the Player Module to PlayerFacing.
-* Create a Location, Velocity, Size, GameMap.Coordinate type and replace, Vectors, and IntVectors.
+* Rename Tick to Step
+* Move rendering to it's own file or Folder(I think)
+* Move decoding and encoding to it's own module(I think)
 
 ## Refactor order (This will solve a lot of the todos above)
-1. V2 and Coordinates need to be a new way of representing locations, sizes and speeds or something
-2. GamePlatform needs to be used in or become a new GameMap or something
-3. Using the two above Collision needs an overhaul
+1. Coordinates need to be a new way of representing the game map
+2. V2 needs to becomes a way of representing location, velocities, sizes
+3. GamePlatform needs to be used in or become a new GameMap or something
+4. Using the two above Collision needs an overhaul
 
 (Will soon be true)
 In this game there is a distinction between the GameMap and free space.
