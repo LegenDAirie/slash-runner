@@ -20,7 +20,7 @@ import Task
 import V2
 
 
-main : Program () Model Msg
+main : Program { width : Float, height : Float } Model Msg
 main =
     Browser.document
         { view = view
@@ -57,9 +57,9 @@ type Msg
     | GotNewGameFeelAdjustment GameFeel.Msg
 
 
-initialModel : Model
-initialModel =
-    { windowSize = ( 0, 0 )
+initialModel : { width : Float, height : Float } -> Model
+initialModel { width, height } =
+    { windowSize = ( width, height )
     , keyboard = []
     , controller = Controller.initialControllerState
     , gameScreen = CreateLevel CreateLevel.initialLevelCreateState
@@ -67,13 +67,10 @@ initialModel =
     }
 
 
-init : flags -> ( Model, Cmd Msg )
-init _ =
-    ( initialModel
-    , Cmd.batch
-        [ Task.perform viewPortToWindowSize <| Browser.Dom.getViewport -- Use flags instead
-        , fetchLevelData 1
-        ]
+init : { width : Float, height : Float } -> ( Model, Cmd Msg )
+init screenSize =
+    ( initialModel screenSize
+    , Cmd.batch [ fetchLevelData 1 ]
     )
 
 

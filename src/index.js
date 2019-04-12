@@ -1,7 +1,10 @@
 import './main.css';
 import { Elm } from './Main.elm';
 
-var app = Elm.Main.init({ node: document.querySelector('main') })
+var app = Elm.Main.init({
+  node: document.querySelector('main'),
+  flags: { width: window.innerWidth, height: window.innerHeight }
+})
 
 function onKeyDown(e) {
   var canvas = document.getElementsByTagName('canvas')[0];
