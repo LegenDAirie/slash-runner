@@ -59,7 +59,7 @@ initialNormalPlayState =
     , platforms = Dict.empty
     , camera = Camera.fixedWidth gameWidth startingPoint
     , resources = Resources.init
-    , paused = False
+    , paused = True
     }
 
 
@@ -82,7 +82,7 @@ createLevel levelData =
     , resources = Resources.init
     , permanentEnemies = []
     , enemies = []
-    , paused = False
+    , paused = Dict.isEmpty levelData.platforms
     }
 
 
