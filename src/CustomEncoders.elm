@@ -66,14 +66,7 @@ encodePlatformAndLocation : V2.IntVector -> GamePlatform.Platform -> Json.Encode
 encodePlatformAndLocation location platform =
     Json.Encode.object
         [ ( "location", encodeGridCoordinate location )
-        , ( "platform", encodePlatform platform )
-        ]
-
-
-encodePlatform : GamePlatform.Platform -> Json.Encode.Value
-encodePlatform platform =
-    Json.Encode.object
-        [ ( "platformType", encodePlatformType platform )
+        , ( "platform", encodePlatformType platform )
         ]
 
 
