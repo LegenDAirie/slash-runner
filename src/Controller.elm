@@ -137,19 +137,19 @@ calculateControllerStateFromKeyboardState : List Keyboard.Key -> Controller -> C
 calculateControllerStateFromKeyboardState pressedKeys controllerState =
     let
         charL =
-            Keyboard.Character "108"
+            Keyboard.Character "L"
 
         jumpPressed =
             List.any (\key -> key == charL) pressedKeys
 
         charK =
-            Keyboard.Character "107"
+            Keyboard.Character "K"
 
         dashPressed =
             List.any (\key -> key == charK) pressedKeys
 
         charP =
-            Keyboard.Character "112"
+            Keyboard.Character "P"
 
         startPressed =
             List.any (\key -> key == charP) pressedKeys

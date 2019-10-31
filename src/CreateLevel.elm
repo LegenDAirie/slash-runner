@@ -67,31 +67,31 @@ type CreateLevelAction
 getCreateStateUpdateAction : NormalPlayState -> List Keyboard.Key -> CreateLevelAction
 getCreateStateUpdateAction playState pressedKeys =
     if playState.paused then
-        if List.member (Keyboard.Character "48") pressedKeys then
+        if List.member (Keyboard.Character "0") pressedKeys then
             UpdateCursorItem PlaceNothing
 
-        else if List.member (Keyboard.Character "49") pressedKeys then
+        else if List.member (Keyboard.Character "1") pressedKeys then
             UpdateCursorItem ANormalPlatform
 
-        else if List.member (Keyboard.Character "50") pressedKeys then
+        else if List.member (Keyboard.Character "2") pressedKeys then
             UpdateCursorItem AStaticEnemy
 
-        else if List.member (Keyboard.Character "51") pressedKeys then
+        else if List.member (Keyboard.Character "3") pressedKeys then
             UpdateCursorItem ADangerousPlatform
 
-        else if List.member (Keyboard.Character "52") pressedKeys then
+        else if List.member (Keyboard.Character "4") pressedKeys then
             UpdateCursorItem AnEnemyOnTrack
 
-        else if List.member (Keyboard.Character "53") pressedKeys then
+        else if List.member (Keyboard.Character "5") pressedKeys then
             UpdateCursorItem AWalkingEnemy
 
-        else if List.member (Keyboard.Character "57") pressedKeys then
+        else if List.member (Keyboard.Character "9") pressedKeys then
             UpdateCursorItem Remove
 
-        else if List.member (Keyboard.Character "114") pressedKeys then
+        else if List.member (Keyboard.Character "R") pressedKeys then
             ResetAllTheThings
 
-        else if List.member (Keyboard.Character "104") pressedKeys && List.member (Keyboard.Character "103") pressedKeys then
+        else if List.member (Keyboard.Character "H") pressedKeys && List.member (Keyboard.Character "G") pressedKeys then
             RemoveAllTheThings
 
         else
@@ -262,7 +262,7 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
             }
 
         encodedLevelData =
-            if List.member Keyboard.Shift pressedKeys && List.member (Keyboard.Character "115") pressedKeys then
+            if List.member Keyboard.Shift pressedKeys && List.member (Keyboard.Character "S") pressedKeys then
                 Just (CustomEncoders.levelDataEncodeHandler newPlayState.platforms newPlayState.permanentEnemies)
 
             else
