@@ -246,7 +246,7 @@ viewBody model =
                     ( state.camera, NormalPlay.renderNormalPlay state )
 
                 CreateLevel levelCreateState ->
-                    ( levelCreateState.playState.camera, CreateLevel.renderLevelCreateScreen model.windowSize levelCreateState )
+                    ( levelCreateState.camera, CreateLevel.renderLevelCreateScreen model.windowSize levelCreateState )
 
         canvasSize =
             Coordinates.calculateCanvasSize model.windowSize

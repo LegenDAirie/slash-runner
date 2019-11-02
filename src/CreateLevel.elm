@@ -31,6 +31,7 @@ type alias LevelCreateState =
     , cursorLocation : V2.Vector2
     , cursorActive : Bool
     , cameraLocation : V2.Vector2
+    , camera : Camera
     , playState : NormalPlayState
     }
 
@@ -42,6 +43,7 @@ initialLevelCreateState =
     , cursorActive = False
     , playState = initialNormalPlayState
     , cameraLocation = V2.xyRecordToVector initialNormalPlayState.player
+    , camera = Camera.fixedWidth (Tuple.first Coordinates.gameSize) (V2.xyRecordToVector initialNormalPlayState.player)
     }
 
 
@@ -109,26 +111,30 @@ updateCreateLevelState controller windowSize pressedKeys tempProperties levelCre
         ( newCreateLevelState, possibleEncodedLevelData ) =
             getCreateStateUpdateAction levelCreateState.playState pressedKeys
                 |> actionUpdate levelCreateState
-                |> updatePausedCamera pressedKeys levelCreateState.playState.paused
+                |> updateCamera pressedKeys levelCreateState.playState.paused
                 |> updatePlayStateFromMouseState windowSize pressedKeys
     in
     ( { newCreateLevelState
-        | playState =
-            updateNormalPlay controller tempProperties newCreateLevelState.playState
-                |> updateCreateLevelCamera controller levelCreateState.cameraLocation
+        | playState = updateNormalPlay controller tempProperties newCreateLevelState.playState
       }
     , possibleEncodedLevelData
     )
 
 
-updatePausedCamera : List Keyboard.Key -> Bool -> { state | cameraLocation : V2.Vector2 } -> { state | cameraLocation : V2.Vector2 }
-updatePausedCamera pressedKeys paused state =
+updateCamera : List Keyboard.Key -> Bool -> LevelCreateState -> LevelCreateState
+updateCamera pressedKeys paused state =
     case paused of
         True ->
-            { state | cameraLocation = updateCameraLocation pressedKeys state.cameraLocation }
+            { state
+                | cameraLocation = updateCameraLocation pressedKeys state.cameraLocation
+                , camera = Camera.follow 0.5 0.17 (updateCameraLocation pressedKeys state.cameraLocation) state.camera
+            }
 
         False ->
-            state
+            { state
+                | camera = state.playState.camera
+                , cameraLocation = V2.xyRecordToVector state.playState.player
+            }
 
 
 updateCameraLocation : List Keyboard.Key -> V2.Vector2 -> V2.Vector2
@@ -160,16 +166,6 @@ updateCameraLocation pressedKeys ( x, y ) =
 
         Keyboard.Arrows.NoDirection ->
             ( x, y )
-
-
-updateCreateLevelCamera : Controller.Controller -> V2.Vector2 -> { item | camera : Camera, paused : Bool } -> { item | camera : Camera, paused : Bool }
-updateCreateLevelCamera controllerController cameraLocation normalPlayState =
-    if normalPlayState.paused then
-        { normalPlayState | camera = Camera.fixedWidth (Tuple.first Coordinates.gameSize) cameraLocation }
-        -- Move camera while paused
-
-    else
-        normalPlayState
 
 
 actionUpdate : LevelCreateState -> CreateLevelAction -> LevelCreateState
@@ -205,7 +201,7 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
             levelCreateState
 
         newPosition =
-            mouseToGridInPixels windowSize playState.camera cursorLocation
+            mouseToGridInPixels windowSize levelCreateState.camera cursorLocation
 
         newNormalPlatform =
             GamePlatform.Normal
@@ -344,7 +340,7 @@ renderLevelCreateScreen windowSize levelCreateState =
             levelCreateState
 
         newMouseLocation =
-            mouseToGridInPixels windowSize playState.camera cursorLocation
+            mouseToGridInPixels windowSize levelCreateState.camera cursorLocation
     in
     List.concat
         [ [ renderCursorBlock itemToPlace (V2.vectorIntToFloat newMouseLocation) ]
