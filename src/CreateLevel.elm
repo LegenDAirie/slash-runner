@@ -289,6 +289,11 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
     ( newLevelCreateState, encodedLevelData )
 
 
+
+--------------------------------------------------------------------------------
+-------------------------------- Render ----------------------------------------
+
+
 renderLevelCreateScreen : V2.Vector2 -> LevelCreateState -> List Render.Renderable
 renderLevelCreateScreen windowSize levelCreateState =
     let

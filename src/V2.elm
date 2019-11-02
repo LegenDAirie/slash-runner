@@ -1,4 +1,17 @@
-module V2 exposing (IntVector, Vector2, add, divideBy, flip, intVectorDecoder, scale, sub, vectorDecoder, vectorFloatToInt, vectorIntToFloat)
+module V2 exposing
+    ( IntVector
+    , Vector2
+    , add
+    , divideBy
+    , flip
+    , intVectorDecoder
+    , scale
+    , sub
+    , vectorDecoder
+    , vectorFloatToInt
+    , vectorIntToFloat
+    , xyRecordToVector
+    )
 
 ------------------------------------------------------------------------
 -- This file is suuuuuuuper temporary!!!!!!!1
