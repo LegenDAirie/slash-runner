@@ -15,6 +15,7 @@ import Coordinates
 import CustomEncoders
 import Dict
 import Enemy
+import Game.TwoD.Camera as Camera exposing (Camera)
 import Game.TwoD.Render as Render
 import GameFeel
 import GamePlatform
@@ -28,7 +29,7 @@ type alias LevelCreateState =
     { itemToPlace : ItemToBePlaced
     , cursorLocation : V2.Vector2
     , cursorActive : Bool
-    , locationForCameraToFollow : V2.Vector2
+    , cameraLocation : V2.Vector2
     , playState : NormalPlayState
     }
 
@@ -39,7 +40,7 @@ initialLevelCreateState =
     , cursorLocation = ( 0, 0 )
     , cursorActive = False
     , playState = initialNormalPlayState
-    , locationForCameraToFollow = ( 0, 0 )
+    , cameraLocation = V2.xyRecordToVector initialNormalPlayState.player
     }
 
 
@@ -110,10 +111,22 @@ updateCreateLevelState controller windowSize pressedKeys tempProperties levelCre
                 |> updatePlayStateFromMouseState windowSize pressedKeys
     in
     ( { newCreateLevelState
-        | playState = updateNormalPlay controller tempProperties newCreateLevelState.playState
+        | playState =
+            updateNormalPlay controller tempProperties newCreateLevelState.playState
+                |> updateCreateLevelCamera controller levelCreateState.cameraLocation
       }
     , possibleEncodedLevelData
     )
+
+
+updateCreateLevelCamera : Controller.Controller -> V2.Vector2 -> { item | camera : Camera, paused : Bool } -> { item | camera : Camera, paused : Bool }
+updateCreateLevelCamera controllerController cameraLocation normalPlayState =
+    if normalPlayState.paused then
+        { normalPlayState | camera = Camera.fixedWidth (Tuple.first Coordinates.gameSize) cameraLocation }
+        -- Move camera while paused
+
+    else
+        normalPlayState
 
 
 actionUpdate : LevelCreateState -> CreateLevelAction -> LevelCreateState

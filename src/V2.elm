@@ -23,6 +23,11 @@ vectorIntToFloat ( x, y ) =
     ( toFloat x, toFloat y )
 
 
+xyRecordToVector : { item | x : Float, y : Float } -> ( Float, Float )
+xyRecordToVector { x, y } =
+    ( x, y )
+
+
 vectorDecoder : Json.Decode.Decoder Vector2
 vectorDecoder =
     Json.Decode.succeed Tuple.pair
