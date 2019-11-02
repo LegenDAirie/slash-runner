@@ -20,6 +20,7 @@ import Game.TwoD.Render as Render
 import GameFeel
 import GamePlatform
 import Keyboard
+import Keyboard.Arrows
 import MouseHelpers exposing (mouseToGridInPixels)
 import NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay, resetPlayState, updateNormalPlay)
 import V2
@@ -108,6 +109,7 @@ updateCreateLevelState controller windowSize pressedKeys tempProperties levelCre
         ( newCreateLevelState, possibleEncodedLevelData ) =
             getCreateStateUpdateAction levelCreateState.playState pressedKeys
                 |> actionUpdate levelCreateState
+                |> updatePausedCamera pressedKeys levelCreateState.playState.paused
                 |> updatePlayStateFromMouseState windowSize pressedKeys
     in
     ( { newCreateLevelState
@@ -117,6 +119,47 @@ updateCreateLevelState controller windowSize pressedKeys tempProperties levelCre
       }
     , possibleEncodedLevelData
     )
+
+
+updatePausedCamera : List Keyboard.Key -> Bool -> { state | cameraLocation : V2.Vector2 } -> { state | cameraLocation : V2.Vector2 }
+updatePausedCamera pressedKeys paused state =
+    case paused of
+        True ->
+            { state | cameraLocation = updateCameraLocation pressedKeys state.cameraLocation }
+
+        False ->
+            state
+
+
+updateCameraLocation : List Keyboard.Key -> V2.Vector2 -> V2.Vector2
+updateCameraLocation pressedKeys ( x, y ) =
+    case Keyboard.Arrows.wasdDirection pressedKeys of
+        Keyboard.Arrows.North ->
+            ( x, y + 10 )
+
+        Keyboard.Arrows.NorthEast ->
+            ( x + 10, y + 10 )
+
+        Keyboard.Arrows.East ->
+            ( x + 10, y )
+
+        Keyboard.Arrows.SouthEast ->
+            ( x + 10, y - 10 )
+
+        Keyboard.Arrows.South ->
+            ( x, y - 10 )
+
+        Keyboard.Arrows.SouthWest ->
+            ( x - 10, y - 10 )
+
+        Keyboard.Arrows.West ->
+            ( x - 10, y )
+
+        Keyboard.Arrows.NorthWest ->
+            ( x - 10, y + 10 )
+
+        Keyboard.Arrows.NoDirection ->
+            ( x, y )
 
 
 updateCreateLevelCamera : Controller.Controller -> V2.Vector2 -> { item | camera : Camera, paused : Bool } -> { item | camera : Camera, paused : Bool }
