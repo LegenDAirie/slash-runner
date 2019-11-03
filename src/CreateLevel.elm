@@ -5,10 +5,6 @@ module CreateLevel exposing
     , updateCreateLevelState
     )
 
--- System
--- Libraries
--- my modules
-
 import Color
 import Controller
 import Coordinates
@@ -24,6 +20,21 @@ import Keyboard.Arrows
 import MouseHelpers exposing (mouseToGridInPixels)
 import NormalPlay exposing (NormalPlayState, initialNormalPlayState, renderNormalPlay, resetPlayState, updateNormalPlay)
 import V2
+
+
+pasuedGameScreenSize : V2.Vector2
+pasuedGameScreenSize =
+    Coordinates.gameScreenSize 2
+
+
+getGameScreenSize : Bool -> V2.Vector2
+getGameScreenSize isGamePaused =
+    case isGamePaused of
+        True ->
+            pasuedGameScreenSize
+
+        False ->
+            Coordinates.gameScreenSize 1
 
 
 type alias LevelCreateState =
@@ -43,7 +54,7 @@ initialLevelCreateState =
     , cursorActive = False
     , playState = initialNormalPlayState
     , cameraLocation = V2.xyRecordToVector initialNormalPlayState.player
-    , camera = Camera.fixedWidth (Tuple.first Coordinates.gameScreenSize) (V2.xyRecordToVector initialNormalPlayState.player)
+    , camera = Camera.fixedWidth (Tuple.first pasuedGameScreenSize) (V2.xyRecordToVector initialNormalPlayState.player)
     }
 
 
@@ -127,7 +138,7 @@ updateCamera pressedKeys paused state =
         True ->
             { state
                 | cameraLocation = updateCameraLocation pressedKeys state.cameraLocation
-                , camera = Camera.fixedWidth (2 * Tuple.first Coordinates.gameScreenSize) (updateCameraLocation pressedKeys state.cameraLocation)
+                , camera = Camera.fixedWidth (Tuple.first pasuedGameScreenSize) (updateCameraLocation pressedKeys state.cameraLocation)
             }
 
         False ->
@@ -200,8 +211,11 @@ updatePlayStateFromMouseState windowSize pressedKeys levelCreateState =
         { itemToPlace, playState, cursorLocation, cursorActive } =
             levelCreateState
 
+        gameScreenSize =
+            getGameScreenSize playState.paused
+
         newPosition =
-            mouseToGridInPixels windowSize levelCreateState.camera cursorLocation
+            mouseToGridInPixels gameScreenSize windowSize levelCreateState.camera cursorLocation
 
         newNormalPlatform =
             GamePlatform.Normal
@@ -339,8 +353,11 @@ renderLevelCreateScreen windowSize levelCreateState =
         { itemToPlace, cursorLocation, playState } =
             levelCreateState
 
+        gameScreenSize =
+            getGameScreenSize
+
         newMouseLocation =
-            mouseToGridInPixels windowSize levelCreateState.camera cursorLocation
+            mouseToGridInPixels (gameScreenSize playState.paused) windowSize levelCreateState.camera cursorLocation
     in
     List.concat
         [ [ renderCursorBlock itemToPlace (V2.vectorIntToFloat newMouseLocation) ]

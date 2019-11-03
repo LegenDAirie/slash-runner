@@ -13,9 +13,9 @@ import Game.TwoD.Camera as Camera
 import V2
 
 
-gameScreenSize : V2.Vector2
-gameScreenSize =
-    ( 1280, 720 )
+gameScreenSize : Float -> V2.Vector2
+gameScreenSize scale =
+    ( 1280 * scale, 720 * scale )
 
 
 gridSquareSize : V2.IntVector
@@ -61,10 +61,10 @@ pixelToGridConversion ( pixelX, pixelY ) =
     ( toFloat (floor (pixelX / toFloat gridSquareInPixelsX)), toFloat (floor (pixelY / toFloat gridSquareInPixelsY)) )
 
 
-convertMouseCoorToGameCoor : Camera.Camera -> V2.Vector2 -> V2.Vector2
-convertMouseCoorToGameCoor camera mouseLocation =
+convertMouseCoorToGameCoor : V2.Vector2 -> Camera.Camera -> V2.Vector2 -> V2.Vector2
+convertMouseCoorToGameCoor sizeOfGameScreen camera mouseLocation =
     mouseLocation
-        |> offSetOrigin
+        |> offSetOrigin sizeOfGameScreen
         |> offSetByCamera camera
         |> vectorFlipY
 
@@ -74,15 +74,15 @@ vectorFlipY ( x, y ) =
     ( x, -y )
 
 
-convertToGameUnits : V2.Vector2 -> V2.Vector2 -> V2.Vector2
-convertToGameUnits canvasSize mouseLocation =
-    V2.scale (Tuple.first gameScreenSize / Tuple.first canvasSize) mouseLocation
+convertToGameUnits : Float -> V2.Vector2 -> V2.Vector2 -> V2.Vector2
+convertToGameUnits gameScreenWidth canvasSize mouseLocation =
+    -- change canvasSize to canvasWidth
+    V2.scale (gameScreenWidth / Tuple.first canvasSize) mouseLocation
 
 
-offSetOrigin : V2.Vector2 -> V2.Vector2
-offSetOrigin location =
-    gameScreenSize
-        |> V2.scale 0.5
+offSetOrigin : V2.Vector2 -> V2.Vector2 -> V2.Vector2
+offSetOrigin sizeOfGameScreen location =
+    V2.scale 0.5 sizeOfGameScreen
         |> V2.sub location
 
 

@@ -6,8 +6,8 @@ import GamePlatform
 import V2
 
 
-mouseToGridInPixels : V2.Vector2 -> Camera -> V2.Vector2 -> V2.IntVector
-mouseToGridInPixels windowSize camera mousePosition =
+mouseToGridInPixels : V2.Vector2 -> V2.Vector2 -> Camera -> V2.Vector2 -> V2.IntVector
+mouseToGridInPixels sizeOfGameScreen windowSize camera mousePosition =
     let
         ( width, height ) =
             Coordinates.gridSquareSize
@@ -34,8 +34,8 @@ mouseToGridInPixels windowSize camera mousePosition =
 
         newPosition =
             mousePosition
-                |> convertToGameUnits canvasSize
-                |> convertMouseCoorToGameCoor camera
+                |> convertToGameUnits (Tuple.first sizeOfGameScreen) canvasSize
+                |> convertMouseCoorToGameCoor sizeOfGameScreen camera
                 |> pixelToGridConversion
                 |> gridToPixelConversion
     in

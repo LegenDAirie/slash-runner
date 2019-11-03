@@ -44,6 +44,11 @@ type alias NormalPlayState =
     }
 
 
+sizeOfGameScreen : V2.Vector2
+sizeOfGameScreen =
+    gameScreenSize 1
+
+
 initialNormalPlayState : NormalPlayState
 initialNormalPlayState =
     let
@@ -51,7 +56,7 @@ initialNormalPlayState =
             ( -300, 0 )
 
         ( gameWidth, gameHeight ) =
-            gameScreenSize
+            sizeOfGameScreen
     in
     { player = initialPlayer
     , permanentEnemies = []
@@ -74,7 +79,7 @@ createLevel levelData =
             ( -300, 0 )
 
         ( gameWidth, gameHeight ) =
-            gameScreenSize
+            sizeOfGameScreen
     in
     { player = initialPlayer
     , platforms = levelData.platforms
@@ -90,7 +95,7 @@ resetPlayState : NormalPlayState -> NormalPlayState
 resetPlayState normalPlayState =
     { normalPlayState
         | player = initialPlayer
-        , camera = Camera.fixedWidth (Tuple.first gameScreenSize) ( initialPlayer.x, initialPlayer.y )
+        , camera = Camera.fixedWidth (Tuple.first sizeOfGameScreen) ( initialPlayer.x, initialPlayer.y )
         , enemies = normalPlayState.permanentEnemies
         , paused = True
     }
