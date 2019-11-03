@@ -43,7 +43,7 @@ initialLevelCreateState =
     , cursorActive = False
     , playState = initialNormalPlayState
     , cameraLocation = V2.xyRecordToVector initialNormalPlayState.player
-    , camera = Camera.fixedWidth (Tuple.first Coordinates.gameSize) (V2.xyRecordToVector initialNormalPlayState.player)
+    , camera = Camera.fixedWidth (Tuple.first Coordinates.gameScreenSize) (V2.xyRecordToVector initialNormalPlayState.player)
     }
 
 
@@ -127,7 +127,7 @@ updateCamera pressedKeys paused state =
         True ->
             { state
                 | cameraLocation = updateCameraLocation pressedKeys state.cameraLocation
-                , camera = Camera.follow 0.5 0.17 (updateCameraLocation pressedKeys state.cameraLocation) state.camera
+                , camera = Camera.fixedWidth (2 * Tuple.first Coordinates.gameScreenSize) (updateCameraLocation pressedKeys state.cameraLocation)
             }
 
         False ->

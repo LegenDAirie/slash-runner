@@ -240,7 +240,7 @@ viewBody model =
         ( camera, gameScene ) =
             case model.gameScreen of
                 Uninitialized ->
-                    ( Camera.fixedWidth (Tuple.first Coordinates.gameSize) ( 0, 0 ), [] )
+                    ( Camera.fixedWidth (Tuple.first Coordinates.gameScreenSize) ( 0, 0 ), [] )
 
                 NormalPlay state ->
                     ( state.camera, NormalPlay.renderNormalPlay state )

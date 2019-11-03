@@ -2,7 +2,7 @@ module Coordinates exposing
     ( calculateCanvasSize
     , convertMouseCoorToGameCoor
     , convertToGameUnits
-    , gameSize
+    , gameScreenSize
     , gridSquareSize
     , gridToPixelConversion
     , locationToGridCoordinate
@@ -13,8 +13,8 @@ import Game.TwoD.Camera as Camera
 import V2
 
 
-gameSize : V2.Vector2
-gameSize =
+gameScreenSize : V2.Vector2
+gameScreenSize =
     ( 1280, 720 )
 
 
@@ -76,12 +76,12 @@ vectorFlipY ( x, y ) =
 
 convertToGameUnits : V2.Vector2 -> V2.Vector2 -> V2.Vector2
 convertToGameUnits canvasSize mouseLocation =
-    V2.scale (Tuple.first gameSize / Tuple.first canvasSize) mouseLocation
+    V2.scale (Tuple.first gameScreenSize / Tuple.first canvasSize) mouseLocation
 
 
 offSetOrigin : V2.Vector2 -> V2.Vector2
 offSetOrigin location =
-    gameSize
+    gameScreenSize
         |> V2.scale 0.5
         |> V2.sub location
 

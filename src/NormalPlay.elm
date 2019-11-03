@@ -14,7 +14,7 @@ module NormalPlay exposing
 
 import Color
 import Controller exposing (ButtonState, Controller)
-import Coordinates exposing (gameSize)
+import Coordinates exposing (gameScreenSize)
 import Dict exposing (Dict)
 import Enemy exposing (Enemy)
 import Game.Resources as Resources exposing (Resources)
@@ -51,7 +51,7 @@ initialNormalPlayState =
             ( -300, 0 )
 
         ( gameWidth, gameHeight ) =
-            gameSize
+            gameScreenSize
     in
     { player = initialPlayer
     , permanentEnemies = []
@@ -74,7 +74,7 @@ createLevel levelData =
             ( -300, 0 )
 
         ( gameWidth, gameHeight ) =
-            gameSize
+            gameScreenSize
     in
     { player = initialPlayer
     , platforms = levelData.platforms
@@ -90,7 +90,7 @@ resetPlayState : NormalPlayState -> NormalPlayState
 resetPlayState normalPlayState =
     { normalPlayState
         | player = initialPlayer
-        , camera = Camera.fixedWidth (Tuple.first gameSize) ( initialPlayer.x, initialPlayer.y )
+        , camera = Camera.fixedWidth (Tuple.first gameScreenSize) ( initialPlayer.x, initialPlayer.y )
         , enemies = normalPlayState.permanentEnemies
         , paused = True
     }
