@@ -120,10 +120,18 @@ updateCreateLevelState : Controller.Controller -> V2.Vector2 -> List Keyboard.Ke
 updateCreateLevelState controller windowSize pressedKeys tempProperties levelCreateState =
     let
         ( newCreateLevelState, possibleEncodedLevelData ) =
-            getCreateStateUpdateAction levelCreateState.playState pressedKeys
-                |> actionUpdate levelCreateState
-                |> updateCamera pressedKeys levelCreateState.playState.paused
-                |> updatePlayStateFromMouseState windowSize pressedKeys
+            if levelCreateState.playState.paused then
+                -- only if paused
+                getCreateStateUpdateAction levelCreateState.playState pressedKeys
+                    -- only if paused
+                    |> actionUpdate levelCreateState
+                    -- containers both if and not if paused
+                    |> updatedPausedCamera pressedKeys
+                    -- only if paused
+                    |> updatePlayStateFromMouseState windowSize pressedKeys
+
+            else
+                ( followPlayerCamera levelCreateState, Nothing )
     in
     ( { newCreateLevelState
         | playState = updateNormalPlay controller tempProperties newCreateLevelState.playState
@@ -132,20 +140,20 @@ updateCreateLevelState controller windowSize pressedKeys tempProperties levelCre
     )
 
 
-updateCamera : List Keyboard.Key -> Bool -> LevelCreateState -> LevelCreateState
-updateCamera pressedKeys paused state =
-    case paused of
-        True ->
-            { state
-                | cameraLocation = updateCameraLocation pressedKeys state.cameraLocation
-                , camera = Camera.fixedWidth (Tuple.first pasuedGameScreenSize) (updateCameraLocation pressedKeys state.cameraLocation)
-            }
+updatedPausedCamera : List Keyboard.Key -> LevelCreateState -> LevelCreateState
+updatedPausedCamera pressedKeys state =
+    { state
+        | cameraLocation = updateCameraLocation pressedKeys state.cameraLocation
+        , camera = Camera.fixedWidth (Tuple.first pasuedGameScreenSize) (updateCameraLocation pressedKeys state.cameraLocation)
+    }
 
-        False ->
-            { state
-                | camera = state.playState.camera
-                , cameraLocation = V2.xyRecordToVector state.playState.player
-            }
+
+followPlayerCamera : LevelCreateState -> LevelCreateState
+followPlayerCamera state =
+    { state
+        | camera = state.playState.camera
+        , cameraLocation = V2.xyRecordToVector state.playState.player
+    }
 
 
 cameraSpeed =
