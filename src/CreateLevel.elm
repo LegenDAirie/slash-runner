@@ -148,32 +148,36 @@ updateCamera pressedKeys paused state =
             }
 
 
+cameraSpeed =
+    15
+
+
 updateCameraLocation : List Keyboard.Key -> V2.Vector2 -> V2.Vector2
 updateCameraLocation pressedKeys ( x, y ) =
     case Keyboard.Arrows.wasdDirection pressedKeys of
         Keyboard.Arrows.North ->
-            ( x, y + 10 )
+            ( x, y + cameraSpeed )
 
         Keyboard.Arrows.NorthEast ->
-            ( x + 10, y + 10 )
+            ( x + cameraSpeed, y + cameraSpeed )
 
         Keyboard.Arrows.East ->
-            ( x + 10, y )
+            ( x + cameraSpeed, y )
 
         Keyboard.Arrows.SouthEast ->
-            ( x + 10, y - 10 )
+            ( x + cameraSpeed, y - cameraSpeed )
 
         Keyboard.Arrows.South ->
-            ( x, y - 10 )
+            ( x, y - cameraSpeed )
 
         Keyboard.Arrows.SouthWest ->
-            ( x - 10, y - 10 )
+            ( x - cameraSpeed, y - cameraSpeed )
 
         Keyboard.Arrows.West ->
-            ( x - 10, y )
+            ( x - cameraSpeed, y )
 
         Keyboard.Arrows.NorthWest ->
-            ( x - 10, y + 10 )
+            ( x - cameraSpeed, y + cameraSpeed )
 
         Keyboard.Arrows.NoDirection ->
             ( x, y )
